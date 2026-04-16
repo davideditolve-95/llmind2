@@ -6,21 +6,21 @@ import clsx from 'clsx';
 import { useI18n } from '@/lib/i18n/context';
 import { chatApi } from '@/lib/api';
 import {
-  MessageSquare,
-  HeartPulse,
-  Send,
-  Trash2,
-  ChevronDown,
-  RefreshCw,
-  Bot,
-  User,
-  Plus,
-  History,
-  MoreVertical,
-  Check,
-  X,
-  Edit2
-} from 'lucide-react';
+  ChatBubbleLeftRightIcon,
+  PaperAirplaneIcon,
+  TrashIcon,
+  ArrowPathIcon,
+  UserIcon,
+  PlusIcon,
+  ClockIcon,
+  CheckIcon,
+  XMarkIcon,
+  PencilSquareIcon,
+  SparklesIcon,
+  BeakerIcon,
+  BookOpenIcon,
+  CpuChipIcon,
+} from '@heroicons/react/24/outline';
 import MarkdownContent from '@/components/ui/MarkdownContent';
 
 interface Message {
@@ -43,21 +43,20 @@ export default function ChatPage() {
   // Session management
   const [sessions, setSessions] = useState<{ id: string; title: string; mode: string; created_at: string }[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState(uuidv4());
-  const [currentTitle, setCurrentTitle] = useState('Nuova Conversazione');
+  const [currentTitle, setCurrentTitle] = useState('New Conversation');
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Carica i modelli e le sessioni iniziali
   useEffect(() => {
     chatApi.getModels().then((res) => {
       setModels(res.models);
       setSelectedModel(res.default_model);
     }).catch(() => {});
-    
     loadSessions();
   }, []);
 
@@ -84,6 +83,7 @@ export default function ChatPage() {
         role: m.role,
         content: m.content
       })));
+      setShowHistory(false);
     } catch (err) {
       console.error('Error loading history:', err);
     }
@@ -93,7 +93,8 @@ export default function ChatPage() {
     const newId = uuidv4();
     setCurrentSessionId(newId);
     setMessages([]);
-    setCurrentTitle('Nuova Conversazione');
+    setCurrentTitle('New Conversation');
+    setShowHistory(false);
   };
 
   const handleRename = async (id: string) => {
@@ -136,7 +137,7 @@ export default function ChatPage() {
         language,
       });
 
-      if (!stream) throw new Error('Stream non disponibile');
+      if (!stream) throw new Error('Stream unavailable');
 
       const reader = stream.getReader();
       const decoder = new TextDecoder();
@@ -184,12 +185,12 @@ export default function ChatPage() {
         )
       );
       setIsStreaming(false);
-      loadSessions(); // Ricarica per vedere il nuovo titolo o timestamp
+      loadSessions();
     }
-  }, [input, isStreaming, mode, selectedModel, language]);
+  }, [input, isStreaming, mode, selectedModel, language, currentSessionId]);
 
   const clearConversation = () => {
-    if (confirm('Sei sicuro di voler cancellare questa conversazione?')) {
+    if (confirm('Clear this conversation?')) {
       chatApi.clearHistory(currentSessionId).then(() => {
         startNewChat();
         loadSessions();
@@ -204,252 +205,335 @@ export default function ChatPage() {
     }
   };
 
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  const modeConfig = {
+    icd11: {
+      label: 'ICD-11 Assistant',
+      sublabel: 'Ontology & Diagnostic Coding',
+      icon: BookOpenIcon,
+      color: 'bg-indigo-600',
+      border: 'border-indigo-600',
+      badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      glow: 'shadow-indigo-500/20',
+      placeholder: 'Enter a clinical question or ICD-11 code to explore...',
+    },
+    wellbeing: {
+      label: 'Differential Diagnosis',
+      sublabel: 'Multi-agent Differential Reasoning',
+      icon: BeakerIcon,
+      color: 'bg-emerald-600',
+      border: 'border-emerald-600',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      glow: 'shadow-emerald-500/20',
+      placeholder: 'Describe patient symptoms for differential analysis...',
+    }
+  };
+
+  const activeMode = modeConfig[mode];
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-warm-50 page-enter">
-      {/* ─── Sidebar sinistra: Sessioni e History ───────────── */}
-      <div className="w-80 flex-shrink-0 bg-white border-r border-warm-200 flex flex-col p-0 z-10 shadow-sm relative">
-        <div className="p-6 border-b border-warm-100 bg-slate-50/50">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-              <History className="w-4 h-4 text-slate-400" />
-              History
-            </h2>
-            <button 
-              onClick={startNewChat}
-              className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+    <div className="flex h-[calc(100vh-4rem)] bg-slate-50 page-enter overflow-hidden">
+      
+      {/* ──── LEFT SIDEBAR ──── */}
+      <div className="w-72 bg-slate-950 flex flex-col border-r border-white/10 flex-shrink-0 hidden lg:flex">
+        
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg">
+              <CpuChipIcon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-black text-sm leading-none">AI Workspace</p>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Clinical Engine v4.2</p>
+            </div>
           </div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('chat.subtitle')}</p>
+          
+          <button
+            onClick={startNewChat}
+            className="btn w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white border-none font-black text-sm gap-2 shadow-lg shadow-indigo-500/20"
+          >
+            <PlusIcon className="w-5 h-5" />
+            New Consultation
+          </button>
         </div>
 
-        {/* Lista Sessioni */}
-        <div className="flex-1 overflow-y-auto px-2 py-4 space-y-1 custom-scrollbar">
-          {sessionsLoading ? (
-            <div className="flex items-center justify-center py-10 gap-2 opacity-30">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Loading...</span>
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="px-4 py-8 text-center opacity-30">
-              <p className="text-[10px] font-black uppercase tracking-widest">No history yet</p>
-            </div>
-          ) : (
-            sessions.map(s => (
-              <div 
-                key={s.id}
-                onClick={() => !editingSessionId && loadSessionHistory(s.id)}
-                className={clsx(
-                  "group relative w-full flex flex-col gap-1 px-4 py-3 rounded-xl transition-all cursor-pointer",
-                  currentSessionId === s.id ? "bg-white shadow-premium border border-warm-200 ring-1 ring-slate-900/5 translate-x-1" : "hover:bg-warm-50 border border-transparent"
-                )}
-              >
-                {editingSessionId === s.id ? (
-                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                    <input 
-                      autoFocus
-                      value={newTitle}
-                      onChange={e => setNewTitle(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleRename(s.id)}
-                      className="flex-1 bg-warm-100 border-none rounded-lg text-xs font-bold px-2 py-1 outline-none focus:ring-1 focus:ring-slate-400"
-                    />
-                    <button onClick={() => handleRename(s.id)} className="text-sage-600 hover:scale-110"><Check className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setEditingSessionId(null)} className="text-slate-400 hover:scale-110"><X className="w-3.5 h-3.5" /></button>
+        {/* MODE SWITCHER — primary UI element */}
+        <div className="p-6 border-b border-white/10">
+          <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-4">Reasoning Mode</p>
+          <div className="flex flex-col gap-2">
+            {(['icd11', 'wellbeing'] as const).map((m) => {
+              const cfg = modeConfig[m];
+              const Icon = cfg.icon;
+              const isActive = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={clsx(
+                    "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left",
+                    isActive
+                      ? "bg-white/10 border-white/30 shadow-lg"
+                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                  )}
+                >
+                  <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", isActive ? cfg.color : "bg-white/10")}>
+                    <Icon className="w-5 h-5 text-white" />
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className={clsx(
-                        "text-xs font-bold truncate max-w-[85%]",
-                        currentSessionId === s.id ? "text-slate-900" : "text-slate-600"
-                      )}>{s.title}</span>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingSessionId(s.id); setNewTitle(s.title); }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white rounded-md text-slate-400"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={clsx(
-                        "text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md",
-                        s.mode === 'wellbeing' ? "bg-lavender-50 text-lavender-600" : "bg-sage-50 text-sage-600"
-                      )}>{s.mode}</span>
-                      <span className="text-[9px] font-bold text-slate-300 uppercase italic">
-                        {new Date(s.created_at).toLocaleDateString([], { day: '2-digit', month: 'short' })}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))
+                  <div>
+                    <p className={clsx("text-sm font-black leading-none mb-0.5", isActive ? "text-white" : "text-white/50")}>{cfg.label}</p>
+                    <p className={clsx("text-[10px] leading-none", isActive ? "text-white/60" : "text-white/25")}>{cfg.sublabel}</p>
+                  </div>
+                  {isActive && <div className="ml-auto w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Model + Language controls */}
+        <div className="p-6 border-b border-white/10 space-y-4">
+          <div>
+            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Neural Model</p>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              style={{ backgroundColor: '#1e293b', color: 'white' }}
+              className="w-full h-11 rounded-xl border border-white/20 font-black text-sm focus:border-indigo-400 focus:outline-none px-3"
+            >
+              {models.map(m => <option key={m} value={m} style={{ backgroundColor: '#0f172a' }}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Language</p>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              style={{ backgroundColor: '#1e293b', color: 'white' }}
+              className="w-full h-11 rounded-xl border border-white/20 font-black text-sm focus:border-indigo-400 focus:outline-none px-3"
+            >
+              <option value="en" style={{ backgroundColor: '#0f172a' }}>English</option>
+              <option value="it" style={{ backgroundColor: '#0f172a' }}>Italiano</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Session History */}
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
+          <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-3 px-2">Session History</p>
+          {sessionsLoading ? (
+            <div className="flex justify-center py-8"><span className="loading loading-spinner loading-sm text-indigo-400" /></div>
+          ) : sessions.length === 0 ? (
+            <p className="text-white/20 text-[10px] uppercase font-black tracking-widest text-center py-8">No sessions yet</p>
+          ) : (
+            <div className="space-y-1">
+              {sessions.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => !editingSessionId && loadSessionHistory(s.id)}
+                  className={clsx(
+                    "group p-3 rounded-xl cursor-pointer transition-all",
+                    currentSessionId === s.id
+                      ? "bg-white/15 border border-indigo-400/40"
+                      : "hover:bg-white/10 border border-transparent"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    {editingSessionId === s.id ? (
+                      <div className="flex items-center gap-1.5 flex-1" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="text"
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          className="input input-xs bg-white/20 text-white border-indigo-400 flex-1 text-xs"
+                          autoFocus
+                        />
+                        <button onClick={() => handleRename(s.id)}><CheckIcon className="w-3.5 h-3.5 text-indigo-400" /></button>
+                        <button onClick={() => setEditingSessionId(null)}><XMarkIcon className="w-3.5 h-3.5 text-red-400" /></button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={clsx("text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded", s.mode === 'wellbeing' ? "bg-emerald-500/20 text-emerald-400" : "bg-indigo-500/20 text-indigo-400")}>
+                              {s.mode === 'wellbeing' ? 'DIAG' : 'ICD-11'}
+                            </span>
+                          </div>
+                          <p className={clsx("text-xs font-medium leading-tight truncate", currentSessionId === s.id ? "text-white" : "text-white/50")}>
+                            {s.title}
+                          </p>
+                          <p className="text-[9px] text-white/25 mt-0.5">{new Date(s.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); setEditingSessionId(s.id); setNewTitle(s.title); }} className="p-1 hover:text-white text-white/40">
+                            <PencilSquareIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Settings Inferiori */}
-        <div className="p-4 border-t border-warm-100 bg-warm-50/50 space-y-4">
-          <div>
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('chat.model_select')}</label>
-            <div className="relative">
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full bg-white border border-warm-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none appearance-none hover:border-warm-300 transition-colors shadow-sm"
-              >
-                {models.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Mode</label>
-              <div className="flex p-1 rounded-xl bg-warm-200/50 border border-warm-200/50 relative overflow-hidden h-9">
-                <button 
-                  onClick={() => setMode('icd11')}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center rounded-lg transition-all z-10",
-                    mode === 'icd11' ? "bg-white text-sage-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                </button>
-                <button 
-                  onClick={() => setMode('wellbeing')}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center rounded-lg transition-all z-10",
-                    mode === 'wellbeing' ? "bg-white text-lavender-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  <HeartPulse className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-            <div className="w-20">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Lang</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full h-9 bg-white border border-warm-200 rounded-xl px-2 text-[10px] font-bold text-slate-700 outline-none appearance-none shadow-sm"
-              >
-                <option value="en">EN</option>
-                <option value="it">IT</option>
-              </select>
-            </div>
-          </div>
-
-          <button onClick={clearConversation} className="w-full flex items-center justify-center gap-2 py-2 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100">
-            <Trash2 className="w-3.5 h-3.5" />
-            {t('chat.clear')}
+        {/* Clear button */}
+        <div className="p-4 border-t border-white/10">
+          <button onClick={clearConversation} className="btn btn-ghost w-full h-10 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 text-xs font-black uppercase tracking-widest gap-2 border border-white/10 hover:border-red-500/30">
+            <TrashIcon className="w-4 h-4" />
+            Clear Session
           </button>
         </div>
       </div>
 
-      {/* ─── Area chat principale ──────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header modalità */}
-        <div className={clsx(
-          'px-6 py-3 border-b flex items-center gap-2',
-          mode === 'wellbeing' ? 'bg-lavender-50 border-lavender-200' : 'bg-sage-50 border-sage-200'
-        )}>
-          {mode === 'wellbeing'
-            ? <HeartPulse className="w-4 h-4 text-lavender-600" />
-            : <MessageSquare className="w-4 h-4 text-sage-600" />}
-          <span className="text-sm font-black text-slate-900 tracking-tight">
-            {currentTitle}
-          </span>
-          <span className="text-[10px] font-bold text-slate-400 bg-warm-100 px-2 py-0.5 rounded-md uppercase ml-2">
-            {mode === 'wellbeing' ? t('chat.mode_wellbeing') : t('chat.mode_icd11')}
-          </span>
-          <div className="ml-auto flex items-center gap-4">
-             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{selectedModel}</span>
-             <div className="h-4 w-px bg-warm-200" />
-             <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-sage-500 animate-pulse" />
-                <span className="text-[10px] font-black text-sage-600 uppercase tracking-widest">Live Session</span>
-             </div>
+      {/* ──── MAIN CHAT AREA ──── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Top bar — mode indicator + title */}
+        <div className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between flex-shrink-0 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className={clsx("w-3 h-3 rounded-full", activeMode.color, "shadow-lg")} />
+            <div>
+              <p className="font-black text-slate-800 text-lg leading-none">{activeMode.label}</p>
+              <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest">{activeMode.sublabel}</p>
+            </div>
+            <span className={clsx("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", activeMode.badge)}>
+              {isStreaming ? '● Streaming...' : '● Ready'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest hidden md:block">Model: <span className="text-indigo-600">{selectedModel}</span></span>
           </div>
         </div>
 
-        {/* Messaggi */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sage-200 to-powder-200 flex items-center justify-center mb-4">
-                <Bot className="w-8 h-8 text-sage-600" />
+        {/* Messages area */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 md:px-16 py-10 space-y-10">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-8 py-20">
+              <div className={clsx("w-28 h-28 rounded-[3rem] flex items-center justify-center shadow-2xl", activeMode.glow, activeMode.color)}>
+                {mode === 'icd11' ? <BookOpenIcon className="w-14 h-14 text-white" /> : <BeakerIcon className="w-14 h-14 text-white" />}
               </div>
-              <p className="text-slate-500 text-sm max-w-xs">
-                {mode === 'wellbeing'
-                  ? t('chat.placeholder_wellbeing')
-                  : t('chat.placeholder_icd11')}
-              </p>
+              <div className="space-y-3 max-w-md">
+                <p className="text-3xl font-black text-slate-800 tracking-tight">{activeMode.label}</p>
+                <p className="text-slate-400 font-medium text-lg leading-relaxed">{activeMode.sublabel}</p>
+                <p className="text-slate-300 text-sm">{activeMode.placeholder}</p>
+              </div>
+              {/* Quick mode switch hint for empty state */}
+              <div className="flex gap-3 mt-4">
+                {(['icd11', 'wellbeing'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className={clsx(
+                      "flex items-center gap-2 px-5 py-3 rounded-2xl border-2 font-black text-sm transition-all",
+                      mode === m
+                        ? `${modeConfig[m].color} text-white border-transparent shadow-lg`
+                        : "border-slate-200 text-slate-500 hover:border-slate-300"
+                    )}
+                  >
+                    {m === 'icd11' ? <BookOpenIcon className="w-4 h-4" /> : <BeakerIcon className="w-4 h-4" />}
+                    {modeConfig[m].label}
+                  </button>
+                ))}
+              </div>
             </div>
+          ) : (
+            messages.map((m) => (
+              <div key={m.id} className={clsx("flex gap-5 animate-slide-up", m.role === 'user' ? "flex-row-reverse" : "flex-row")}>
+                {/* Avatar */}
+                <div className={clsx(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg",
+                  m.role === 'user' ? "bg-slate-800 text-white" : mode === 'icd11' ? "bg-indigo-600 text-white" : "bg-emerald-600 text-white"
+                )}>
+                  {m.role === 'user' ? <UserIcon className="w-6 h-6" /> : <SparklesIcon className="w-6 h-6" />}
+                </div>
+                
+                {/* Bubble */}
+                <div className={clsx(
+                  "max-w-[75%] rounded-3xl px-8 py-6 shadow-sm",
+                  m.role === 'user'
+                    ? "bg-slate-800 text-white rounded-tr-md"
+                    : "bg-white text-slate-800 rounded-tl-md border border-slate-200"
+                )}>
+                  <div className={clsx(
+                    "prose prose-base max-w-none leading-relaxed",
+                    m.role === 'user' ? "prose-invert" : "prose-slate"
+                  )}>
+                    <MarkdownContent content={m.content} className="text-inherit text-lg" />
+                    {m.streaming && <span className="streaming-cursor" />}
+                  </div>
+                </div>
+              </div>
+            ))
           )}
-
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={clsx('flex gap-3 max-w-3xl', msg.role === 'user' ? 'ml-auto flex-row-reverse' : '')}
-            >
-              {/* Avatar */}
-              <div className={clsx(
-                'w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center',
-                msg.role === 'user'
-                  ? 'bg-sage-400'
-                  : mode === 'wellbeing' ? 'bg-lavender-200' : 'bg-powder-200'
-              )}>
-                {msg.role === 'user'
-                  ? <User className="w-4 h-4 text-white" />
-                  : <Bot className={clsx('w-4 h-4', mode === 'wellbeing' ? 'text-lavender-700' : 'text-powder-700')} />}
-              </div>
-
-              {/* Bolla messaggio */}
-              <div className={clsx(
-                'max-w-[85%] px-5 py-4 rounded-2xl text-sm leading-relaxed shadow-soft relative overflow-hidden',
-                msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'
-              )}>
-                {msg.role === 'assistant' ? (
-                  <MarkdownContent content={msg.content || (msg.streaming ? '' : '...')} className="text-inherit" />
-                ) : (
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                )}
-                {msg.streaming && <span className="streaming-cursor block mt-2" />}
-              </div>
-            </div>
-          ))}
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <div className="px-6 py-4 bg-white border-t border-warm-200">
-          <div className="flex gap-3 items-end">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={mode === 'wellbeing' ? t('chat.placeholder_wellbeing') : t('chat.placeholder_icd11')}
-              rows={2}
-              className="textarea-field flex-1 min-h-[56px] max-h-[200px]"
-              disabled={isStreaming}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isStreaming}
-              className="btn-primary h-14 px-5"
-            >
-              {isStreaming ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </button>
+        {/* Input area */}
+        <div className="bg-white border-t border-slate-200 px-6 md:px-12 py-6 flex-shrink-0">
+          <div className="max-w-4xl mx-auto">
+            {/* Mode quick-switch — always active, works mid-conversation too */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex-shrink-0">Mode:</span>
+              {(['icd11', 'wellbeing'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={clsx(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border-2 transition-all",
+                    mode === m
+                      ? m === 'icd11' ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" : "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-200"
+                      : "border-slate-200 text-slate-600 bg-white hover:border-slate-300 hover:text-slate-800"
+                  )}
+                >
+                  {m === 'icd11' ? <BookOpenIcon className="w-3.5 h-3.5" /> : <BeakerIcon className="w-3.5 h-3.5" />}
+                  {m === 'icd11' ? 'ICD-11' : 'Differential Dx'}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={activeMode.placeholder}
+                rows={3}
+                className={clsx(
+                  "w-full resize-none px-7 py-5 pr-20 text-xl font-medium text-slate-800 bg-slate-50 border-2 rounded-3xl focus:outline-none focus:bg-white transition-all placeholder:text-slate-300 leading-relaxed shadow-inner",
+                  mode === 'icd11'
+                    ? "border-slate-200 focus:border-indigo-400 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.06)]"
+                    : "border-slate-200 focus:border-emerald-400 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.06)]"
+                )}
+                disabled={isStreaming}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || isStreaming}
+                className={clsx(
+                  "absolute bottom-4 right-4 w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl transition-all border-none disabled:opacity-30",
+                  mode === 'icd11'
+                    ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30 hover:scale-105"
+                    : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/30 hover:scale-105"
+                )}
+              >
+                {isStreaming
+                  ? <ArrowPathIcon className="w-7 h-7 text-white animate-spin" />
+                  : <PaperAirplaneIcon className="w-7 h-7 text-white -rotate-45 -translate-y-0.5 translate-x-0.5" />
+                }
+              </button>
+            </div>
+            <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] text-center mt-3">
+              Press Enter to send · Shift+Enter for new line
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-1.5">⏎ {t('chat.send')} · Shift+⏎ newline</p>
         </div>
       </div>
     </div>

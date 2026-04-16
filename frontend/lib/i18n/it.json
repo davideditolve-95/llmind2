@@ -1,9 +1,9 @@
 {
   "nav": {
-    "home": "Esploratore 3D",
+    "home": "Home",
     "tabular": "Griglia Dati",
     "chat": "Chatbot AI",
-    "wellbeing": "Diagnosi Clinica",
+    "wellbeing": "Assistente AI",
     "benchmark": "Benchmark",
     "benchmark_cases": "Casi",
     "benchmark_history": "Cronologia",
@@ -11,8 +11,8 @@
     "language": "Lingua"
   },
   "home": {
-    "title": "Universo ICD-11",
-    "subtitle": "Esplora la tassonomia ICD-11 completa in uno spazio 3D interattivo",
+    "title": "Home Archivio Clinico",
+    "subtitle": "Accedi alla matrice completa di intelligenza clinica da una dashboard unificata",
     "loading": "Caricamento universo ICD-11...",
     "no_data": "Nessun dato ICD-11 disponibile. Eseguire prima lo script ETL.",
     "click_hint": "Clicca un nodo per espandere le sue sottocategorie",
@@ -52,7 +52,7 @@
     "title": "Assistente AI Clinico",
     "subtitle": "Fai domande su diagnosi e classificazioni ICD-11",
     "mode_icd11": "Ricerca ICD-11",
-    "mode_wellbeing": "Diagnosi Clinica",
+    "mode_wellbeing": "Assistente Clinico",
     "placeholder_icd11": "Chiedi informazioni su codici ICD-11, sintomi, diagnosi...",
     "placeholder_wellbeing": "Descrivi il caso clinico per la diagnosi differenziale...",
     "send": "Invia",

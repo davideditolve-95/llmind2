@@ -1,9 +1,9 @@
 {
   "nav": {
-    "home": "3D Explorer",
+    "home": "Home",
     "tabular": "Data Grid",
     "chat": "AI Chatbot",
-    "wellbeing": "Clinical Diagnosis",
+    "wellbeing": "AI Assistant",
     "benchmark": "Benchmark",
     "benchmark_cases": "Cases",
     "benchmark_history": "History",
@@ -11,8 +11,8 @@
     "language": "Language"
   },
   "home": {
-    "title": "ICD-11 Universe",
-    "subtitle": "Explore the complete ICD-11 taxonomy in an interactive 3D space",
+    "title": "Clinical Archive Home",
+    "subtitle": "Access the complete clinical intelligence matrix from a unified dashboard",
     "loading": "Loading ICD-11 universe...",
     "no_data": "No ICD-11 data available. Run the ETL script first.",
     "click_hint": "Click a node to expand its subcategories",
@@ -52,7 +52,7 @@
     "title": "Clinical AI Assistant",
     "subtitle": "Ask questions about ICD-11 diagnoses and classifications",
     "mode_icd11": "ICD-11 Search",
-    "mode_wellbeing": "Clinical Diagnosis",
+    "mode_wellbeing": "Clinical Assistant",
     "placeholder_icd11": "Ask about ICD-11 codes, symptoms, diagnoses...",
     "placeholder_wellbeing": "Describe the clinical case for differential diagnosis...",
     "send": "Send",

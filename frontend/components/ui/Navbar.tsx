@@ -4,178 +4,214 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import {
-  Globe,
-  LayoutGrid,
-  MessageSquare,
-  HeartPulse,
-  FlaskConical,
-  ChevronDown,
-  Languages,
-  Settings,
-} from 'lucide-react';
-import { useState } from 'react';
+  HomeIcon,
+  Squares2X2Icon,
+  ChatBubbleLeftRightIcon,
+  BeakerIcon,
+  Cog6ToothIcon,
+  ChevronDownIcon,
+} from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import { useState, useRef, useEffect } from 'react';
 
-// Tipo per un link di navigazione
-interface NavLink {
+interface NavItem {
   href: string;
-  labelKey: string;
-  icon: React.ReactNode;
-  children?: { href: string; labelKey: string }[];
+  label: string;
+  icon: React.ElementType;
+  iconColor: string;
+  children?: { href: string; label: string }[];
 }
 
-const NAV_LINKS: NavLink[] = [
-  {
-    href: '/',
-    labelKey: 'nav.home',
-    icon: <Globe className="w-4 h-4" />,
-  },
-  {
-    href: '/tabular',
-    labelKey: 'nav.tabular',
-    icon: <LayoutGrid className="w-4 h-4" />,
-  },
-  {
-    href: '/chat',
-    labelKey: 'nav.chat',
-    icon: <MessageSquare className="w-4 h-4" />,
-  },
-  {
-    href: '/wellbeing',
-    labelKey: 'nav.wellbeing',
-    icon: <HeartPulse className="w-4 h-4" />,
-  },
+const NAV: NavItem[] = [
+  { href: '/', label: 'Home', icon: HomeIcon, iconColor: 'text-slate-500' },
+  { href: '/tabular', label: 'ICD-11', icon: Squares2X2Icon, iconColor: 'text-indigo-500' },
+  { href: '/chat', label: 'AI Chat', icon: ChatBubbleLeftRightIcon, iconColor: 'text-cyan-500' },
   {
     href: '/benchmark',
-    labelKey: 'nav.benchmark',
-    icon: <FlaskConical className="w-4 h-4" />,
+    label: 'Benchmark',
+    icon: BeakerIcon,
+    iconColor: 'text-emerald-500',
     children: [
-      { href: '/benchmark', labelKey: 'nav.benchmark' },
-      { href: '/benchmark/cases', labelKey: 'nav.benchmark_cases' },
+      { href: '/benchmark', label: 'Analytics' },
+      { href: '/benchmark/cases', label: 'Cases' },
     ],
   },
-  {
-    href: '/settings',
-    labelKey: 'nav.settings',
-    icon: <Settings className="w-4 h-4" />,
-  },
+  { href: '/settings', label: 'Settings', icon: Cog6ToothIcon, iconColor: 'text-slate-500' },
 ];
+
+function DesktopDropdown({ item, isActive }: { item: NavItem; isActive: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={clsx(
+          'flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] transition-all border',
+          isActive
+            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800 border-transparent'
+        )}
+      >
+        <item.icon className={clsx('w-4 h-4', item.iconColor)} />
+        {item.label}
+        <ChevronDownIcon className={clsx('w-3 h-3 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-200/80 z-[200] py-2 animate-slide-up">
+          {item.children!.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              onClick={() => setOpen(false)}
+              className={clsx(
+                'flex items-center px-5 py-3 text-sm font-bold transition-colors',
+                pathname === child.href
+                  ? 'text-indigo-700 bg-indigo-50'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              )}
+            >
+              {child.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const pathname = usePathname();
   const { t, lang, setLang } = useI18n();
-  const [benchmarkOpen, setBenchmarkOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
   return (
-    <nav className="sticky top-0 z-50 h-16 glass border-b border-warm-200/50 shadow-soft">
-      <div className="h-full mx-auto px-8 flex items-center justify-between max-w-screen-2xl">
+    <nav className="sticky top-0 z-[100] bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-sage-400 to-sage-600 flex items-center justify-center shadow-glow-sage transition-transform group-hover:scale-110 duration-300">
-            <span className="text-white text-[10px] font-black tracking-tighter">ICD</span>
+        <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-black text-[9px] shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+            ICD
           </div>
-          <div>
-            <span className="font-black text-slate-900 text-sm tracking-tight leading-none">ICD-11 Explorer</span>
-            <br />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Intelligence Engine</span>
+          <div className="hidden sm:block">
+            <span className="font-black text-xl tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">LLMind2</span>
+            <span className="block text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Clinical AI</span>
           </div>
         </Link>
 
-        {/* Link di navigazione */}
-        <div className="hidden md:flex items-center gap-2">
-          {NAV_LINKS.map((link) =>
-            link.children ? (
-              <div
-                key={link.href}
-                className="relative"
-                onMouseEnter={() => setBenchmarkOpen(true)}
-                onMouseLeave={() => setBenchmarkOpen(false)}
-              >
-                <button
-                  className={clsx(
-                    'flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all duration-200',
-                    isActive(link.href)
-                      ? 'bg-sage-50 text-sage-600'
-                      : 'text-slate-500 hover:bg-white hover:text-slate-900'
-                  )}
-                >
-                  {link.icon}
-                  {t(link.labelKey as Parameters<typeof t>[0])}
-                  <ChevronDown
-                    className={clsx('w-3 h-3 transition-transform duration-300', benchmarkOpen && 'rotate-180')}
-                  />
-                </button>
-
-                {/* Menu dropdown - Glassified */}
-                {benchmarkOpen && (
-                  <div className="absolute top-full left-0 w-48 glass rounded-3xl shadow-2xl overflow-hidden animate-slide-up p-1.5 border border-white/60">
-                    {link.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={clsx(
-                          'block px-4 py-3 text-[11px] font-bold uppercase tracking-wider rounded-2xl transition-all',
-                          pathname === child.href
-                            ? 'bg-sage-500 text-white shadow-md'
-                            : 'text-slate-600 hover:bg-white hover:text-sage-600'
-                        )}
-                      >
-                        {t(child.labelKey as Parameters<typeof t>[0])}
-                      </Link>
-                    ))}
-                  </div>
+        {/* Desktop Nav */}
+        <div className="hidden lg:flex items-center gap-1">
+          {NAV.map((item) => {
+            if (item.children) {
+              return <DesktopDropdown key={item.href} item={item} isActive={isActive(item.href)} />;
+            }
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  'flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] transition-all border',
+                  isActive(item.href)
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800 border-transparent'
                 )}
+              >
+                <item.icon className={clsx('w-4 h-4', isActive(item.href) ? 'text-indigo-600' : item.iconColor)} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Right side — Language + Mobile toggle */}
+        <div className="flex items-center gap-3">
+          {/* Language switcher */}
+          <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200">
+            {(['en', 'it'] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all',
+                  lang === l
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200'
+                    : 'text-slate-400 hover:text-slate-600'
+                )}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors border border-slate-200"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileOpen && (
+        <div className="lg:hidden bg-white border-t border-slate-200 px-6 py-4 space-y-1 animate-slide-up">
+          {NAV.map((item) => (
+            item.children ? (
+              <div key={item.href}>
+                <div className="flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </div>
+                <div className="pl-6 space-y-1">
+                  {item.children.map((child) => (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={clsx(
+                        'block px-3 py-2.5 rounded-xl text-sm font-bold transition-colors',
+                        pathname === child.href ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                      )}
+                    >
+                      {child.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             ) : (
               <Link
-                key={link.href}
-                href={link.href}
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
                 className={clsx(
-                  'flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all duration-200',
-                  isActive(link.href)
-                    ? 'bg-sage-50 text-sage-600'
-                    : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors',
+                  isActive(item.href) ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
                 )}
               >
-                {link.icon}
-                {t(link.labelKey as Parameters<typeof t>[0])}
+                <item.icon className={clsx('w-5 h-5', isActive(item.href) ? 'text-indigo-600' : item.iconColor)} />
+                {item.label}
               </Link>
             )
-          )}
+          ))}
         </div>
-
-        {/* Selettore lingua */}
-        <div className="flex items-center gap-4">
-          <div className="flex p-1 rounded-2xl border border-warm-200/50 bg-warm-100/50 backdrop-blur-sm">
-            <button
-              onClick={() => setLang('en')}
-              className={clsx(
-                'px-4 py-1.5 text-[10px] font-black tracking-[0.1em] rounded-xl transition-all',
-                lang === 'en'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
-              )}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLang('it')}
-              className={clsx(
-                'px-4 py-1.5 text-[10px] font-black tracking-[0.1em] rounded-xl transition-all',
-                lang === 'it'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
-              )}
-            >
-              IT
-            </button>
-          </div>
-        </div>
-      </div>
+      )}
     </nav>
   );
 }

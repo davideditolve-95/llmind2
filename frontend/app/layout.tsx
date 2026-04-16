@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { I18nProvider } from '@/lib/i18n/context';
 import Navbar from '@/components/ui/Navbar';
+import ChatWidget from '@/components/ui/ChatWidget';
 
 export const metadata: Metadata = {
   title: 'ICD-11 Explorer & Clinical AI',
@@ -18,15 +19,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-warm-50 font-sans antialiased">
+      <body className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800">
         {/* Provider i18n — wrappa tutta l'app per le traduzioni */}
         <I18nProvider>
           {/* Navbar principale con navigazione e selettore lingua */}
           <Navbar />
           {/* Contenuto principale delle pagine */}
-          <main className="flex flex-col min-h-[calc(100vh-4rem)]">
+          <main className="flex-1">
             {children}
           </main>
+          {/* Chatbot sempre visibile */}
+          <ChatWidget />
         </I18nProvider>
       </body>
     </html>

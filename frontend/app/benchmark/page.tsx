@@ -8,11 +8,30 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import {
-  FlaskConical, BarChart2, TrendingUp, Star, Clock, Cpu,
-  Activity, RefreshCw, Filter, Database, Brain, Play, Terminal, 
-  Clipboard, CheckCircle, XCircle, Loader, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Download, FileText, Code, Table
-} from 'lucide-react';
+  BeakerIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon,
+  StarIcon,
+  ClockIcon,
+  CpuChipIcon,
+  BoltIcon,
+  ArrowPathIcon,
+  FunnelIcon,
+  TableCellsIcon,
+  LightBulbIcon,
+  PlayIcon,
+  CommandLineIcon,
+  ClipboardIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowDownTrayIcon,
+  DocumentTextIcon,
+  CodeBracketIcon,
+} from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import MarkdownContent from '@/components/ui/MarkdownContent';
 
@@ -33,14 +52,23 @@ function KpiCard({ icon, label, value, sub, color }: {
   color: string;
 }) {
   return (
-    <div className="card flex items-start gap-4 p-5 transition-all hover:shadow-md">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} shadow-sm`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{label}</p>
-        <p className="text-2xl font-black text-slate-800 tracking-tight mt-0.5">{value}</p>
-        {sub && <p className="text-[10px] font-bold text-slate-400 mt-0.5 italic">{sub}</p>}
+    <div className="group premium-card rounded-[2.5rem] bg-white transition-all hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 border-slate-200/60 overflow-hidden">
+      <div className="card-body flex-row items-center gap-6 p-10">
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${color} shadow-2xl flex-shrink-0 transition-transform group-hover:rotate-12 group-hover:scale-110 border border-white/50`}>
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] opacity-30 font-black uppercase tracking-[0.3em] leading-none mb-3">{label}</p>
+          <p className="text-4xl font-black tracking-tight leading-none text-slate-800">{value}</p>
+          {sub && (
+            <div className="flex items-center gap-2 mt-4 overflow-hidden">
+               <span className="w-1.5 h-1.5 rounded-full bg-slate-200 flex-shrink-0" />
+               <p className="text-[12px] font-bold opacity-40 truncate italic text-slate-500">
+                 {sub}
+               </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -81,60 +109,60 @@ function MultiEvaluationPanel({ run, onUpdate }: { run: BenchmarkRun; onUpdate: 
   };
 
   return (
-    <div className="mt-6 pt-6 border-t border-warm-100">
-      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">
+    <div className="mt-6 pt-6 border-t border-base-200">
+      <h4 className="text-[10px] font-black opacity-40 uppercase tracking-widest mb-4">
         {t('history.rate_response')} (Multi-Criteria)
       </h4>
       
       {run.evaluations && run.evaluations.length > 0 && (
         <div className="mb-6 space-y-3">
           {run.evaluations.map((ev) => (
-            <div key={ev.id} className="bg-white rounded-xl p-4 border border-warm-200 shadow-sm flex items-start justify-between">
+            <div key={ev.id} className="bg-base-100 rounded-xl p-4 border border-base-200 shadow-sm flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-black text-slate-700 text-sm whitespace-nowrap">{ev.evaluator_name}</span>
+                  <span className="font-black text-sm">{ev.evaluator_name}</span>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map(star => (
-                      <Star key={star} className={clsx("w-3.5 h-3.5", star <= ev.rating ? "fill-amber-400 text-amber-400" : "text-slate-200 fill-slate-200")} />
+                      <StarIcon key={star} className={clsx("w-3.5 h-3.5", star <= ev.rating ? "fill-warning text-warning" : "text-base-300 fill-base-300")} />
                     ))}
                   </div>
                 </div>
-                {ev.notes && <p className="text-xs text-slate-500 mt-1 italic leading-relaxed">{ev.notes}</p>}
+                {ev.notes && <p className="text-xs opacity-50 mt-1 italic leading-relaxed">{ev.notes}</p>}
               </div>
-              <button onClick={(e) => handleDelete(e, ev.id)} className="text-red-400 hover:text-red-600 transition-colors bg-red-50 p-1.5 rounded-lg ml-4">
-                <XCircle className="w-4 h-4" />
+              <button onClick={(e) => handleDelete(e, ev.id)} className="btn btn-error btn-xs btn-circle btn-ghost">
+                <XCircleIcon className="w-4 h-4" />
               </button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex flex-col gap-4 bg-warm-50/50 p-5 rounded-2xl border border-warm-100 shadow-inner-sm">
+      <div className="flex flex-col gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner">
         <input 
           type="text" value={evaluatorName} onClick={(e) => e.stopPropagation()}
           onChange={(e) => setEvaluatorName(e.target.value)}
           placeholder="Criterion (e.g. Accuracy, Empathy, Dr. Smith)"
-          className="input-field text-sm font-medium bg-white/80"
+          className="w-full h-10 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:border-indigo-400 transition-colors"
         />
         <div className="flex items-center gap-2">
           {[1, 2, 3, 4, 5].map((star) => (
             <button key={star} onMouseEnter={() => setHover(star)} onMouseLeave={() => setHover(0)}
               onClick={(e) => { e.stopPropagation(); setSelected(star); }}
-              className="group transition-transform hover:scale-110 active:scale-95"
+              className="transition-transform hover:scale-110 active:scale-95"
             >
-              <Star className={clsx("w-7 h-7 transition-colors drop-shadow-sm", star <= (hover || selected) ? "fill-amber-400 text-amber-400" : "text-warm-200 fill-transparent")} />
+              <StarIcon className={clsx("w-7 h-7 transition-colors", star <= (hover || selected) ? "fill-amber-400 text-amber-400" : "text-slate-200 fill-transparent")} />
             </button>
           ))}
-          {selected > 0 && <span className="text-sm font-black text-amber-600 ml-2 bg-amber-50 px-2 py-0.5 rounded-full">{selected}/5</span>}
+          {selected > 0 && <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700 text-[10px] font-black ml-2">{selected}/5</span>}
         </div>
         <textarea
           value={notes} onClick={(e) => e.stopPropagation()} onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('history.your_notes')} rows={2} className="textarea-field text-sm bg-white/80 transition-colors"
+          placeholder={t('history.your_notes')} rows={2} className="w-full p-3 rounded-xl border-2 border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-indigo-400 transition-colors resize-none"
         />
         <button onClick={handleSave} disabled={!selected || !evaluatorName.trim() || saving}
-          className="btn-primary self-start px-6 shadow-md hover:shadow-lg transition-all"
+          className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-black text-sm self-start transition-colors"
         >
-          {saving ? <div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" />{t('common.loading')}</div> : "Add Evaluation"}
+          {saving ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : "Add Evaluation"}
         </button>
       </div>
     </div>
@@ -154,29 +182,29 @@ function TechnicalLog({ run }: { run: BenchmarkRun }) {
   };
 
   return (
-    <div className="mt-6 pt-6 border-t border-warm-100 bg-slate-900/5 -mx-8 px-8 pb-8">
+    <div className="mt-6 pt-6 border-t border-slate-200 bg-slate-50 -mx-8 px-8 pb-8">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-slate-500" />
-          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('history.view_log')}</h4>
+          <CommandLineIcon className="w-4 h-4 text-slate-400" />
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('history.view_log')}</h4>
         </div>
-        <button onClick={handleCopy} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors bg-white px-3 py-1 rounded-full border border-warm-200 shadow-sm">
-          {copying ? <CheckCircle className="w-3 h-3 text-sage-500" /> : <Clipboard className="w-3 h-3" />}
+        <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 text-sm font-black text-slate-600 hover:text-slate-800 bg-white border border-slate-200 shadow-sm rounded-xl transition-colors">
+          {copying ? <CheckCircleIcon className="w-3 h-3 text-emerald-600" /> : <ClipboardIcon className="w-3 h-3" />}
           {copying ? "Copied!" : "Copy Full JSON"}
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-2 block">System & User Prompt</span>
-          <pre className="p-4 bg-slate-900 text-slate-300 rounded-xl text-[11px] font-mono overflow-auto max-h-64 shadow-inner custom-scrollbar">
-            <span className="text-sage-400 font-bold mb-2 block border-b border-white/10 pb-1">SYSTEM:</span> {run.system_prompt_used || 'N/A'}\n\n
-            <span className="text-powder-400 font-bold mb-2 block border-b border-white/10 pb-1">USER:</span> {run.prompt_used}
+          <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter mb-2 block">System & User Prompt</span>
+          <pre className="p-4 bg-slate-900 text-slate-100 rounded-xl text-[11px] font-mono overflow-auto max-h-64 shadow-inner custom-scrollbar">
+            <span className="text-emerald-400 font-bold mb-2 block border-b border-white/10 pb-1 uppercase">SYSTEM:</span> {run.system_prompt_used || 'N/A'}\n\n
+            <span className="text-cyan-400 font-bold mb-2 block border-b border-white/10 pb-1 uppercase">USER:</span> {run.prompt_used}
           </pre>
         </div>
         <div>
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-2 block">Raw Response / Error</span>
-          <div className="p-4 bg-slate-900 text-slate-300 rounded-xl text-[11px] font-mono overflow-auto max-h-64 shadow-inner custom-scrollbar whitespace-pre-wrap prose-invert prose-xs">
-            {run.llm_response ? <MarkdownContent content={run.llm_response} className="text-slate-300" /> : (run.status === 'failed' ? `ERROR: ${run.error_message}` : 'No response yet')}
+          <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter mb-2 block">Raw Response / Error</span>
+          <div className="p-4 bg-slate-900 text-slate-100 rounded-xl text-[11px] font-mono overflow-auto max-h-64 shadow-inner custom-scrollbar whitespace-pre-wrap">
+            {run.llm_response ? <MarkdownContent content={run.llm_response} className="text-slate-100" /> : (run.status === 'failed' ? <div className="text-red-400 font-bold">ERROR: {run.error_message}</div> : 'No response yet')}
           </div>
         </div>
       </div>
@@ -190,10 +218,10 @@ function RunRow({ run, onNeedsRefresh, onRetry }: { run: BenchmarkRun; onNeedsRe
   const [retrying, setRetrying] = useState(false);
 
   const statusConfig: Record<string, { icon: React.ReactNode; class: string; label: string }> = {
-    completed: { icon: <CheckCircle className="w-3.5 h-3.5" />, class: 'badge-sage', label: t('history.status_completed') },
-    failed: { icon: <XCircle className="w-3.5 h-3.5" />, class: 'badge-powder text-red-600 bg-red-50 border-red-100', label: t('history.status_failed') },
-    running: { icon: <Loader className="w-3.5 h-3.5 animate-spin" />, class: 'badge-powder', label: t('history.status_running') },
-    pending: { icon: <Clock className="w-3.5 h-3.5" />, class: 'badge-warm', label: t('history.status_pending') },
+    completed: { icon: <CheckCircleIcon className="w-4 h-4" />, class: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: t('history.status_completed') },
+    failed: { icon: <XCircleIcon className="w-4 h-4" />, class: 'bg-red-100 text-red-700 border-red-200', label: t('history.status_failed') },
+    running: { icon: <ArrowPathIcon className="w-4 h-4 animate-spin" />, class: 'bg-blue-100 text-blue-700 border-blue-200', label: t('history.status_running') },
+    pending: { icon: <ClockIcon className="w-4 h-4" />, class: 'bg-slate-100 text-slate-500 border-slate-200', label: t('history.status_pending') },
   };
   const status = statusConfig[run.status] || statusConfig.pending;
 
@@ -205,52 +233,101 @@ function RunRow({ run, onNeedsRefresh, onRetry }: { run: BenchmarkRun; onNeedsRe
 
   return (
     <>
-      <div onClick={() => setExpanded(!expanded)} className={clsx("flex items-center gap-4 py-4 px-6 cursor-pointer transition-all", expanded ? "bg-white/50" : "hover:bg-white/30")}>
+      <div 
+        onClick={() => setExpanded(!expanded)} 
+        className={clsx(
+          "flex items-center gap-6 py-6 px-10 cursor-pointer transition-all border-b border-slate-100", 
+          expanded ? "bg-primary/5 ring-1 ring-inset ring-primary/10" : "hover:bg-slate-50"
+        )}
+      >
         <div className="flex-1 min-w-0">
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-slate-800 truncate">{run.case_title}</span>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter italic">CASE: {run.case_number || 'N/A'}</span>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-bold truncate text-slate-800">{run.case_title}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] italic">Case {run.case_number || 'N/A'}</span>
+              <span className="h-1 w-1 rounded-full bg-slate-200" />
+              <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">ID: {run.id.slice(0, 8)}</span>
+            </div>
           </div>
         </div>
-        <div className="w-32">
-          <div className="flex items-center gap-2">
-            <Brain className="w-3 h-3 text-powder-500" />
-            <span className="text-[11px] font-mono font-bold text-slate-600 truncate bg-white px-2 py-0.5 rounded-lg border border-warm-200 shadow-inner-sm">{run.model_name}</span>
+        <div className="w-40">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100 shadow-sm">
+            <CpuChipIcon className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="text-[11px] font-mono font-bold truncate text-indigo-700 uppercase tracking-tight">{run.model_name}</span>
           </div>
         </div>
         <div className="w-24 text-right">
           {run.similarity_score != null ? (
-            <span className={clsx("text-sm font-black", run.similarity_score >= 0.7 ? "text-sage-600" : run.similarity_score >= 0.4 ? "text-amber-500" : "text-red-500")}>{(run.similarity_score * 100).toFixed(1)}%</span>
-          ) : <span className="text-warm-300">—</span>}
+            <div className="flex flex-col items-end">
+              <span className={clsx("text-base font-black leading-none", run.similarity_score >= 0.7 ? "text-success" : run.similarity_score >= 0.4 ? "text-warning" : "text-error")}>
+                {(run.similarity_score * 100).toFixed(1)}%
+              </span>
+              <span className="text-[8px] font-black opacity-20 uppercase tracking-widest mt-1">Similarity</span>
+            </div>
+          ) : <span className="opacity-20">—</span>}
         </div>
-        <div className="w-20 text-right">
-           <span className="text-[10px] font-bold text-slate-400">{run.latency_ms ? `${run.latency_ms}ms` : '—'}</span>
+        <div className="w-24 text-right pr-4">
+           {run.latency_ms ? (
+             <div className="flex flex-col items-end">
+               <span className="text-xs font-bold text-base-content/60">{run.latency_ms}ms</span>
+               <span className="text-[8px] font-black opacity-20 uppercase tracking-widest mt-0.5">Latency</span>
+             </div>
+           ) : <span className="opacity-20">—</span>}
         </div>
-        <div className="w-32 flex justify-center">
-          <span className={clsx('badge-premium flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold h-7', status.class)}>{status.icon} {status.label}</span>
+        <div className="w-36 flex justify-center">
+          <div className={clsx('badge badge-lg gap-2 font-black uppercase text-[10px] h-9 px-4 border shadow-sm', status.class)}>
+            {status.icon} 
+            {status.label}
+          </div>
         </div>
-        <div className="w-24 flex items-center justify-end gap-2 px-2">
-          <button onClick={handleRetry} disabled={retrying || run.status === 'running' || run.status === 'pending'} className="w-8 h-8 rounded-full bg-white border border-warm-200 flex items-center justify-center text-slate-400 hover:text-sage-600 hover:border-sage-200 transition-all disabled:opacity-30 shadow-sm"><Play className={clsx("w-3.5 h-3.5 fill-current", retrying && "animate-spin")} /></button>
-          <div className={clsx("w-6 h-6 rounded-full flex items-center justify-center transition-all", expanded ? "bg-sage-500 text-white rotate-180 shadow-md" : "bg-warm-100 text-slate-400")}><ChevronDown className="w-3 h-3" /></div>
+        <div className="w-32 flex items-center justify-end gap-3 pr-2">
+          <button 
+            onClick={handleRetry} 
+            disabled={retrying || run.status === 'running' || run.status === 'pending'} 
+            className="btn btn-ghost btn-sm btn-circle bg-white border border-slate-200 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+          >
+            <ArrowPathIcon className={clsx("w-4 h-4", retrying && "animate-spin")} />
+          </button>
+          <div className={clsx(
+            "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+            expanded ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 rotate-180" : "bg-slate-100 text-slate-500"
+          )}>
+            <ChevronDownIcon className="w-4 h-4" />
+          </div>
         </div>
       </div>
       {expanded && (
-        <div className="bg-white/80 border-y border-warm-100 p-8 space-y-8 animate-slide-down">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <h5 className="flex items-center gap-2 text-[10px] font-black text-lavender-700 uppercase tracking-widest"><div className="w-1.5 h-4 bg-lavender-400 rounded-full" /> {t('history.gold_standard')}</h5>
-              <div className="bg-lavender-50/50 p-5 rounded-2xl border border-lavender-100 text-sm text-slate-700 leading-relaxed shadow-inner-sm min-h-[120px]">
-                {run.gold_standard_diagnosis ? <MarkdownContent content={run.gold_standard_diagnosis} /> : <span className="italic opacity-40">N/A</span>}
+        <div className="bg-slate-50 divide-y divide-slate-100 border-t border-slate-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 p-10">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h5 className="flex items-center gap-2 text-[11px] font-black text-amber-600 uppercase tracking-[0.2em]">
+                  <StarIcon className="w-4 h-4 fill-amber-400" />
+                  {t('history.gold_standard')}
+                </h5>
+              </div>
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-sm leading-relaxed min-h-[160px]">
+                <div className="prose prose-sm max-w-none prose-slate">
+                  {run.gold_standard_diagnosis ? <MarkdownContent content={run.gold_standard_diagnosis} /> : <span className="italic text-slate-300">N/A</span>}
+                </div>
               </div>
             </div>
-            <div className="space-y-3">
-              <h5 className="flex items-center gap-2 text-[10px] font-black text-powder-700 uppercase tracking-widest"><div className="w-1.5 h-4 bg-powder-400 rounded-full" /> {t('history.llm_response')}</h5>
-              <div className="bg-powder-50/50 p-5 rounded-2xl border border-powder-100 text-sm text-slate-700 leading-relaxed shadow-inner-sm min-h-[120px]">
-                {run.llm_response ? <MarkdownContent content={run.llm_response} /> : <span className="italic opacity-40">N/A</span>}
+            <div className="space-y-4">
+              <h5 className="flex items-center gap-2 text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em]">
+                <LightBulbIcon className="w-4 h-4" />
+                {t('history.llm_response')}
+              </h5>
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-sm leading-relaxed min-h-[160px]">
+                <div className="prose prose-sm max-w-none prose-slate">
+                  {run.llm_response ? <MarkdownContent content={run.llm_response} /> : <span className="italic text-slate-300">N/A</span>}
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-8"><MultiEvaluationPanel run={run} onUpdate={onNeedsRefresh} /><TechnicalLog run={run} /></div>
+          <div className="flex flex-col gap-10 p-10">
+            <MultiEvaluationPanel run={run} onUpdate={onNeedsRefresh} />
+            <TechnicalLog run={run} />
+          </div>
         </div>
       )}
     </>
@@ -268,64 +345,88 @@ function BatchInsightPanel({ batchId }: { batchId: string }) {
   }, [batchId]);
 
   if (loading) return (
-    <div className="flex items-center justify-center py-12 gap-3 opacity-40">
-      <Loader className="w-5 h-5 animate-spin" />
-      <span className="text-[10px] font-black uppercase tracking-widest">Calculating Batch Insights...</span>
+    <div className="flex items-center justify-center py-20 gap-4 opacity-40">
+      <ArrowPathIcon className="w-6 h-6 animate-spin text-primary" />
+      <span className="text-[11px] font-black uppercase tracking-[0.2em] italic">Calculating Batch Insights...</span>
     </div>
   );
 
   if (!data) return null;
 
+  const avgSimOverall = data.model_kpis.reduce((acc, m) => acc + (m.avg_similarity || 0), 0) / (data.model_kpis.length || 1);
+
   return (
-    <div className="p-8 bg-slate-50/80 border-y border-warm-100 animate-slide-down space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-5 rounded-2xl border border-warm-200 shadow-sm">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Batch Performance</p>
-           <p className="text-xl font-black text-slate-800">{Math.round((data.model_kpis.reduce((acc, m) => acc + (m.avg_similarity || 0), 0) / (data.model_kpis.length || 1)) * 100)}% <span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Avg Sim</span></p>
+   <div className="p-10 bg-slate-50 border-y border-slate-200 animate-slide-up space-y-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Batch Performance</p>
+           <p className="text-3xl font-black text-slate-900 leading-none">
+             {Math.round(avgSimOverall * 100)}% 
+             <span className="text-[11px] text-slate-300 font-bold ml-2 uppercase tracking-tighter italic">Avg Sim</span>
+           </p>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-warm-200 shadow-sm">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Batch Health</p>
-           <p className="text-xl font-black text-sage-600">{data.total_runs} <span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Total Completed</span></p>
+        <div className="bg-white p-6 rounded-2xl border border-emerald-200 shadow-sm hover:shadow-lg transition-all">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Batch Health</p>
+           <p className="text-3xl font-black text-emerald-600 leading-none">
+             {data.total_runs} 
+             <span className="text-[11px] text-emerald-300 font-bold ml-2 uppercase tracking-tighter italic">Runs OK</span>
+           </p>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-warm-200 shadow-sm">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Mean Latency</p>
-           <p className="text-xl font-black text-slate-800">
+        <div className="bg-white p-6 rounded-2xl border border-indigo-200 shadow-sm hover:shadow-lg transition-all">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none">Mean Latency</p>
+           <p className="text-3xl font-black text-indigo-600 leading-none">
              {Math.round(data.model_kpis.reduce((acc, m) => acc + (m.avg_latency_ms || 0), 0) / (data.model_kpis.length || 1))}ms
            </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-2xl border border-warm-200 shadow-sm">
-           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Batch Similarity per Model</h4>
-           <div className="h-40">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all">
+           <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.22em] mb-10 flex items-center gap-2">
+             <div className="w-1 h-4 bg-indigo-500 rounded-full" />
+             Batch Similarity per Model
+           </h4>
+           <div className="h-56">
              <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={data.model_kpis.map(m => ({ name: m.model_name, Similarity: Math.round((m.avg_similarity || 0) * 100) }))}>
-                 <XAxis dataKey="name" tick={{fontSize: 9, fontWeight: 'bold'}} />
-                 <YAxis domain={[0, 100]} tick={{fontSize: 9}} />
-                 <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                 <Bar dataKey="Similarity" fill="#87A878" radius={[6, 6, 0, 0]} />
-               </BarChart>
+                <BarChart data={data.model_kpis.map(m => ({ name: m.model_name, Similarity: Math.round((m.avg_similarity || 0) * 100) }))}>
+                  <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: '900', fill: '#94a3b8'}} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis domain={[0, 100]} hide />
+                  <Tooltip 
+                    cursor={{fill: '#eef2ff', opacity: 0.8}}
+                    contentStyle={{borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px', background: 'white', color: '#1e293b'}} 
+                  />
+                  <Bar dataKey="Similarity" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                </BarChart>
              </ResponsiveContainer>
            </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-warm-200 shadow-sm overflow-hidden flex flex-col">
-           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Batch Model Summary</h4>
-           <div className="flex-1 overflow-auto">
-             <table className="w-full text-left">
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-xl transition-all">
+           <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.22em] mb-8 flex items-center gap-2">
+             <div className="w-1 h-4 bg-emerald-500 rounded-full" />
+             Batch Model Summary
+           </h4>
+           <div className="flex-1 overflow-auto custom-scrollbar">
+             <table className="table w-full text-slate-800">
                <thead>
-                 <tr className="border-b border-warm-100">
-                   <th className="py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">Model</th>
-                   <th className="py-2 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">Sim</th>
-                   <th className="py-2 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest">Rating</th>
+                 <tr className="border-b border-slate-200">
+                   <th className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pb-4">Model</th>
+                   <th className="text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pb-4">Sim</th>
+                   <th className="text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pb-4 pr-4">Human Rating</th>
                  </tr>
                </thead>
-               <tbody>
+               <tbody className="divide-y divide-slate-100">
                  {data.model_kpis.map(m => (
-                   <tr key={m.model_name} className="border-b border-warm-50 last:border-0">
-                     <td className="py-2 text-xs font-bold text-slate-700">{m.model_name}</td>
-                     <td className="py-2 text-right text-xs font-black text-sage-600">{((m.avg_similarity || 0) * 100).toFixed(1)}%</td>
-                     <td className="py-2 text-right text-xs font-bold text-amber-500">{m.avg_human_rating ? m.avg_human_rating.toFixed(1) : '—'}</td>
+                   <tr key={m.model_name} className="hover:bg-slate-50 transition-colors">
+                     <td className="font-bold text-sm text-slate-800 py-4">{m.model_name}</td>
+                     <td className="text-right font-black text-emerald-600 text-sm py-4">{((m.avg_similarity || 0) * 100).toFixed(1)}%</td>
+                     <td className="text-right py-4 pr-4">
+                        {m.avg_human_rating ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                             <StarIcon className="w-4 h-4 text-amber-400 fill-amber-400" />
+                             <span className="font-black text-amber-600 text-sm">{m.avg_human_rating.toFixed(1)}</span>
+                          </div>
+                        ) : <span className="text-[10px] text-slate-300 font-black uppercase tracking-tighter italic">— No Ratings</span>}
+                     </td>
                    </tr>
                  ))}
                </tbody>
@@ -372,36 +473,36 @@ function ExportDropdown({ batchId, label = "Export" }: { batchId?: string; label
       <button 
         onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
         className={clsx(
-          "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border",
-          isOpen ? "bg-slate-900 border-slate-900 text-white shadow-lg lg:scale-105" : "bg-white border-warm-200 text-slate-500 hover:border-warm-300 active:scale-95"
+          "flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest border-2 shadow-sm transition-all",
+          isOpen ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
         )}
       >
-        <Download className="w-3.5 h-3.5" />
+        <ArrowDownTrayIcon className="w-3.5 h-3.5" />
         {label}
-        <ChevronDown className={clsx("w-3 h-3 transition-transform duration-300", isOpen && "rotate-180")} />
+        <ChevronDownIcon className={clsx("w-3 h-3 transition-transform duration-300", isOpen && "rotate-180")} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5 z-50 overflow-hidden animate-slide-down origin-top-right">
+        <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 z-50 overflow-hidden animate-slide-up origin-top-right">
           <div className="p-2 space-y-1">
-            <button onClick={() => handleExport('csv')} className="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-sage-50 text-sage-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Table className="w-4 h-4" /></div>
+            <button onClick={() => handleExport('csv')} className="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold hover:bg-slate-50 rounded-xl transition-colors group">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform"><TableCellsIcon className="w-4 h-4" /></div>
               <div className="flex flex-col text-left">
-                <span>Spreadsheet (CSV)</span>
+                <span className="text-slate-800">Spreadsheet (CSV)</span>
                 <span className="text-[9px] font-normal text-slate-400">Best for analysis in Excel</span>
               </div>
             </button>
-            <button onClick={() => handleExport('json')} className="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-powder-50 text-powder-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Code className="w-4 h-4" /></div>
+            <button onClick={() => handleExport('json')} className="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold hover:bg-slate-50 rounded-xl transition-colors group">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform"><CodeBracketIcon className="w-4 h-4" /></div>
               <div className="flex flex-col text-left">
-                <span>Raw Data (JSON)</span>
-                <span className="text-[9px] font-normal text-slate-400">Full metadata & metadata</span>
+                <span className="text-slate-800">Raw Data (JSON)</span>
+                <span className="text-[9px] font-normal text-slate-400">Full metadata & traces</span>
               </div>
             </button>
-            <button onClick={() => handleExport('txt')} className="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-lavender-50 text-lavender-600 flex items-center justify-center group-hover:scale-110 transition-transform"><FileText className="w-4 h-4" /></div>
+            <button onClick={() => handleExport('txt')} className="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold hover:bg-slate-50 rounded-xl transition-colors group">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center group-hover:scale-110 transition-transform"><DocumentTextIcon className="w-4 h-4" /></div>
               <div className="flex flex-col text-left">
-                <span>Audit Report (TXT)</span>
+                <span className="text-slate-800">Audit Report (TXT)</span>
                 <span className="text-[9px] font-normal text-slate-400">Clean clinical summary</span>
               </div>
             </button>
@@ -422,56 +523,97 @@ function BatchGroup({ group, onNeedsRefresh, onRetry }: { group: BenchmarkGroup;
   const avgSimilarity = group.runs.reduce((acc, r) => acc + (r.similarity_score || 0), 0) / (group.runs.filter(r => r.similarity_score != null).length || 1);
 
   return (
-    <div className="card mb-8 p-0 overflow-hidden ring-1 ring-warm-200/50 shadow-premium transition-all hover:shadow-3xl bg-white/40">
-      <div onClick={() => setIsExpanded(!isExpanded)} className="p-6 bg-white/60 backdrop-blur-md flex items-center justify-between cursor-pointer group">
-        <div className="flex items-center gap-6">
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition-transform"><Activity className="w-6 h-6" /></div>
+    <div className="bg-white shadow-xl border border-slate-200/60 mb-12 overflow-hidden transition-all hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] rounded-[3rem]">
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)} 
+        className={clsx(
+          "p-10 bg-white border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between cursor-pointer group relative overflow-hidden",
+          isExpanded && "bg-slate-50/50"
+        )}
+      >
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-50 rounded-full blur-[80px] translate-x-32 -translate-y-32" />
+        
+        <div className="flex items-center gap-8 relative z-10">
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-white flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform">
+            <BoltIcon className="w-8 h-8" />
+          </div>
           <div>
-            <div className="flex items-center gap-3">
-              <h3 className="text-lg font-black text-slate-800 tracking-tight leading-none">{t('history.session')}</h3>
-              <span className="text-[10px] font-mono font-bold text-slate-400 bg-warm-100 px-2 py-0.5 rounded-md uppercase tracking-tighter">ID: {group.batch_id.slice(0, 8)}...</span>
+            <div className="flex items-center gap-4">
+              <h3 className="text-xl font-black tracking-tight text-slate-900">{t('history.session')}</h3>
+              <div className="bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+                <span className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-widest leading-none">ID: {group.batch_id.slice(0, 8)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 mt-2">
-              <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-widest"><Clock className="w-3 h-3" />{new Date(group.created_at).toLocaleDateString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-black text-sage-600 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-100">{completedCount} DONE</span>
-                {failedCount > 0 && <span className="text-[9px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">{failedCount} FAIL</span>}
-                {runningCount > 0 && <span className="text-[9px] font-black text-powder-600 bg-powder-50 px-2 py-0.5 rounded-full border border-powder-100 animate-pulse">{runningCount} RUN</span>}
+            <div className="flex items-center gap-6 mt-3">
+              <span className="text-[11px] font-bold opacity-40 flex items-center gap-2 uppercase tracking-widest">
+                <ClockIcon className="w-4 h-4" /> 
+                {new Date(group.created_at).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}
+                <span className="opacity-20">|</span>
+                {new Date(group.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 bg-success/10 text-success px-2.5 py-1 rounded-full border border-success/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-tighter">{completedCount} SUCCESS</span>
+                </div>
+                {failedCount > 0 && (
+                  <div className="flex items-center gap-1.5 bg-error/10 text-error px-2.5 py-1 rounded-full border border-error/10">
+                    <span className="w-1.5 h-1.5 rounded-full bg-error" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">{failedCount} FAILED</span>
+                  </div>
+                )}
+                {runningCount > 0 && (
+                  <div className="flex items-center gap-1.5 bg-info/10 text-info px-2.5 py-1 rounded-full border border-info/10">
+                    <span className="w-1.5 h-1.5 rounded-full bg-info animate-ping" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">{runningCount} PENDING</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-           <ExportDropdown batchId={group.batch_id} />
-           <button 
-             onClick={(e) => { e.stopPropagation(); setShowInsights(!showInsights); }}
-             className={clsx(
-               "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-               showInsights ? "bg-slate-900 text-white shadow-lg" : "bg-white border border-warm-200 text-slate-500 hover:border-warm-300 shadow-sm"
-             )}
-           >
-             <BarChart2 className="w-3.5 h-3.5" />
-             {showInsights ? "Close Insights" : "View Insights"}
-           </button>
+        <div className="flex items-center gap-6 mt-6 md:mt-0 relative z-10">
+           <div className="flex items-center gap-3">
+             <ExportDropdown batchId={group.batch_id} />
+             <button 
+               onClick={(e) => { e.stopPropagation(); setShowInsights(!showInsights); }}
+               className={clsx(
+                 "btn btn-md gap-3 font-black uppercase tracking-widest shadow-md transition-all",
+                 showInsights ? "btn-neutral" : "btn-outline border-base-300 hover:border-primary hover:text-primary"
+               )}
+             >
+               <ChartBarIcon className="w-5 h-5" />
+               {showInsights ? "Hide Analytics" : "View Analytics"}
+             </button>
+           </div>
            {group.runs.length > 1 && (
-             <div className="text-right pr-8 border-r border-warm-200">
-               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Avg Similarity</span>
-               <span className="text-xl font-black text-slate-800">{(avgSimilarity * 100).toFixed(1)}%</span>
+             <div className="text-right pl-8 border-l border-base-200 hidden xl:block">
+               <span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1 leading-none">Batch Score</span>
+               <div className="flex items-center gap-2">
+                 <span className={clsx("text-3xl font-black leading-none", avgSimilarity >= 0.7 ? "text-success" : "text-warning")}>
+                   {(avgSimilarity * 100).toFixed(1)}%
+                 </span>
+               </div>
              </div>
            )}
-           <div className={clsx("w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-sm", isExpanded ? "bg-slate-900 text-white rotate-180" : "bg-white border border-warm-200 text-slate-400")}><ChevronDown className="w-5 h-5" /></div>
+           <div className={clsx(
+             "w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-base-200 shadow-inner group-hover:bg-primary/10 group-hover:text-primary", 
+             isExpanded && "bg-primary text-primary-content shadow-lg shadow-primary/20 rotate-180 group-hover:bg-primary group-hover:text-primary-content"
+           )}>
+             <ChevronDownIcon className="w-6 h-6" />
+           </div>
         </div>
       </div>
       {showInsights && <BatchInsightPanel batchId={group.batch_id} />}
       {isExpanded && (
-        <div className="bg-warm-50/30 divide-y divide-warm-100/50">
-          <div className="flex items-center gap-4 py-3 px-6 bg-slate-50/50 border-y border-warm-100">
-            <div className="flex-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('history.column_case')}</div>
-            <div className="w-32 text-[9px] font-black text-slate-400 uppercase tracking-widest font-sans">{t('history.column_model')}</div>
-            <div className="w-24 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest font-sans">{t('history.column_similarity')}</div>
-            <div className="w-20 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest font-sans">{t('history.column_latency')}</div>
-            <div className="w-32 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest font-sans">{t('history.column_status')}</div>
-            <div className="w-24 text-right text-[9px] font-black text-slate-400 uppercase tracking-widest font-sans pr-2">Actions</div>
+        <div className="bg-white divide-y divide-slate-100">
+          <div className="flex items-center gap-4 py-3 px-6 bg-slate-50 border-b border-slate-200 font-black text-[9px] text-slate-400 uppercase tracking-widest">
+            <div className="flex-1">{t('history.column_case')}</div>
+            <div className="w-32">{t('history.column_model')}</div>
+            <div className="w-24 text-right">{t('history.column_similarity')}</div>
+            <div className="w-20 text-right">{t('history.column_latency')}</div>
+            <div className="w-32 text-center">{t('history.column_status')}</div>
+            <div className="w-24 text-right pr-2">Actions</div>
           </div>
           {group.runs.map(run => <RunRow key={run.id} run={run} onNeedsRefresh={onNeedsRefresh} onRetry={onRetry} />)}
         </div>
@@ -481,7 +623,7 @@ function BatchGroup({ group, onNeedsRefresh, onRetry }: { group: BenchmarkGroup;
 }
 
 // ─── Main Consolidated Page ──────────────────────────────────────────────
-const MODEL_COLORS: Record<string, string> = { gemma4: '#87A878', llama3: '#B4D4E7', mistral: '#C9B8D4', default: '#D4C5B0' };
+const MODEL_COLORS: Record<string, string> = { gemma4: '#6366f1', llama3: '#10b981', mistral: '#f59e0b', default: '#94a3b8' };
 const getModelColor = (model: string) => MODEL_COLORS[model] || MODEL_COLORS.default;
 
 export default function BenchmarkConsolidatedPage() {
@@ -540,7 +682,7 @@ export default function BenchmarkConsolidatedPage() {
         if (models.length > 0) setAvailableModels(prev => [...new Set([...prev, ...models])]);
       } finally { setHistoryLoading(false); }
     }
-  }, [activeTab, page, modelFilter, statusFilter]);
+  }, [activeTab, page, modelFilter, statusFilter, historyLoading, groups.length]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -563,106 +705,274 @@ export default function BenchmarkConsolidatedPage() {
   const barData = kpis?.model_kpis.map((m) => ({ name: m.model_name, Similarity: m.avg_similarity ? Math.round(m.avg_similarity * 100) : 0 })) || [];
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-warm-50 page-enter font-sans">
-      {/* Consolidated Premium Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-warm-200 px-8 py-8 z-20 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-sage-100/40 rounded-full blur-3xl -mr-48 -mt-48" />
-        <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-powder-100/30 rounded-full blur-3xl -mb-32 opacity-40" />
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-50 page-enter">
+      {/* Header — no z-index override so content scrolls freely underneath */}
+      <div className="bg-white border-b border-slate-200 px-10 py-10 shadow-sm relative overflow-hidden flex-shrink-0">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] -mr-64 -mt-64" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/5 rounded-full blur-[80px] -ml-32 -mb-32" />
         
-        <div className="flex justify-between items-start relative z-10">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-               <div className="w-10 h-10 rounded-2xl bg-sage-500 flex items-center justify-center text-white shadow-lg">
-                  <Activity className="w-6 h-6" />
-               </div>
-               <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">{t('benchmark.title')}</h1>
+        <div className="max-w-7xl mx-auto relative">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-[2rem] bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center shadow-2xl shadow-primary/20 flex-shrink-0 animate-float">
+                <BoltIcon className="w-9 h-9" />
+              </div>
+              <div>
+                <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-none mb-2 bg-clip-text text-transparent bg-gradient-to-r from-base-content to-base-content/60">
+                  {t('benchmark.title')}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <span className="h-0.5 w-8 bg-primary rounded-full" />
+                  <p className="text-xs font-black uppercase tracking-[0.3em] opacity-40 italic">
+                    {t('benchmark.subtitle')}
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] ml-14 italic">{t('benchmark.subtitle')}</p>
+
+            <div className="flex items-center gap-4 self-end lg:self-center">
+              <ExportDropdown label="Global Export" />
+              <div className={clsx(
+                "flex items-center gap-3 px-5 py-2.5 rounded-2xl font-black uppercase text-[11px] border shadow-sm",
+                ollamaStatus === 'online' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ollamaStatus === 'offline' ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-100 text-slate-500 border-slate-200"
+              )}>
+                <div className={clsx("w-2.5 h-2.5 rounded-full", ollamaStatus === 'online' ? "bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" : ollamaStatus === 'offline' ? "bg-error" : "bg-base-content/40")} />
+                {ollamaStatus === 'online' ? "Ollama Online" : ollamaStatus === 'offline' ? "Ollama Offline" : "Checking Status"}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <ExportDropdown label="Global Export" />
-            <div className={clsx("px-5 py-2.5 rounded-2xl border flex items-center gap-3 transition-all h-10 shadow-sm", ollamaStatus === 'online' ? "bg-sage-50 border-sage-100 text-sage-600" : ollamaStatus === 'offline' ? "bg-red-50 border-red-100 text-red-600" : "bg-warm-50 border-warm-100 text-slate-400")}>
-              <div className={clsx("w-2 h-2 rounded-full", ollamaStatus === 'online' ? "bg-sage-500 animate-pulse" : ollamaStatus === 'offline' ? "bg-red-500" : "bg-slate-300")} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{ollamaStatus === 'online' ? "Ollama Online" : ollamaStatus === 'offline' ? "Ollama Offline" : "Ollama Stat"}</span>
+          {/* Tab Switcher */}
+          <div className="mt-10 flex flex-wrap items-center gap-6">
+            <div className="tabs tabs-boxed bg-base-200 p-1.5 border border-base-200 h-14">
+              <button 
+                onClick={() => setActiveTab('analytics')} 
+                className={clsx("tab h-full px-8 text-[11px] font-black uppercase tracking-widest", activeTab === 'analytics' && "tab-active")}
+              >
+                Analytics
+              </button>
+              <button 
+                onClick={() => setActiveTab('history')} 
+                className={clsx("tab h-full px-8 text-[11px] font-black uppercase tracking-widest", activeTab === 'history' && "tab-active")}
+              >
+                Full History
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Tab Switcher (Pill Style) */}
-        <div className="mt-10 flex items-center gap-6">
-           <div className="flex p-1.5 rounded-[1.4rem] border border-warm-200 bg-warm-100/50 backdrop-blur-sm shadow-inner-sm">
-             <button onClick={() => setActiveTab('analytics')} className={clsx("px-8 py-2.5 text-[11px] font-black tracking-widest uppercase rounded-[1rem] transition-all", activeTab === 'analytics' ? "bg-white text-slate-900 shadow-md" : "text-slate-500 hover:text-slate-700")}>Analytics</button>
-             <button onClick={() => setActiveTab('history')} className={clsx("px-8 py-2.5 text-[11px] font-black tracking-widest uppercase rounded-[1rem] transition-all", activeTab === 'history' ? "bg-white text-slate-900 shadow-md" : "text-slate-500 hover:text-slate-700")}>Detailed History</button>
-           </div>
-           
-           {activeTab === 'history' && (
-             <>
-               <div className="flex items-center gap-3 bg-white/50 px-5 py-2.5 rounded-[1.4rem] border border-warm-200">
-                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                 <select value={modelFilter} onChange={(e) => { setModelFilter(e.target.value); setPage(1); }} className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none">
+            
+            {activeTab === 'history' && (
+              <div className="flex flex-wrap items-center gap-4 animate-slide-up">
+                <div className="form-control">
+                  <select 
+                    value={modelFilter} 
+                    onChange={(e) => { setModelFilter(e.target.value); setPage(1); }} 
+                    className="select select-bordered select-sm h-14 font-black uppercase tracking-widest text-[9px] min-w-[160px]"
+                  >
                     <option value="">{t('history.filter_all')}</option>
                     {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
-                 </select>
-               </div>
-               <div className="flex items-center gap-3 bg-white/50 px-5 py-2.5 rounded-[1.4rem] border border-warm-200">
-                 <Activity className="w-3.5 h-3.5 text-slate-400" />
-                 <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none">
+                  </select>
+                </div>
+                <div className="form-control">
+                  <select 
+                    value={statusFilter} 
+                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} 
+                    className="select select-bordered select-sm h-14 font-black uppercase tracking-widest text-[9px] min-w-[160px]"
+                  >
                     <option value="">ALL STATUS</option>
                     <option value="completed">{t('history.status_completed')}</option>
                     <option value="failed">{t('history.status_failed')}</option>
-                 </select>
-               </div>
-               <div className="ml-auto flex items-center gap-4">
-                 <button onClick={() => loadData()} className="btn-secondary px-5 py-2.5 rounded-[1.4rem] text-[9px] font-black tracking-widest uppercase items-center flex gap-2"><RefreshCw className={clsx("w-3 h-3", historyLoading && "animate-spin")} /> Update</button>
-               </div>
-             </>
-           )}
+                  </select>
+                </div>
+                <button 
+                  onClick={() => loadData()} 
+                  className="btn btn-outline btn-sm h-14 px-6 gap-2 normal-case font-black text-[10px] uppercase tracking-widest"
+                >
+                  <ArrowPathIcon className={clsx("w-4 h-4", historyLoading && "animate-spin")} />
+                  Refresh
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-auto p-12 bg-warm-50/20 shadow-inner">
+      {/* Main Content Area — overflow-auto without z-index so header doesn't block */}
+      <div className="flex-1 overflow-auto custom-scrollbar bg-slate-50">
         {activeTab === 'analytics' ? (
-          <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+          <div className="max-w-7xl mx-auto p-12 space-y-8 animate-slide-up">
             {kpiLoading ? (
-               <div className="flex flex-col items-center justify-center py-40 gap-4 opacity-30"><Loader className="w-10 h-10 animate-spin" /><span className="text-[10px] font-black uppercase tracking-widest">Compiling Analytics...</span></div>
+               <div className="flex flex-col items-center justify-center py-40 gap-4 opacity-30">
+                  <ArrowPathIcon className="w-10 h-10 animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Compiling Analytics...</span>
+               </div>
             ) : !kpis || kpis.total_runs === 0 ? (
-               <div className="card text-center py-24 border-dashed bg-transparent border-warm-300 shadow-none">
-                 <FlaskConical className="w-12 h-12 text-warm-200 mx-auto mb-6" />
-                 <h3 className="text-xl font-bold text-slate-800 mb-2">{t('benchmark.no_data')}</h3>
-                 <a href="/benchmark/cases" className="btn-primary inline-flex px-8 mt-4">{t('benchmark.run_benchmark')}</a>
+               <div className="flex flex-col items-center justify-center py-40 text-center opacity-30">
+                 <BeakerIcon className="w-16 h-16 mb-6" />
+                 <h3 className="text-xl font-black mb-2">{t('benchmark.no_data')}</h3>
+                 <button onClick={() => window.location.href='/benchmark/cases'} className="btn btn-primary btn-outline btn-md mt-4">{t('benchmark.run_benchmark')}</button>
                </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                  <KpiCard icon={<FlaskConical className="w-5 h-5 text-sage-600" />} label={t('benchmark.kpi_total_runs')} value={kpis.total_runs.toLocaleString()} color="bg-sage-100" />
-                  <KpiCard icon={<BarChart2 className="w-5 h-5 text-powder-600" />} label={t('benchmark.kpi_total_cases')} value={kpis.total_cases.toLocaleString()} sub={`${kpis.reviewed_cases} Reviewed`} color="bg-powder-100" />
-                  <KpiCard icon={<Cpu className="w-5 h-5 text-lavender-600" />} label={t('benchmark.kpi_models')} value={kpis.models_tested.length} sub={kpis.models_tested.join(', ')} color="bg-lavender-100" />
-                  <KpiCard icon={<TrendingUp className="w-5 h-5 text-warm-600" />} label="Avg Similarity" value={`${Math.round(kpis.model_kpis.reduce((acc, m) => acc + (m.avg_similarity || 0), 0) / (kpis.model_kpis.length || 1) * 100)}%`} color="bg-warm-100" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <KpiCard icon={<BeakerIcon className="w-6 h-6" />} label={t('benchmark.kpi_total_runs')} value={kpis.total_runs.toLocaleString()} color="bg-indigo-50 text-indigo-600" />
+                  <KpiCard icon={<TableCellsIcon className="w-6 h-6" />} label={t('benchmark.kpi_total_cases')} value={kpis.total_cases.toLocaleString()} sub={`${kpis.reviewed_cases} Reviewed`} color="bg-emerald-50 text-emerald-600" />
+                  <KpiCard icon={<CpuChipIcon className="w-6 h-6" />} label={t('benchmark.kpi_models')} value={kpis.models_tested.length} sub={kpis.models_tested.join(', ')} color="bg-cyan-50 text-cyan-600" />
+                  <KpiCard icon={<ArrowTrendingUpIcon className="w-6 h-6" />} label="Avg Similarity" value={`${Math.round(kpis.model_kpis.reduce((acc, m) => acc + (m.avg_similarity || 0), 0) / (kpis.model_kpis.length || 1) * 100)}%`} color="bg-amber-50 text-amber-600" />
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="card p-8"><h3 className="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-8">{t('benchmark.chart_similarity')}</h3><ResponsiveContainer width="100%" height={260}><LineChart data={kpis.similarity_over_time}><CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" /><XAxis dataKey="date" tick={{fontSize: 10}} /><YAxis domain={[0,1]} tick={{fontSize: 10}} /><Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />{kpis.models_tested.map(m => <Line key={m} type="monotone" dataKey="similarity" stroke={getModelColor(m)} strokeWidth={3} dot={false} />)}</LineChart></ResponsiveContainer></div>
-                  <div className="card p-8"><h3 className="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-8">Model Performance comparison</h3><ResponsiveContainer width="100%" height={260}><BarChart data={barData} barSize={40}><CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" /><XAxis dataKey="name" tick={{fontSize: 10}} /><YAxis domain={[0,100]} tick={{fontSize: 10}} /><Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '16px'}} /><Bar dataKey="Similarity" fill="#87A878" radius={[10, 10, 0, 0]} /></BarChart></ResponsiveContainer></div>
-                  <div className="card p-8 col-span-1 lg:col-span-2"><h3 className="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-8">Multi-dimensional Diagnostics</h3><ResponsiveContainer width="100%" height={300}><RadarChart data={[ {subject: 'Similarity', ...Object.fromEntries(kpis.model_kpis.map(m => [m.model_name, Math.round((m.avg_similarity || 0) * 100)]))}, {subject: 'Latency', ...Object.fromEntries(kpis.model_kpis.map(m => [m.model_name, m.avg_latency_ms ? Math.max(0, 100 - m.avg_latency_ms / 100) : 0]))}, {subject: 'Ratings', ...Object.fromEntries(kpis.model_kpis.map(m => [m.model_name, Math.round((m.avg_human_rating || 0) * 20)]))} ]}><PolarGrid stroke="#e8e2d8" /><PolarAngleAxis dataKey="subject" tick={{fontSize: 11, fontWeight: 'bold'}} />{kpis.models_tested.map(m => <Radar key={m} name={m} dataKey={m} stroke={getModelColor(m)} fill={getModelColor(m)} fillOpacity={0.1} />)}<Legend /></RadarChart></ResponsiveContainer></div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="section-card">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">{t('benchmark.chart_similarity')}</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={kpis.similarity_over_time}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                          <XAxis dataKey="date" tick={{fontSize: 9, fontWeight: 'bold', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                          <YAxis domain={[0,1]} tick={{fontSize: 9, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                          <Tooltip contentStyle={{borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', background: 'white', color: '#1e293b'}} />
+                          {kpis.models_tested.map(m => <Line key={m} type="monotone" dataKey="similarity" stroke={getModelColor(m)} strokeWidth={3} dot={false} />)}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="section-card">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">Model Comparison</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={barData} barSize={40}>
+                           <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                           <XAxis dataKey="name" tick={{fontSize: 9, fontWeight: 'bold', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                           <YAxis domain={[0,100]} tick={{fontSize: 9, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                           <Tooltip cursor={{fill: '#f1f5f9', opacity: 0.8}} contentStyle={{borderRadius: '16px', border: '1px solid #e2e8f0', background: 'white', color: '#1e293b'}} />
+                           <Bar dataKey="Similarity" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="section-card lg:col-span-2">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">Advanced Diagnostics</h3>
+                    <div className="h-[340px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={[ {subject: 'Similarity', ...Object.fromEntries(kpis.model_kpis.map(m => [m.model_name, Math.round((m.avg_similarity || 0) * 100)]))}, {subject: 'Latency', ...Object.fromEntries(kpis.model_kpis.map(m => [m.model_name, m.avg_latency_ms ? Math.max(0, 100 - m.avg_latency_ms / 100) : 0]))}, {subject: 'Ratings', ...Object.fromEntries(kpis.model_kpis.map(m => [m.model_name, Math.round((m.avg_human_rating || 0) * 20)]))} ]}>
+                          <PolarGrid strokeOpacity={0.15} />
+                          <PolarAngleAxis dataKey="subject" tick={{fontSize: 11, fontWeight: 'bold', fill: '#64748b'}} />
+                          {kpis.models_tested.map(m => <Radar key={m} name={m} dataKey={m} stroke={getModelColor(m)} fill={getModelColor(m)} fillOpacity={0.1} />)}
+                          <Legend wrapperStyle={{paddingTop: '20px', textTransform: 'uppercase', fontSize: '10px', fontWeight: '900', letterSpacing: '0.1em', color: '#64748b'}} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="card p-0 overflow-hidden"><div className="p-8 border-b border-warm-100 bg-slate-50/50"><h3 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Benchmark Model Summary</h3></div><div className="overflow-x-auto"><table className="data-table"><thead><tr><th>Model</th><th className="text-right">Total Runs</th><th className="text-right">Avg Similarity</th><th className="text-right">Calculated Latency</th><th className="text-right">Rating Score</th></tr></thead><tbody>{kpis.model_kpis.map(m => <tr key={m.model_name} className="hover:bg-warm-50/50 transition-colors"><td><div className="flex items-center gap-3"><div className="w-2.5 h-2.5 rounded-full" style={{background: getModelColor(m.model_name)}} /><span className="font-bold text-slate-700">{m.model_name}</span></div></td><td className="text-right font-black text-slate-900">{m.total_runs}</td><td className="text-right text-sage-600 font-bold">{m.avg_similarity ? `${(m.avg_similarity * 100).toFixed(1)}%` : '—'}</td><td className="text-right text-slate-500 text-xs font-bold">{m.avg_latency_ms ? `${Math.round(m.avg_latency_ms)}ms` : '—'}</td><td className="text-right">{m.avg_human_rating ? <span className="text-amber-500 font-black">{'★'.repeat(Math.round(m.avg_human_rating))} <span className="text-[10px] text-slate-400 ml-1">({m.avg_human_rating.toFixed(1)})</span></span> : '—'}</td></tr>)}</tbody></table></div></div>
+                <div className="section-card overflow-hidden p-0">
+                  <div className="p-8 border-b border-slate-200 bg-slate-50">
+                    <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-3">
+                      <div className="w-1 h-5 bg-indigo-500 rounded-full" />
+                      Global Model Performance Matrix
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="table table-zebra w-full text-base-content">
+                      <thead className="bg-base-200/30">
+                        <tr className="text-[10px] uppercase font-black opacity-40 tracking-[0.15em] border-b border-base-200 italic">
+                          <th className="py-6 pl-8">Model Identifier</th>
+                          <th className="text-right py-6">Execution Load</th>
+                          <th className="text-right py-6">Success Rate %</th>
+                          <th className="text-right py-6">Calculated Latency</th>
+                          <th className="text-right py-6 pr-8">AI Reasoning Score</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {kpis.model_kpis.map(m => (
+                          <tr key={m.model_name} className="hover:bg-indigo-50/40 transition-all group">
+                            <td className="pl-8 py-5">
+                              <div className="flex items-center gap-4">
+                                <div className="w-3 h-3 rounded-full" style={{backgroundColor: getModelColor(m.model_name)}} />
+                                <span className="font-black text-slate-800 group-hover:text-indigo-700 transition-colors">{m.model_name}</span>
+                              </div>
+                            </td>
+                            <td className="text-right font-black text-base-content/60">
+                              <div className="flex flex-col items-end">
+                                <span className="text-sm font-black">{m.total_runs}</span>
+                                <span className="text-[8px] opacity-30 uppercase tracking-tighter">Total Iterations</span>
+                              </div>
+                            </td>
+                            <td className="text-right">
+                               <div className="flex flex-col items-end">
+                                 <span className="text-base font-black text-success leading-none">
+                                   {m.avg_similarity ? `${(m.avg_similarity * 100).toFixed(1)}%` : '—'}
+                                 </span>
+                                 <div className="w-24 h-1.5 bg-base-200 rounded-full mt-2 overflow-hidden border border-base-300">
+                                   <div 
+                                     className="h-full bg-success rounded-full opacity-60" 
+                                     style={{width: `${(m.avg_similarity || 0) * 100}%`}} 
+                                   />
+                                 </div>
+                               </div>
+                            </td>
+                            <td className="text-right">
+                              <div className="flex flex-col items-end">
+                                <span className="font-mono text-sm font-bold text-base-content/40 tracking-tighter">
+                                  {m.avg_latency_ms ? `${Math.round(m.avg_latency_ms)}ms` : '—'}
+                                </span>
+                                <span className="text-[8px] opacity-20 uppercase font-black tracking-widest mt-1">Mean Response Time</span>
+                              </div>
+                            </td>
+                            <td className="text-right pr-8">
+                              {m.avg_human_rating ? (
+                                <div className="flex flex-col items-end">
+                                  <div className="flex items-center justify-end gap-1.5 bg-warning/10 text-warning px-3 py-1.5 rounded-full border border-warning/10">
+                                    <StarIcon className="w-4 h-4 fill-warning" />
+                                    <span className="font-black leading-none text-sm">{m.avg_human_rating.toFixed(1)}</span>
+                                  </div>
+                                  <span className="text-[8px] opacity-20 font-black uppercase tracking-widest mt-2">Historical Average</span>
+                                </div>
+                              ) : <span className="text-[10px] opacity-20 font-black uppercase tracking-tighter italic">— Not Rated</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </>
             )}
           </div>
         ) : (
-          <div className="max-w-7xl mx-auto space-y-4 animate-fade-in pb-20">
+          <div className="max-w-7xl mx-auto p-12 space-y-4 animate-slide-up pb-20">
             {historyLoading && groups.length === 0 ? (
-               <div className="flex flex-col items-center justify-center py-40 gap-6 opacity-30 animate-pulse"><Database className="w-12 h-12 text-warm-200" /><span className="text-[10px] font-black uppercase tracking-[0.2em] italic">Indexing batch records...</span></div>
+               <div className="flex flex-col items-center justify-center py-40 gap-6 opacity-30">
+                  <TableCellsIcon className="w-12 h-12 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">Indexing batch records...</span>
+               </div>
             ) : groups.length === 0 ? (
-               <div className="card max-w-lg mx-auto py-24 text-center border-dashed bg-transparent border-warm-300 shadow-none"><Database className="w-12 h-12 mx-auto mb-6 text-warm-200" /><h3 className="text-xl font-bold text-slate-800 mb-2">{t('history.no_history')}</h3><p className="text-sm text-slate-400 italic">No runs detected in current workspace</p></div>
+               <div className="flex flex-col items-center justify-center py-40 opacity-30">
+                  <TableCellsIcon className="w-16 h-16 mb-6" />
+                  <h3 className="text-xl font-black mb-2">{t('history.no_history')}</h3>
+                  <p className="text-sm italic">No runs detected in current workspace</p>
+               </div>
             ) : (
               <div className="space-y-6">
                 {groups.map(group => <BatchGroup key={group.batch_id} group={group} onNeedsRefresh={() => loadData()} onRetry={loadData} />)}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-8"><button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="btn-secondary px-8 font-black text-[10px] tracking-widest uppercase disabled:opacity-30 self-start shadow-sm"><ChevronLeft className="w-4 h-4 mr-2" /> Previous</button><span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Page {page} of {totalPages}</span><button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-secondary px-8 font-black text-[10px] tracking-widest uppercase disabled:opacity-30 self-start shadow-sm">Next <ChevronRight className="w-4 h-4 ml-2" /></button></div>
+                  <div className="flex items-center justify-between pt-8">
+                    <button 
+                      onClick={() => setPage(p => Math.max(1, p - 1))} 
+                      disabled={page === 1} 
+                      className="btn btn-ghost btn-sm gap-2 normal-case font-black text-[10px] tracking-widest uppercase"
+                    >
+                      <ChevronLeftIcon className="w-4 h-4" /> 
+                      Previous
+                    </button>
+                    <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Page {page} of {totalPages}</span>
+                    <button 
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                      disabled={page === totalPages} 
+                      className="btn btn-ghost btn-sm gap-2 normal-case font-black text-[10px] tracking-widest uppercase"
+                    >
+                      Next 
+                      <ChevronRightIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             )}

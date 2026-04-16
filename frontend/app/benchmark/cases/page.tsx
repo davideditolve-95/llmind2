@@ -2,209 +2,22 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useI18n } from '@/lib/i18n/context';
-import { casesApi, benchmarkApi, type DSM5Case, type DSM5CaseSummary } from '@/lib/api';
+import { casesApi, benchmarkApi, type DSM5CaseSummary } from '@/lib/api';
 import Link from 'next/link';
 import {
-  Search, CheckCircle, Clock, BookOpen, Edit3, Play, X,
-  ChevronLeft, ChevronRight, FileText, AlertCircle, RefreshCw,
-  LayoutGrid
-} from 'lucide-react';
+  MagnifyingGlassIcon,
+  CheckCircleIcon,
+  PlayIcon,
+  DocumentTextIcon,
+  ArrowPathIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PencilSquareIcon,
+  CheckIcon,
+  SparklesIcon,
+  BeakerIcon,
+} from '@heroicons/react/24/outline';
 import clsx from 'clsx';
-
-// ─── Modal di editing del caso ────────────────────────────────────────────
-function CaseEditModal({
-  caseId,
-  onClose,
-  onSaved,
-}: {
-  caseId: string;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const { t } = useI18n();
-  const [caseData, setCaseData] = useState<DSM5Case | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    casesApi.get(caseId).then(setCaseData).finally(() => setLoading(false));
-  }, [caseId]);
-
-  const handleSave = async () => {
-    if (!caseData) return;
-    setSaving(true);
-    try {
-      await casesApi.update(caseId, {
-        title: caseData.title,
-        anamnesis: caseData.anamnesis,
-        discussion: caseData.discussion,
-        gold_standard_diagnosis: caseData.gold_standard_diagnosis,
-        is_reviewed: caseData.is_reviewed,
-        review_notes: caseData.review_notes,
-      });
-      setSaved(true);
-      setTimeout(() => { setSaved(false); onSaved(); }, 1500);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-all duration-500" onClick={onClose} />
-      <div className="relative bg-white rounded-[2.5rem] shadow-3xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col animate-slide-up border border-white/40">
-
-        {/* Header modal — Glassmorphism */}
-        <div className="flex items-center justify-between px-10 py-7 bg-white/80 backdrop-blur-xl border-b border-warm-100 z-10">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 rounded-xl bg-sage-100 flex items-center justify-center">
-                <FileText className="w-4 h-4 text-sage-600" />
-              </div>
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">{t('cases.modal_title')}</h2>
-            </div>
-            {caseData && (
-              <div className="flex items-center gap-3">
-                {caseData.case_number && <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Case ID: <span className="text-sage-600">{caseData.case_number}</span></span>}
-                <div className="w-1 h-1 rounded-full bg-slate-300" />
-                {caseData.source_page && <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('cases.page_ref')} <span className="text-slate-800">{caseData.source_page}</span></span>}
-              </div>
-            )}
-          </div>
-          <button onClick={onClose} className="btn-ghost w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center py-40">
-            <div className="w-12 h-12 rounded-full border-4 border-sage-100 border-t-sage-500 animate-spin" />
-          </div>
-        ) : caseData && (
-          <div className="flex-1 flex overflow-hidden">
-            {/* Sidebar Sinistra — Metadati & Review Status */}
-            <div className="w-80 bg-slate-50/50 border-r border-warm-100 p-8 flex flex-col gap-8 overflow-y-auto">
-              <section>
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic">Case Management</h3>
-                <div className="space-y-4">
-                  <div className={clsx(
-                    "p-5 rounded-3xl border-2 transition-all",
-                    caseData.is_reviewed ? "bg-sage-50 border-sage-200" : "bg-white border-warm-200"
-                  )}>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={clsx(
-                        "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
-                        caseData.is_reviewed ? "bg-sage-500 border-sage-500 text-white" : "bg-white border-warm-300 group-hover:border-sage-400"
-                      )}>
-                        {caseData.is_reviewed && <CheckCircle className="w-4 h-4" />}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={caseData.is_reviewed}
-                        onChange={(e) => setCaseData({ ...caseData, is_reviewed: e.target.checked })}
-                        className="hidden"
-                      />
-                      <span className={clsx("text-sm font-bold", caseData.is_reviewed ? "text-sage-700" : "text-slate-500")}>
-                        {t('cases.mark_reviewed')}
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic">Review Notes</h3>
-                <textarea
-                  value={caseData.review_notes || ''}
-                  onChange={(e) => setCaseData({ ...caseData, review_notes: e.target.value })}
-                  placeholder="Insert internal review observations..."
-                  rows={6}
-                  className="textarea-field bg-white border-warm-200 rounded-2xl text-xs leading-relaxed focus:ring-sage-200"
-                />
-              </section>
-
-              <div className="mt-auto pt-6 border-t border-warm-200 flex flex-col gap-3">
-                <button onClick={handleSave} disabled={saving} className="btn-primary w-full h-14 rounded-2xl shadow-glow-sage">
-                  {saved ? (
-                    <span className="flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5" /> {t('cases.saved')}</span>
-                  ) : saving ? (
-                    <span className="flex items-center justify-center gap-2 animate-pulse">{t('cases.saving')}...</span>
-                  ) : t('cases.save')}
-                </button>
-                <button onClick={onClose} className="btn-ghost w-full h-12 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400">
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </div>
-
-            {/* Main Content Destra — Narrazione Clinica */}
-            <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-white">
-              {/* Titolo */}
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 block">Clinical Title</label>
-                <input
-                  value={caseData.title}
-                  onChange={(e) => setCaseData({ ...caseData, title: e.target.value })}
-                  className="w-full text-2xl font-black text-slate-800 bg-transparent border-none focus:ring-0 p-0 placeholder:text-slate-200"
-                  placeholder="Insert clinical case title..."
-                />
-                <div className="h-px w-20 bg-sage-500 mt-2" />
-              </div>
-
-              {/* Anamnesi */}
-              <div className="group">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-sage-600 mb-3 block flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-sage-500" />
-                  {t('cases.section_anamnesis')}
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={caseData.anamnesis}
-                    onChange={(e) => setCaseData({ ...caseData, anamnesis: e.target.value })}
-                    rows={10}
-                    className="textarea-field w-full min-h-[200px] border-warm-100 bg-slate-50/30 rounded-[2rem] p-8 font-mono text-sm leading-relaxed text-slate-700 focus:bg-white focus:border-sage-200 focus:shadow-xl transition-all"
-                  />
-                  <div className="absolute top-4 right-6 pointer-events-none">
-                    <Edit3 className="w-4 h-4 text-slate-200 group-hover:text-sage-300 transition-colors" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Discussione */}
-              <div className="group">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-powder-600 mb-3 block flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-powder-500" />
-                  {t('cases.section_discussion')}
-                </label>
-                <textarea
-                  value={caseData.discussion}
-                  onChange={(e) => setCaseData({ ...caseData, discussion: e.target.value })}
-                  rows={6}
-                  className="textarea-field w-full border-warm-100 bg-slate-50/30 rounded-[2rem] p-8 font-mono text-sm leading-relaxed text-slate-700 focus:bg-white focus:border-powder-200 focus:shadow-xl transition-all"
-                />
-              </div>
-
-              {/* Gold Standard Diagnosis */}
-              <div className="group">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-lavender-600 mb-3 block flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-lavender-500" />
-                  {t('cases.section_diagnosis')}
-                </label>
-                <textarea
-                  value={caseData.gold_standard_diagnosis}
-                  onChange={(e) => setCaseData({ ...caseData, gold_standard_diagnosis: e.target.value })}
-                  rows={5}
-                  className="textarea-field w-full border-warm-100 bg-slate-50/30 rounded-[2rem] p-8 font-mono text-sm leading-bold text-slate-800 focus:bg-white focus:border-lavender-200 focus:shadow-xl transition-all"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Pannello di esecuzione benchmark ────────────────────────────────────
 function RunBenchmarkPanel({
@@ -225,7 +38,6 @@ function RunBenchmarkPanel({
     import('@/lib/api').then(({ chatApi }) =>
       chatApi.getModels().then((res) => {
         setModels(res.models);
-        // Rimosso auto-selection del modello di default su richiesta utente
       }).catch(() => {})
     );
   }, []);
@@ -240,7 +52,7 @@ function RunBenchmarkPanel({
     if (!selectedCases.length || !selectedModels.length) return;
     setRunning(true);
     try {
-      const res = await benchmarkApi.run({
+      await benchmarkApi.run({
         case_ids: selectedCases,
         model_names: selectedModels,
         include_discussion: includeDiscussion,
@@ -254,74 +66,68 @@ function RunBenchmarkPanel({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl border border-sage-200 rounded-[2rem] p-8 shadow-glow-sage space-y-6 animate-slide-up sticky top-0">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-sage-500 flex items-center justify-center shadow-lg shadow-sage-200">
-          <Play className="w-5 h-5 text-white" />
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-7 py-5 border-b border-slate-100 bg-gradient-to-r from-indigo-600 to-indigo-700 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+          <PlayIcon className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h3 className="font-black text-slate-800 text-sm tracking-tight">{t('benchmark.run_benchmark')}</h3>
-          <p className="text-[10px] font-black tracking-widest text-sage-600 uppercase">{selectedCases.length} Selected Cases</p>
+          <p className="font-black text-white text-sm">{t('benchmark.run_benchmark')}</p>
+          <p className="text-indigo-300 text-[10px] font-black uppercase tracking-widest">{selectedCases.length} cases selected</p>
         </div>
+        <button onClick={onClear} className="ml-auto text-white/50 hover:text-white text-xs font-black uppercase tracking-widest transition-colors">
+          Clear ×
+        </button>
       </div>
-
-      {/* Selettore modelli */}
-      <div className="space-y-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic mb-2">{t('benchmark.select_models')}</p>
-        <div className="flex flex-wrap gap-2">
-          {models.map((m) => (
-            <button
-              key={m}
-              onClick={() => toggleModel(m)}
-              className={clsx(
-                'px-4 py-2 rounded-xl text-xs font-bold transition-all border-2',
-                selectedModels.includes(m)
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
-                  : 'bg-white text-slate-500 border-warm-100 hover:border-sage-400'
-              )}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-4 bg-slate-50 rounded-2xl border border-warm-100">
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <div className={clsx(
-            "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-            includeDiscussion ? "bg-sage-500 border-sage-500 text-white" : "bg-white border-warm-300 group-hover:border-sage-400"
-          )}>
-            {includeDiscussion && <CheckCircle className="w-3 h-3" />}
+      <div className="p-6 space-y-5">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-3">{t('benchmark.select_models')}</p>
+          <div className="flex flex-wrap gap-2">
+            {models.map((m) => (
+              <button
+                key={m}
+                onClick={() => toggleModel(m)}
+                className={clsx(
+                  'px-4 py-2 rounded-xl font-black text-sm border-2 transition-all',
+                  selectedModels.includes(m)
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:text-indigo-700'
+                )}
+              >
+                {m}
+              </button>
+            ))}
+            {models.length === 0 && <p className="text-slate-400 text-sm italic">No models available</p>}
           </div>
+        </div>
+
+        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors border border-slate-100">
           <input
             type="checkbox"
+            className="w-5 h-5 rounded border-2 border-slate-300 accent-indigo-600"
             checked={includeDiscussion}
             onChange={(e) => setIncludeDiscussion(e.target.checked)}
-            className="hidden"
           />
-          <span className="text-[11px] font-bold text-slate-600">{t('benchmark.include_discussion')}</span>
+          <span className="text-sm font-bold text-slate-700">{t('benchmark.include_discussion')}</span>
         </label>
-      </div>
 
-      {success && (
-        <div className="bg-sage-500 text-white rounded-2xl px-4 py-3 text-xs font-bold flex items-center gap-3 shadow-lg animate-fade-in">
-          <CheckCircle className="w-4 h-4" />{success}
-        </div>
-      )}
+        {success && (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 font-black text-sm">
+            <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
+            {success}
+          </div>
+        )}
 
-      <div className="flex flex-col gap-3">
         <button
           onClick={handleRun}
           disabled={running || !selectedModels.length}
-          className="btn-primary w-full h-14 rounded-2xl shadow-glow-sage text-base"
+          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {running ? (
-            <span className="flex items-center justify-center gap-2"><RefreshCw className="w-5 h-5 animate-spin" /> {t('benchmark.running')}</span>
-          ) : `${t('benchmark.run_button')} (${selectedCases.length} × ${selectedModels.length})`}
-        </button>
-        <button onClick={onClear} className="w-full h-10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">
-          Clear Selection
+            <><ArrowPathIcon className="w-5 h-5 animate-spin" /> Running...</>
+          ) : (
+            <><SparklesIcon className="w-5 h-5" /> {t('benchmark.run_button')}</>
+          )}
         </button>
       </div>
     </div>
@@ -337,31 +143,35 @@ export default function CasesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [reviewedOnly, setReviewedOnly] = useState(false);
+  const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [editingCase, setEditingCase] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const loadCases = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await casesApi.list({
-        page, page_size: 20,
+        page,
+        page_size: 20,
         search: debouncedSearch || undefined,
-        reviewed_only: reviewedOnly,
+        reviewed_only: status === 'reviewed',
       });
       setCases(res.items);
       setTotal(res.total);
       setTotalPages(res.total_pages);
+    } catch (err) {
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, reviewedOnly]);
+  }, [page, debouncedSearch, status, t]);
 
   useEffect(() => { loadCases(); }, [loadCases]);
 
@@ -371,208 +181,224 @@ export default function CasesPage() {
     );
   };
 
+  const toggleAll = () => {
+    if (selectedCases.length === cases.length && cases.length > 0) {
+      setSelectedCases([]);
+    } else {
+      setSelectedCases(cases.map(c => c.id));
+    }
+  };
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-warm-50 page-enter">
-      {/* ─── Sidebar filtri + run panel ─── */}
-      <div className="w-80 flex-shrink-0 bg-white border-r border-warm-200 flex flex-col p-8 gap-10 overflow-y-auto">
-        <div>
-          <Link 
-            href="/benchmark"
-            className="px-6 py-2.5 rounded-2xl bg-white border border-warm-200 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-warm-50 transition-all flex items-center gap-2 shadow-sm mb-8"
-          >
-            <LayoutGrid className="w-4 h-4 text-sage-500" />
-            Dashboard
-          </Link>
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center mb-4 shadow-xl">
-            <BookOpen className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-2">{t('cases.title')}</h1>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('cases.subtitle')}</p>
-        </div>
-
-        <div className="space-y-6">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-400 group-focus-within:text-sage-500 transition-colors" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('cases.search_placeholder')}
-              className="w-full h-12 bg-slate-50 border-warm-100 border-2 rounded-2xl pl-12 pr-4 text-sm font-bold focus:bg-white focus:border-sage-500 transition-all outline-none placeholder:text-warm-300"
-            />
-          </div>
-
-          <div className="p-6 bg-slate-50/50 rounded-3xl border border-warm-100">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic">Quick Filters</h4>
-            <label className="flex items-center gap-3 cursor-pointer group mb-3">
-              <div className={clsx(
-                "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-                reviewedOnly ? "bg-sage-500 border-sage-500 text-white" : "bg-white border-warm-300 group-hover:border-sage-400"
-              )}>
-                {reviewedOnly && <CheckCircle className="w-3 h-3" />}
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-slate-50 page-enter relative">
+      <div className="absolute inset-0 bg-[radial-gradient(at_top_left,rgba(99,102,241,0.03),transparent_50%)] pointer-events-none" />
+      
+      {/* Dynamic Header - Pro Clinical Design */}
+      <div className="bg-white border-b border-slate-200 relative z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-10 py-12">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-12">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center shadow-2xl shadow-indigo-500/30 animate-float border border-white/20">
+                <BeakerIcon className="w-8 h-8" />
               </div>
-              <input type="checkbox" checked={reviewedOnly} onChange={(e) => setReviewedOnly(e.target.checked)} className="hidden" />
-              <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t('cases.filter_reviewed')}</span>
-            </label>
-            <div className="pt-3 border-t border-warm-100 flex items-center justify-between">
-              <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Database Size</span>
-              <span className="text-[10px] font-black text-slate-800">{total.toLocaleString()} Cases</span>
-            </div>
-          </div>
-        </div>
-
-        {selectedCases.length > 0 && (
-          <RunBenchmarkPanel selectedCases={selectedCases} onClear={() => setSelectedCases([])} />
-        )}
-      </div>
-
-      {/* ─── Grid casi clinici ─── */}
-      <div className="flex-1 overflow-y-auto p-12 bg-warm-50/30">
-        {loading ? (
-          <div className="flex items-center justify-center py-40">
-            <div className="w-12 h-12 rounded-full border-4 border-sage-100 border-t-sage-500 animate-spin" />
-          </div>
-        ) : cases.length === 0 ? (
-          <div className="text-center py-40 bg-white rounded-[3rem] border border-warm-100 shadow-soft max-w-2xl mx-auto">
-            <div className="w-20 h-20 bg-warm-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FileText className="w-10 h-10 text-warm-200" />
-            </div>
-            <h3 className="text-lg font-black text-slate-800 mb-2">No Cases Found</h3>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{t('cases.no_cases')}</p>
-          </div>
-        ) : (
-          <div className="max-w-[1600px] mx-auto">
-            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-8 mb-12">
-              {cases.map((c) => (
-                <div
-                  key={c.id}
-                  className={clsx(
-                    'group relative p-8 bg-white rounded-[2.5rem] border transition-all duration-500 ease-out cursor-pointer hover:shadow-3xl hover:-translate-y-2',
-                    selectedCases.includes(c.id) 
-                      ? 'border-sage-500 ring-4 ring-sage-50 shadow-2xl z-10' 
-                      : 'border-warm-100 shadow-soft hover:border-sage-200'
-                  )}
-                  onClick={() => toggleCase(c.id)}
-                >
-                  <div className="flex items-start justify-between gap-6 mb-6">
-                    <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div className={clsx(
-                        "mt-1 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0",
-                        selectedCases.includes(c.id) ? "bg-sage-500 border-sage-500 text-white" : "bg-slate-50 border-warm-200 group-hover:border-sage-400"
-                      )}>
-                        {selectedCases.includes(c.id) && <CheckCircle className="w-4 h-4" />}
-                      </div>
-                      
-                      <div className="min-w-0 pt-0.5">
-                        <div className="flex items-center gap-2 mb-2">
-                          {c.case_number && (
-                            <span className="bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-sm">
-                              {c.case_number}
-                            </span>
-                          )}
-                          <div className="h-4 w-px bg-slate-200 mx-1" />
-                          <span className={clsx(
-                            "text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border",
-                            c.is_reviewed ? "bg-sage-50 border-sage-100 text-sage-600" : "bg-amber-50 border-amber-100 text-amber-600"
-                          )}>
-                             {c.is_reviewed ? t('cases.badge_reviewed') : t('cases.badge_pending')}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-black text-slate-800 tracking-tight line-clamp-1 group-hover:text-sage-700 transition-colors">
-                          {c.title}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-500">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setEditingCase(c.id); }}
-                        className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xl hover:bg-sage-600 hover:scale-110 transition-all"
-                      >
-                        <Edit3 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50/50 rounded-3xl p-6 mb-6 border border-warm-50 group-hover:bg-white group-hover:shadow-inner transition-all duration-500">
-                    <p className="text-sm font-medium text-slate-500 leading-relaxed line-clamp-3 italic">
-                      {c.anamnesis_preview || <span className="italic text-slate-300">Detailed clinical anamnesis not available for this record.</span>}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-6">
-                      {c.source_page && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-warm-100 flex items-center justify-center">
-                            <BookOpen className="w-3.5 h-3.5 text-slate-500" />
-                          </div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                            Page <span className="text-slate-800">{c.source_page}</span>
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-powder-100 flex items-center justify-center">
-                          <Play className="w-3.5 h-3.5 text-powder-600" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          Runs <span className="text-slate-800">{c.run_count}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-sage-500 group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
+              <div>
+                <h1 className="text-4xl font-black tracking-[-0.04em] leading-none mb-2 text-slate-800 uppercase">{t('nav.benchmark_cases')}</h1>
+                <div className="flex items-center gap-3">
+                  <span className="h-1 w-8 bg-indigo-500 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.4)]" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 italic text-slate-500">Clinical Logic Validation Engine</p>
                 </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-2 rounded-3xl border border-slate-100 shadow-inner">
+               {[
+                  { key: '', label: 'All Protocols', color: 'bg-slate-400' },
+                  { key: 'reviewed', label: 'Reviewed', color: 'bg-emerald-500' },
+                  { key: 'pending', label: 'Pending', color: 'bg-amber-500' }
+              ].map((s) => (
+                  <button
+                      key={s.label}
+                      onClick={() => { setStatus(s.key); setPage(1); }}
+                      className={clsx(
+                          "btn btn-ghost h-12 px-6 rounded-2xl transition-all normal-case font-black text-[11px] uppercase tracking-widest",
+                          status === s.key ? "bg-white shadow-md text-indigo-600 border-none scale-105" : "text-slate-400 hover:text-indigo-500"
+                      )}
+                  >
+                      <span className={clsx("w-2 h-2 rounded-full mr-3", status === s.key ? s.color : "bg-slate-200")} />
+                      {s.label}
+                  </button>
               ))}
             </div>
+          </div>
 
-            {/* Paginazione */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between bg-white/50 backdrop-blur-sm rounded-[2rem] px-8 py-4 border border-warm-100 shadow-soft">
-                <button 
-                  onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-                  disabled={page === 1} 
-                  className="btn-secondary h-12 px-6 rounded-2xl flex items-center gap-3 group"
-                >
-                  <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                  <span className="text-[11px] font-black uppercase tracking-widest">{t('common.previous')}</span>
-                </button>
-                
-                <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-0.5">{t('tabular.page')}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-black text-sage-600">{page}</span>
-                    <span className="text-xs font-bold text-slate-300">/</span>
-                    <span className="text-base font-black text-slate-800">{totalPages}</span>
-                  </div>
+          <div className="flex flex-col lg:flex-row gap-8 items-end">
+            <div className="flex-1 space-y-4 w-full">
+                <div className="flex items-center gap-3 opacity-30 pl-4">
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em]">Search Archive Matrix</span>
                 </div>
+                <div className="premium-card p-1 rounded-[2.5rem] feature-glow bg-slate-50/50 backdrop-blur-md">
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search cases, symptoms, or identifiers..."
+                        className="input input-ghost w-full h-14 pl-10 text-lg font-bold bg-transparent focus:bg-white transition-all border-none focus:outline-none rounded-[2rem]"
+                    />
+                </div>
+            </div>
 
-                <button 
-                  onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-                  disabled={page === totalPages} 
-                  className="btn-secondary h-12 px-6 rounded-2xl flex items-center gap-3 group"
-                >
-                  <span className="text-[11px] font-black uppercase tracking-widest">{t('common.next')}</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+        {/* Sticky bottom bar when cases are selected */}
+      {selectedCases.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-6 animate-slide-up">
+          <RunBenchmarkPanel selectedCases={selectedCases} onClear={() => setSelectedCases([])} />
+        </div>
+      )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area - Full Width Optimization */}
+      <div className="flex-1 flex flex-col relative z-20 overflow-hidden">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-10 lg:p-12">
+          <div className="max-w-7xl mx-auto">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-40 gap-8 opacity-30">
+                <span className="loading loading-spinner w-20 h-20 text-indigo-600"></span>
+                <span className="text-[12px] font-black uppercase tracking-[0.4em] animate-pulse">Scanning Bio-Digital Archive...</span>
+              </div>
+            ) : error ? (
+              <div className="alert alert-error max-w-lg mx-auto rounded-[2.5rem] p-10 shadow-2xl shadow-error/20 border-none text-white font-black uppercase tracking-widest text-center italic">
+                {error}
+              </div>
+            ) : cases.length === 0 ? (
+              <div className="text-center py-48 opacity-20 flex flex-col items-center gap-6">
+                 <DocumentTextIcon className="w-24 h-24" />
+                 <p className="text-xl font-black uppercase tracking-widest">Archive Empty or No Matches</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-[3rem] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-slate-200 overflow-hidden">
+                <table className="table table-lg w-full">
+                  <thead>
+                    <tr className="text-[11px] uppercase font-black tracking-[0.3em] text-slate-400 bg-slate-50">
+                      <th className="w-16 pl-8 py-5">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-2 border-slate-300 accent-indigo-600"
+                          checked={selectedCases.length === cases.length && cases.length > 0}
+                          onChange={toggleAll}
+                        />
+                      </th>
+                      <th className="py-5">Ref</th>
+                      <th className="py-5">Case Definition</th>
+                      <th className="py-5">Synced</th>
+                      <th className="py-5">Status</th>
+                      <th className="py-5 text-center">Runs</th>
+                      <th className="py-5 text-right pr-8">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {cases.map((c) => (
+                    <tr key={c.id} className="hover:bg-indigo-50/40 transition-colors group border-b border-slate-100">
+                        <td className="pl-8 py-5">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded border-2 border-slate-300 accent-indigo-600"
+                            checked={selectedCases.includes(c.id)}
+                            onChange={() => toggleCase(c.id)}
+                          />
+                        </td>
+                        <td>
+                          <div className="flex flex-col gap-1.5">
+                            <span className="badge badge-neutral font-mono font-bold text-[10px] h-7 px-4 shadow-sm border-none uppercase tracking-tighter bg-slate-800 text-white">{c.case_number || 'TRX-99'}</span>
+                            <span className="text-[10px] opacity-30 font-black uppercase tracking-widest pl-1">#{c.id.slice(0, 5)}</span>
+                          </div>
+                        </td>
+                        <td className="max-w-md">
+                          <div className="flex flex-col gap-2 py-6">
+                            <span className="font-black text-xl text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors tracking-tight">{c.title}</span>
+                            <p className="text-sm opacity-50 leading-relaxed line-clamp-2 italic font-medium max-w-sm">
+                              {c.anamnesis_preview || 'No clinical preview available...'}
+                            </p>
+                            {c.source_page && (
+                              <div className="flex items-center gap-2 mt-4">
+                                <DocumentTextIcon className="w-4 h-4 opacity-30 text-indigo-500" />
+                                <span className="text-[10px] opacity-40 font-black uppercase tracking-[0.2em] text-slate-600">DSM-V Clinical Source • Page {c.source_page}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                           <div className="flex flex-col gap-1">
+                             <span className="text-sm font-black text-slate-700">{new Date(c.created_at).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                             <span className="text-[10px] opacity-30 font-black uppercase tracking-widest leading-none">Sync: {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                           </div>
+                        </td>
+                        <td>
+                          {c.is_reviewed ? (
+                            <div className="badge badge-success gap-2 font-black text-[11px] h-9 px-5 border-none shadow-lg shadow-emerald-500/20 text-white uppercase tracking-wider bg-emerald-500">
+                              <CheckCircleIcon className="w-4 h-4" />
+                              {t('cases.badge_reviewed')}
+                            </div>
+                          ) : (
+                            <div className="badge badge-warning gap-2 font-black text-[11px] h-9 px-5 border-none shadow-lg shadow-amber-500/20 text-white uppercase tracking-wider bg-amber-500">
+                              <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                              {t('cases.badge_pending')}
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-center">
+                          <div className="inline-flex items-center justify-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 shadow-inner group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-colors">
+                             <PlayIcon className="w-5 h-5 text-indigo-500 animate-pulse" />
+                             <span className="text-sm font-black text-indigo-700">{c.run_count}</span>
+                          </div>
+                        </td>
+                        <td className="text-right pr-10">
+                          <div className="flex items-center justify-end gap-3">
+                             <Link 
+                                href={`/benchmark/cases/${c.id}`}
+                                className="btn btn-indigo btn-md btn-square shadow-xl shadow-indigo-500/20 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 bg-indigo-600 text-white border-none"
+                                title="Edit Clinical Module"
+                             >
+                                <PencilSquareIcon className="w-5 h-5" />
+                             </Link>
+                             <button className="btn btn-ghost btn-md btn-square opacity-0 group-hover:opacity-40 transition-opacity hover:bg-slate-100">
+                                <CheckIcon className="w-5 h-5" />
+                             </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Modal editing */}
-      {editingCase && (
-        <CaseEditModal
-          caseId={editingCase}
-          onClose={() => setEditingCase(null)}
-          onSaved={() => { setEditingCase(null); loadCases(); }}
-        />
-      )}
+          {/* Pagination - Unified Design */}
+          {/* Add bottom padding when the floating bar is shown */}
+          {selectedCases.length > 0 && <div className="h-36" />}
+          {totalPages > 1 && !loading && (
+            <div className="flex justify-between items-center mt-12 p-8 bg-white rounded-[3rem] border border-slate-200 shadow-sm max-w-7xl mx-auto">
+              <button 
+                onClick={() => setPage((p) => Math.max(1, p - 1))} 
+                disabled={page === 1}
+                className="btn btn-ghost btn-md gap-3 px-8 normal-case font-black uppercase tracking-widest text-[11px] rounded-2xl hover:bg-indigo-50 text-slate-600"
+              >
+                <ChevronLeftIcon className="w-5 h-5" /> Previous
+              </button>
+              <span className="text-sm font-black text-slate-500">{page} / {totalPages}</span>
+              <button 
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
+                disabled={page === totalPages}
+                className="btn btn-ghost btn-md gap-3 px-8 normal-case font-black uppercase tracking-widest text-[11px] rounded-2xl hover:bg-indigo-50 text-slate-600"
+              >
+                Next <ChevronRightIcon className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

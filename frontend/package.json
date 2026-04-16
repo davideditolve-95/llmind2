@@ -10,32 +10,29 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@tailwindcss/typography": "latest",
+    "clsx": "^2.1.1",
+    "daisyui": "^5.5.19",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "@react-three/fiber": "latest",
-    "@react-three/drei": "latest",
-    "three": "latest",
-    "d3-force-3d": "^3.0.5",
-    "recharts": "latest",
-    "uuid": "^9.0.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "latest",
     "react-markdown": "latest",
-    "@tailwindcss/typography": "latest"
+    "recharts": "latest",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "typescript": "latest",
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@types/three": "latest",
-    "@types/node": "latest",
     "@types/uuid": "^9.0.8",
-    "tailwindcss": "latest",
-    "@tailwindcss/postcss": "latest",
-    "postcss": "latest",
     "autoprefixer": "latest",
     "eslint": "latest",
-    "eslint-config-next": "latest"
+    "eslint-config-next": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
   }
 }
