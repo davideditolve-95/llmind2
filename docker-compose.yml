@@ -1,0 +1,118 @@
+# docker-compose.yml
+# Configurazione Docker Compose per ICD-11 Explorer & Clinical AI
+# NOTA: Ollama è ESTERNO a questo cluster Docker.
+# In locale: OLLAMA_BASE_URL=http://host.docker.internal:11434
+# In produzione su Coolify: le variabili vengono iniettate dall'interfaccia Coolify
+
+services:
+
+  # ─────────────────────────────────────────────
+  # Servizio database PostgreSQL
+  # ─────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: llmind_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - llmind-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # Servizio API ICD-11 offline (WHO)
+  # Immagine ufficiale: whoicd/icd-api
+  # Porta 80 esposta solo internamente alla rete Docker
+  # ─────────────────────────────────────────────
+  icd11-api:
+    image: whoicd/icd-api
+    container_name: llmind_icd11
+    restart: unless-stopped
+    environment:
+      - acceptLicense=true
+      - saveAnalytics=true
+    networks:
+      - llmind-net
+    ports:
+      - "8081:80"
+    # Healthcheck per verificare che l'API ICD-11 sia pronta
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/icd/release/11/mms || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ─────────────────────────────────────────────
+  # Backend FastAPI
+  # ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: llmind_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ICD11_API_URL: ${ICD11_API_URL}
+      ICD11_CLIENT_ID: ${ICD11_CLIENT_ID:-}
+      ICD11_CLIENT_SECRET: ${ICD11_CLIENT_SECRET:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    volumes:
+      # Volume per caricare il PDF del DSM-5-TR
+      - ./backend/data:/app/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      icd11-api:
+        condition: service_started
+    networks:
+      - llmind-net
+    # Permette al backend di raggiungere Ollama sull'host (solo Linux)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
+
+  # ─────────────────────────────────────────────
+  # Frontend Next.js
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: llmind_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - llmind-net
+
+# ─────────────────────────────────────────────
+# Volumi persistenti
+# ─────────────────────────────────────────────
+volumes:
+  postgres-data:
+    driver: local
+
+# ─────────────────────────────────────────────
+# Rete interna del cluster
+# ─────────────────────────────────────────────
+networks:
+  llmind-net:
+    driver: bridge

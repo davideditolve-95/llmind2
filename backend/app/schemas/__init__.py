@@ -1,0 +1,1 @@
+# Package degli schemi Pydantic

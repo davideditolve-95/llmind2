@@ -1,0 +1,41 @@
+{
+  "name": "llmind2-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "@react-three/fiber": "latest",
+    "@react-three/drei": "latest",
+    "three": "latest",
+    "d3-force-3d": "^3.0.5",
+    "recharts": "latest",
+    "uuid": "^9.0.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "latest",
+    "react-markdown": "latest",
+    "@tailwindcss/typography": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/three": "latest",
+    "@types/node": "latest",
+    "@types/uuid": "^9.0.8",
+    "tailwindcss": "latest",
+    "@tailwindcss/postcss": "latest",
+    "postcss": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest"
+  }
+}

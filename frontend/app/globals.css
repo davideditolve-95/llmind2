@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* ─── Premium Clinical Palette ───────────────────────────────────────── */
+  --color-sage-50: #f1f8ed;
+  --color-sage-100: #e2f0da;
+  --color-sage-200: #c9e3bc;
+  --color-sage-300: #a6d092;
+  --color-sage-400: #7eb765;
+  --color-sage-500: #5da044;
+  --color-sage-600: #487d35;
+  --color-sage-700: #3a622c;
+  --color-sage-800: #304f26;
+  --color-sage-900: #294322;
+
+  --color-powder-50: #f0f7fc;
+  --color-powder-100: #dcecf8;
+  --color-powder-200: #b9dbef;
+  --color-powder-300: #88c2e2;
+  --color-powder-400: #4fa4d1;
+  --color-powder-500: #2c88b9;
+  --color-powder-600: #216d99;
+  --color-powder-700: #1e587c;
+  --color-powder-800: #1c4a67;
+  --color-powder-900: #1a3f57;
+
+  --color-warm-50: #fdfcfb;
+  --color-warm-100: #f8f6f2;
+  --color-warm-200: #f1ede5;
+  --color-warm-300: #e7e0d3;
+  --color-warm-400: #d6ccbc;
+  --color-warm-500: #bfb099;
+  --color-warm-600: #a1927c;
+  --color-warm-700: #857867;
+  --color-warm-800: #6e6356;
+  --color-warm-900: #5b5248;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* ─── Animations ─────────────────────────────────────────────────────── */
+  --animate-fade-in: fadeIn 0.4s ease-out;
+  --animate-slide-up: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseSoft {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.02); }
+  }
+
+  /* ─── Radii & Shadows ────────────────────────────────────────────────── */
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -1px rgba(0, 0, 0, 0.03);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --shadow-glow-sage: 0 0 25px rgba(93, 160, 68, 0.2);
+}
+
+/* ─── System Overrides ───────────────────────────────────────────────────── */
+* {
+  @apply border-warm-200;
+  box-sizing: border-box;
+}
+
+html, body {
+  @apply bg-warm-50 text-slate-800 font-sans antialiased;
+  scroll-behavior: smooth;
+}
+
+/* ─── Advanced Glassmorphism Utilities ────────────────────────────────────── */
+
+@utility glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-glass;
+}
+
+@utility glass-dark {
+  @apply bg-slate-900/80 backdrop-blur-lg border border-slate-700/50 shadow-2xl;
+}
+
+@utility card-premium {
+  @apply glass rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+}
+
+@utility btn-premium {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm 
+         transition-all duration-200 active:scale-95 disabled:opacity-50 shadow-sm hover:shadow-md;
+}
+
+@utility btn-sage {
+  @apply btn-premium bg-sage-500 text-white hover:bg-sage-600 shadow-glow-sage;
+}
+
+@utility btn-outline {
+  @apply btn-premium bg-transparent border border-warm-200 text-slate-600 hover:bg-white hover:border-warm-300;
+}
+
+@utility badge-premium {
+  @apply px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border;
+}
+
+/* ─── Custom Layout elements ──────────────────────────────────────────────── */
+
+.anatomical-canvas-container {
+  @apply relative w-full h-full rounded-4xl overflow-hidden glass shadow-inner;
+  background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-warm-200 rounded-full hover:bg-warm-300 transition-colors;
+}
+
+/* ─── Interactive States ─────────────────────────────────────────────────── */
+.node-hover-info {
+  @apply absolute pointer-events-none z-50 animate-fade-in;
+}
+
+.neon-border {
+  @apply relative overflow-hidden;
+  &::after {
+    content: '';
+    @apply absolute inset-0 border border-sage-400/30 rounded-[inherit] pointer-events-none;
+    box-shadow: inset 0 0 10px rgba(126, 183, 101, 0.1);
+  }
+}
