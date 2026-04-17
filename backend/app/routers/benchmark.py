@@ -24,6 +24,7 @@ from ..schemas.benchmark import (
 )
 from ..services.ollama import ollama_service
 from ..services.embeddings import embedding_service
+from ..services.legacy_rag import legacy_rag_service
 
 router = APIRouter(prefix="/api/benchmark", tags=["Benchmark"])
 
@@ -84,14 +85,35 @@ async def execute_single_run(
     run.system_prompt_used = system_prompt
     db.commit()
 
-    # Esegue l'inferenza con Ollama con logging diagnostico
-    logging.info(f"OLLAMA LOG: Sending request to {ollama_service.base_url}/api/chat for model {model_name}")
-    
-    result = await ollama_service.run_inference(
-        prompt=prompt,
-        model=model_name,
-        system_prompt=system_prompt,
-    )
+    # Esegue l'inferenza con Ollama o Legacy RAG
+    if model_name == "llmind-v1 (legacy)":
+        logging.info(f"OLLAMA LOG: Using Legacy RAG Service for benchmark run {run_id}")
+        import time
+        start_time = time.time()
+        try:
+            answer = await legacy_rag_service.ask(prompt)
+            latency_ms = int((time.time() - start_time) * 1000)
+            result = {
+                "success": True,
+                "content": answer,
+                "latency_ms": latency_ms,
+                "model": model_name
+            }
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            result = {
+                "success": False,
+                "content": "",
+                "latency_ms": latency_ms,
+                "error": str(e)
+            }
+    else:
+        logging.info(f"OLLAMA LOG: Sending request to {ollama_service.base_url}/api/chat for model {model_name}")
+        result = await ollama_service.run_inference(
+            prompt=prompt,
+            model=model_name,
+            system_prompt=system_prompt,
+        )
 
     logging.info(f"OLLAMA LOG: Received response from {model_name}. Success: {result['success']}")
 

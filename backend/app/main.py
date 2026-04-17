@@ -12,19 +12,28 @@ from .routers import icd11 as router_icd11
 from .routers import chat as router_chat
 from .routers import cases as router_cases
 from .routers import benchmark as router_benchmark
+from .routers import legacy as router_legacy
+from .routers import datastore as router_datastore
+from .routers import system as router_system
 from .config import get_settings
 
 # Importa tutti i modelli per assicurarsi che vengano registrati prima di create_all
 from .models import icd11 as icd11_model  # noqa: F401
 from .models import benchmark as benchmark_model  # noqa: F401
 from .models import chat as chat_model  # noqa: F401
+from .models import datastore as datastore_model  # noqa: F401
 
 settings = get_settings()
 
 # Configurazione del logging
+from .services.logs import log_handler
 logging.basicConfig(
     level=logging.INFO if settings.environment == "production" else logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        log_handler
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -114,6 +123,9 @@ app.include_router(router_icd11.router)
 app.include_router(router_chat.router)
 app.include_router(router_cases.router)
 app.include_router(router_benchmark.router)
+app.include_router(router_legacy.router)
+app.include_router(router_datastore.router)
+app.include_router(router_system.router)
 
 
 # ─── Endpoint di utilità ───────────────────────────────────────────────────

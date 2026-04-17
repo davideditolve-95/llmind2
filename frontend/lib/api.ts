@@ -128,6 +128,13 @@ export interface RatingPoint {
   count: number;
 }
 
+export interface KnowledgePreset {
+  id: string;
+  name: string;
+  description: string;
+  files: string[];
+}
+
 // ─── Helper fetch ──────────────────────────────────────────────────────────
 
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
@@ -328,4 +335,71 @@ export const benchmarkApi = {
     if (!res.ok) throw new Error('API Error');
     return res.blob();
   },
+};
+// ─── Legacy (v1) ──────────────────────────────────────────────────────────
+
+export const legacyApi = {
+  ask: (input_string: string) =>
+    fetchApi<{ output_string: string; model: string }>('/api/legacy/ask', {
+      method: 'POST',
+      body: JSON.stringify({ input_string }),
+    }),
+
+  runBatch: (csv_filename: string) =>
+    fetchApi<{ message: string; output_file: string }>('/api/legacy/batch-run', {
+      method: 'POST',
+      body: JSON.stringify({ csv_filename }),
+    }),
+
+  getLogs: (limit = 50) =>
+    fetchApi<{ logs: string[] }>(`/api/legacy/logs?limit=${limit}`),
+};
+
+// ─── Datastore ─────────────────────────────────────────────────────────────
+
+export interface Datastore {
+  id: string;
+  name: string;
+  description: string | null;
+  model_name: string;
+  status: 'processing' | 'ready' | 'failed';
+  error_message: string | null;
+  metadata_info: any;
+  created_at: string;
+}
+
+export const datastoreApi = {
+  create: (formData: FormData) =>
+    fetch(`${API_BASE}/api/datastore/create`, {
+      method: 'POST',
+      body: formData,
+    }).then(res => {
+      if (!res.ok) throw new Error('Action failed');
+      return res.json();
+    }),
+
+  list: () => fetchApi<Datastore[]>('/api/datastore/list'),
+
+  delete: (id: string) => fetchApi(`/api/datastore/${id}`, { method: 'DELETE' }),
+
+  ask: (id: string, query: string) =>
+    fetchApi<{ answer: string; model: string }>(`/api/datastore/${id}/ask`, {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    }),
+
+  getPresets: () => fetchApi<KnowledgePreset[]>('/api/datastore/presets'),
+};
+
+// ─── System ────────────────────────────────────────────────────────────────
+
+export interface SystemLog {
+  timestamp: string;
+  level: string;
+  name: string;
+  message: string;
+}
+
+export const systemApi = {
+  getLogs: () => fetchApi<{ logs: SystemLog[] }>('/api/system/logs'),
 };

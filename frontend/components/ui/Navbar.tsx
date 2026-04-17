@@ -10,9 +10,14 @@ import {
   BeakerIcon,
   Cog6ToothIcon,
   ChevronDownIcon,
+  ClockIcon,
+  CommandLineIcon,
+  BookOpenIcon,
+  InboxStackIcon
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import { useState, useRef, useEffect } from 'react';
+import LogModal from './LogModal';
 
 interface NavItem {
   href: string;
@@ -26,15 +31,26 @@ const NAV: NavItem[] = [
   { href: '/', label: 'Home', icon: HomeIcon, iconColor: 'text-slate-500' },
   { href: '/tabular', label: 'ICD-11', icon: Squares2X2Icon, iconColor: 'text-indigo-500' },
   { href: '/chat', label: 'AI Chat', icon: ChatBubbleLeftRightIcon, iconColor: 'text-cyan-500' },
-  {
-    href: '/benchmark',
-    label: 'Benchmark',
-    icon: BeakerIcon,
-    iconColor: 'text-emerald-500',
+  { 
+    href: '/benchmark', 
+    label: 'Benchmark', 
+    icon: BeakerIcon, 
+    iconColor: 'text-emerald-500', 
     children: [
       { href: '/benchmark', label: 'Analytics' },
       { href: '/benchmark/cases', label: 'Cases' },
-    ],
+    ] 
+  },
+  { 
+    href: '/legacy', 
+    label: 'Legacy v1', 
+    icon: ClockIcon, 
+    iconColor: 'text-amber-500',
+    children: [
+      { href: '/legacy', label: 'Explorer Console' },
+      { href: '/datastores', label: 'Knowledge Build' },
+      { href: '/explorer', label: 'Custom Search' },
+    ]
   },
   { href: '/settings', label: 'Settings', icon: Cog6ToothIcon, iconColor: 'text-slate-500' },
 ];
@@ -95,6 +111,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { t, lang, setLang } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLogOpen, setIsLogOpen] = useState(false);
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
@@ -137,8 +154,17 @@ export default function Navbar() {
           })}
         </div>
 
-        {/* Right side — Language + Mobile toggle */}
+        {/* Right side — Language + Log + Mobile toggle */}
         <div className="flex items-center gap-3">
+          {/* Log Monitor Toggle */}
+          <button 
+            onClick={() => setIsLogOpen(true)}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200 group"
+            title="System Logs"
+          >
+            <CommandLineIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          </button>
+
           {/* Language switcher */}
           <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200">
             {(['en', 'it'] as const).map((l) => (
@@ -168,6 +194,8 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+
+      <LogModal isOpen={isLogOpen} onClose={() => setIsLogOpen(false)} />
 
       {/* Mobile Menu */}
       {mobileOpen && (

@@ -16,11 +16,18 @@ psycopg2-binary==2.9.9
 pydantic==2.7.1
 pydantic-settings==2.2.1
 
-# ─── NLP e Similarity ──────────────────────────
+# ─── NLP, RAG e Similarity ─────────────────────
 sentence-transformers==2.7.0
 torch==2.3.0
 numpy==1.26.4
 scikit-learn==1.4.2
+langchain==0.2.1
+langchain-chroma==0.1.1
+langchain-community==0.2.1
+langchain-core==0.2.1
+langchainhub==0.1.15
+langchain-text-splitters==0.2.0
+chromadb==0.5.3
 
 # ─── Estrazione PDF (DSM-5-TR) ─────────────────
 pdfplumber==0.11.0

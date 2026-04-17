@@ -31,6 +31,7 @@ function RunBenchmarkPanel({
   const [models, setModels] = useState<string[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [includeDiscussion, setIncludeDiscussion] = useState(false);
+  const [compareWithLegacy, setCompareWithLegacy] = useState(false);
   const [running, setRunning] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -49,12 +50,19 @@ function RunBenchmarkPanel({
   };
 
   const handleRun = async () => {
-    if (!selectedCases.length || !selectedModels.length) return;
+    if (!selectedCases.length || (!selectedModels.length && !compareWithLegacy)) return;
     setRunning(true);
+    
+    // Prepare model list, including legacy if requested
+    const finalModels = [...selectedModels];
+    if (compareWithLegacy) {
+      finalModels.push('llmind-v1 (legacy)');
+    }
+
     try {
       await benchmarkApi.run({
         case_ids: selectedCases,
-        model_names: selectedModels,
+        model_names: finalModels,
         include_discussion: includeDiscussion,
         prompt_language: 'en',
       });
@@ -101,15 +109,30 @@ function RunBenchmarkPanel({
           </div>
         </div>
 
-        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors border border-slate-100">
-          <input
-            type="checkbox"
-            className="w-5 h-5 rounded border-2 border-slate-300 accent-indigo-600"
-            checked={includeDiscussion}
-            onChange={(e) => setIncludeDiscussion(e.target.checked)}
-          />
-          <span className="text-sm font-bold text-slate-700">{t('benchmark.include_discussion')}</span>
-        </label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors border border-slate-100">
+            <input
+              type="checkbox"
+              className="w-5 h-5 rounded border-2 border-slate-300 accent-indigo-600"
+              checked={includeDiscussion}
+              onChange={(e) => setIncludeDiscussion(e.target.checked)}
+            />
+            <span className="text-sm font-bold text-slate-700">{t('benchmark.include_discussion')}</span>
+          </label>
+
+          <label className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/50 hover:bg-amber-100/50 cursor-pointer transition-colors border border-amber-100">
+            <input
+              type="checkbox"
+              className="w-5 h-5 rounded border-2 border-amber-300 accent-amber-600"
+              checked={compareWithLegacy}
+              onChange={(e) => setCompareWithLegacy(e.target.checked)}
+            />
+            <div className="flex flex-col">
+              <span className="text-sm font-black text-amber-800 uppercase tracking-tight">Benchmark vs Legacy v1</span>
+              <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">Original RAG pipeline • gemma2:27b</span>
+            </div>
+          </label>
+        </div>
 
         {success && (
           <div className="flex items-center gap-3 p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 font-black text-sm">

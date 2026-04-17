@@ -271,15 +271,20 @@ export default function ChatPage() {
               const cfg = modeConfig[m];
               const Icon = cfg.icon;
               const isActive = mode === m;
+              const isLocked = messages.length > 0 && !isActive;
+              
               return (
                 <button
                   key={m}
-                  onClick={() => setMode(m)}
+                  onClick={() => !messages.length && setMode(m)}
+                  disabled={messages.length > 0}
+                  title={messages.length > 0 ? "Mode is locked for this session" : ""}
                   className={clsx(
-                    "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left",
+                    "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left w-full",
                     isActive
                       ? "bg-white/10 border-white/30 shadow-lg"
-                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20",
+                    messages.length > 0 && !isActive && "opacity-30 cursor-not-allowed grayscale"
                   )}
                 >
                   <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", isActive ? cfg.color : "bg-white/10")}>
@@ -323,72 +328,12 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Session History */}
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
-          <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-3 px-2">Session History</p>
-          {sessionsLoading ? (
-            <div className="flex justify-center py-8"><span className="loading loading-spinner loading-sm text-indigo-400" /></div>
-          ) : sessions.length === 0 ? (
-            <p className="text-white/20 text-[10px] uppercase font-black tracking-widest text-center py-8">No sessions yet</p>
-          ) : (
-            <div className="space-y-1">
-              {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => !editingSessionId && loadSessionHistory(s.id)}
-                  className={clsx(
-                    "group p-3 rounded-xl cursor-pointer transition-all",
-                    currentSessionId === s.id
-                      ? "bg-white/15 border border-indigo-400/40"
-                      : "hover:bg-white/10 border border-transparent"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    {editingSessionId === s.id ? (
-                      <div className="flex items-center gap-1.5 flex-1" onClick={e => e.stopPropagation()}>
-                        <input
-                          type="text"
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                          className="input input-xs bg-white/20 text-white border-indigo-400 flex-1 text-xs"
-                          autoFocus
-                        />
-                        <button onClick={() => handleRename(s.id)}><CheckIcon className="w-3.5 h-3.5 text-indigo-400" /></button>
-                        <button onClick={() => setEditingSessionId(null)}><XMarkIcon className="w-3.5 h-3.5 text-red-400" /></button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className={clsx("text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded", s.mode === 'wellbeing' ? "bg-emerald-500/20 text-emerald-400" : "bg-indigo-500/20 text-indigo-400")}>
-                              {s.mode === 'wellbeing' ? 'DIAG' : 'ICD-11'}
-                            </span>
-                          </div>
-                          <p className={clsx("text-xs font-medium leading-tight truncate", currentSessionId === s.id ? "text-white" : "text-white/50")}>
-                            {s.title}
-                          </p>
-                          <p className="text-[9px] text-white/25 mt-0.5">{new Date(s.created_at).toLocaleDateString()}</p>
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <button onClick={(e) => { e.stopPropagation(); setEditingSessionId(s.id); setNewTitle(s.title); }} className="p-1 hover:text-white text-white/40">
-                            <PencilSquareIcon className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Clear button */}
-        <div className="p-4 border-t border-white/10">
-          <button onClick={clearConversation} className="btn btn-ghost w-full h-10 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 text-xs font-black uppercase tracking-widest gap-2 border border-white/10 hover:border-red-500/30">
-            <TrashIcon className="w-4 h-4" />
-            Clear Session
-          </button>
+        <div className="flex-1 p-6 flex items-end">
+           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 w-full">
+              <p className="text-white/40 text-[9px] font-black uppercase tracking-widest text-center leading-relaxed">
+                 History is now reachable via the top-bar Clock icon.
+              </p>
+           </div>
         </div>
       </div>
 
@@ -398,6 +343,15 @@ export default function ChatPage() {
         {/* Top bar — mode indicator + title */}
         <div className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between flex-shrink-0 shadow-sm">
           <div className="flex items-center gap-4">
+            {/* Mobile History Toggle */}
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="lg:hidden p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 transition-all border border-slate-200"
+              title="History"
+            >
+              <ClockIcon className="w-5 h-5" />
+            </button>
+
             <div className={clsx("w-3 h-3 rounded-full", activeMode.color, "shadow-lg")} />
             <div>
               <p className="font-black text-slate-800 text-lg leading-none">{activeMode.label}</p>
@@ -408,7 +362,14 @@ export default function ChatPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest hidden md:block">Model: <span className="text-indigo-600">{selectedModel}</span></span>
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-slate-200 hover:border-indigo-200 font-black text-[10px] uppercase tracking-widest shadow-sm"
+            >
+              <ClockIcon className="w-4 h-4" />
+              History
+            </button>
+            <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest hidden xl:block">Model: <span className="text-indigo-600">{selectedModel}</span></span>
           </div>
         </div>
 
@@ -458,14 +419,14 @@ export default function ChatPage() {
                 <div className={clsx(
                   "max-w-[75%] rounded-3xl px-8 py-6 shadow-sm",
                   m.role === 'user'
-                    ? "bg-slate-800 text-white rounded-tr-md"
+                    ? "bg-indigo-600 text-white rounded-tr-md"
                     : "bg-white text-slate-800 rounded-tl-md border border-slate-200"
                 )}>
                   <div className={clsx(
                     "prose prose-base max-w-none leading-relaxed",
-                    m.role === 'user' ? "prose-invert" : "prose-slate"
+                    m.role === 'user' ? "prose-invert text-white" : "prose-slate"
                   )}>
-                    <MarkdownContent content={m.content} className="text-inherit text-lg" />
+                    <MarkdownContent content={m.content} className="text-inherit text-base" />
                     {m.streaming && <span className="streaming-cursor" />}
                   </div>
                 </div>
@@ -484,18 +445,26 @@ export default function ChatPage() {
               {(['icd11', 'wellbeing'] as const).map((m) => (
                 <button
                   key={m}
+                  disabled={messages.length > 0}
                   onClick={() => setMode(m)}
                   className={clsx(
                     "flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border-2 transition-all",
                     mode === m
                       ? m === 'icd11' ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" : "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-200"
-                      : "border-slate-200 text-slate-600 bg-white hover:border-slate-300 hover:text-slate-800"
+                      : "border-slate-200 text-slate-600 bg-white hover:border-slate-300 hover:text-slate-800",
+                    messages.length > 0 && mode !== m && "opacity-30 grayscale cursor-not-allowed"
                   )}
+                  title={messages.length > 0 ? "Start a new chat to change mode" : ""}
                 >
                   {m === 'icd11' ? <BookOpenIcon className="w-3.5 h-3.5" /> : <BeakerIcon className="w-3.5 h-3.5" />}
                   {m === 'icd11' ? 'ICD-11' : 'Differential Dx'}
                 </button>
               ))}
+              {messages.length > 0 && (
+                <span className="text-slate-300 text-[9px] font-black uppercase tracking-widest ml-2 animate-pulse">
+                   Locked for session
+                </span>
+              )}
             </div>
 
             <div className="relative">
@@ -536,6 +505,105 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+      {/* ──── HISTORY OVERLAY (Mobile/Drawer) ──── */}
+      {showHistory && (
+        <div className="fixed inset-0 z-[300] flex">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowHistory(false)} />
+          
+          <div className="relative w-80 bg-slate-950 h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-300">
+             <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                <div>
+                   <p className="text-white font-black text-sm">Conversation History</p>
+                   <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Manage your sessions</p>
+                </div>
+                <button onClick={() => setShowHistory(false)} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                   <XMarkIcon className="w-5 h-5" />
+                </button>
+             </div>
+
+             <div className="p-4 border-b border-white/10">
+                <button
+                  onClick={startNewChat}
+                  className="btn w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white border-none font-black text-sm gap-2 shadow-lg shadow-indigo-500/20"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  New Consultation
+                </button>
+             </div>
+
+             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+                {sessionsLoading ? (
+                  <div className="flex justify-center py-20"><span className="loading loading-spinner loading-md text-indigo-400" /></div>
+                ) : sessions.length === 0 ? (
+                  <div className="text-center py-20 space-y-4">
+                     <ClockIcon className="w-12 h-12 text-white/10 mx-auto" strokeWidth={1} />
+                     <p className="text-white/20 text-[10px] uppercase font-black tracking-widest">No previous sessions</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {sessions.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={() => !editingSessionId && loadSessionHistory(s.id)}
+                        className={clsx(
+                          "group p-4 rounded-2xl cursor-pointer transition-all border",
+                          currentSessionId === s.id
+                            ? "bg-white/10 border-white/20 shadow-lg"
+                            : "hover:bg-white/5 border-transparent"
+                        )}
+                      >
+                         <div className="flex items-start justify-between gap-3">
+                            {editingSessionId === s.id ? (
+                               <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+                                  <input
+                                    type="text"
+                                    value={newTitle}
+                                    onChange={(e) => setNewTitle(e.target.value)}
+                                    className="input input-sm bg-white/10 text-white border-indigo-400 flex-1 text-xs font-bold"
+                                    autoFocus
+                                  />
+                                  <button onClick={() => handleRename(s.id)}><CheckIcon className="w-4 h-4 text-emerald-400" /></button>
+                                  <button onClick={() => setEditingSessionId(null)}><XMarkIcon className="w-4 h-4 text-red-400" /></button>
+                               </div>
+                            ) : (
+                               <>
+                                 <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                       <span className={clsx("text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full", s.mode === 'wellbeing' ? "bg-emerald-500/20 text-emerald-400" : "bg-indigo-500/20 text-indigo-400")}>
+                                          {s.mode === 'wellbeing' ? 'Diff Dx' : 'ICD-11'}
+                                       </span>
+                                    </div>
+                                    <p className={clsx("text-sm font-bold leading-tight truncate", currentSessionId === s.id ? "text-white" : "text-white/50")}>
+                                       {s.title}
+                                    </p>
+                                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mt-1">
+                                       {new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </p>
+                                 </div>
+                                 <button 
+                                   onClick={(e) => { e.stopPropagation(); setEditingSessionId(s.id); setNewTitle(s.title); }} 
+                                   className="p-2 opacity-0 group-hover:opacity-100 text-white/30 hover:text-white transition-opacity border border-white/5 hover:border-white/20 rounded-lg"
+                                 >
+                                    <PencilSquareIcon className="w-4 h-4" />
+                                 </button>
+                               </>
+                            )}
+                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+             </div>
+
+             <div className="p-6 border-t border-white/10">
+                <button onClick={clearConversation} className="btn btn-ghost w-full h-12 rounded-2xl text-white/30 hover:text-red-400 hover:bg-red-500/10 text-xs font-black uppercase tracking-widest gap-2 border border-white/10 hover:border-red-500/30">
+                  <TrashIcon className="w-4 h-4" />
+                  Clear All History
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

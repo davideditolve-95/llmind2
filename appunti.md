@@ -1,0 +1,11 @@
+- passare a daisy ui e non usare css custom
+- disattivare il 3D
+- togliere titoli e sottotitoli
+- chatbot deve essere sempre visibile in basso a destra
+- diagnostic criteria, inclusions, exclusions devono essere labels
+- togliere le iconcine e usare solo heroicon
+- sottolineare meglio mode
+- togliere clinical diagnosis
+- i casi devono essere in visualizzazione tabellare
+- la ricerca deve essere rimossa ovunque e va messa sopra la tabella
+- non usare modali ma apri pagina nuova su cases
