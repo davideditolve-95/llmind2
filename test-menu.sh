@@ -211,86 +211,169 @@ run_functional_menu() {
     echo "     ██║   ██╔══╝  ╚════██║   ██║       ██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║"
     echo "     ██║   ███████╗███████║   ██║       ██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝"
     echo -e "     ╚═╝   ╚══════╝╚══════╝   ╚═╝       ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝ ${NC}"
-    echo -e "${PURPLE}${BOLD}                  Menu Riproduzione Singoli Comportamenti${NC}"
+    echo -e "${PURPLE}${BOLD}                  Riproduzione di Singoli Comportamenti Clinici${NC}"
     echo -e "  ─────────────────────────────────────────────────────────────────────────"
-    echo -e "  Seleziona la funzionalità che desideri testare e comprendere:\n"
-    
-    echo -e "  ${CYAN}[1]${NC} Connessione Ollama & Inferenza LLM"
-    echo -e "  ${CYAN}[2]${NC} Calcolo Embeddings & Vectorstore (RAG)"
-    echo -e "  ${CYAN}[3]${NC} Validazione Token JWT / OIDC (Authentik)"
-    echo -e "  ${CYAN}[4]${NC} Chat Clinica & Isolamento Utente"
-    echo -e "  ${CYAN}[5]${NC} Benchmark & Grounding Diagnostico (ICD-11)"
-    echo -e "  ${CYAN}[6]${NC} Health Check & Servizi di Sistema"
+    echo -e "${BOLD}  A. TEST UNITARI MIRATI (Mocked)${NC}"
+    echo -e "    ${CYAN}[1]${NC} Caricamento Configurazione & Settings del Server"
+    echo -e "    ${CYAN}[2]${NC} Recupero Chiavi JWKS Crittografiche (OIDC Cache)"
+    echo -e "    ${CYAN}[3]${NC} Validazione Token JWT (Firma, Issuer, Scadenza)"
+    echo -e "    ${CYAN}[4]${NC} Listato Modelli Disponibili su Server Ollama"
+    echo -e "    ${CYAN}[5]${NC} Generazione Testo ed Inferenza LLM Sincrona/Streaming"
+    echo ""
+    echo -e "${BOLD}  B. TEST DI INTEGRAZIONE FLUSSI (Sandbox)${NC}"
+    echo -e "    ${CYAN}[6]${NC} Endpoint Health Check & Parametri Ambientali"
+    echo -e "    ${CYAN}[7]${NC} Gestione Sessioni Chat Cliniche (Creazione/Lettura)"
+    echo -e "    ${CYAN}[8]${NC} Canale di Comunicazione SSE (Streaming Chat)"
+    echo -e "    ${CYAN}[9]${NC} Caricamento e Registrazione Casi Clinici in DB"
+    echo -e "    ${CYAN}[10]${NC} Ricerca Avanzata per Sintomi ICD-11 (CDDR)"
+    echo -e "    ${CYAN}[11]${NC} Esecuzione e Calcolo Risultati dei Benchmark"
+    echo ""
+    echo -e "${BOLD}  C. TEST INTERATTIVI CON INPUT PERSONALIZZATI (Live)${NC}"
+    echo -e "    ${CYAN}[12]${NC} Esegui Inferenza Custom (Prompt & Modello)"
+    echo -e "    ${CYAN}[13]${NC} Calcola Embedding Custom (Calcolo Vettori)"
+    echo -e "    ${CYAN}[14]${NC} Cerca Sintomo nel DB ICD-11"
     echo -e "  ─────────────────────────────────────────────────────────────────────────"
-    echo -e "  ${RED}[0]${NC} Torna al Menu Principale"
+    echo -e "    ${RED}[0]${NC} Torna al Menu Principale"
     echo ""
     
     read -p "Opzione Funzionale > " f_choice
     case $f_choice in
       1)
         clear
-        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Connessione Ollama & Inferenza LLM${NC}"
-        echo -e "  Questo test verifica la connettività del backend FastAPI verso l'API di Ollama"
-        echo -e "  (definita da OLLAMA_BASE_URL). Simula la richiesta della lista dei modelli disponibili"
-        echo -e "  e l'esecuzione di un prompt di inferenza sul modello configurato in OLLAMA_DEFAULT_MODEL."
-        echo -e "  Verifica anche la gestione degli errori di connessione e timeout."
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Caricamento Configurazione & Settings${NC}"
+        echo -e "  Questo test verifica che la classe Settings (Pydantic) carichi correttamente"
+        echo -e "  tutte le variabili d'ambiente (.env) configurate sul server backend,"
+        echo -e "  comprese le impostazioni OIDC, indirizzi di Ollama ed ICD-11."
         echo ""
-        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_ollama.py"
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_config.py"
         echo "  ─────────────────────────────────────────────────────────────────────────"
         echo ""
-        check_docker && docker compose exec backend pytest tests/unit/test_ollama.py
+        check_docker && docker compose exec backend pytest tests/unit/test_config.py
         press_any_key
         ;;
       2)
         clear
-        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Calcolo Embeddings & Vectorstore (RAG)${NC}"
-        echo -e "  Questo test verifica l'integrazione di LangChain con Ollama per il calcolo degli"
-        echo -e "  embeddings e l'interrogazione semantica del vectorstore ChromaDB (RAG)."
-        echo -e "  Affinché questo test funzioni, il server Ollama esterno deve essere avviato con gli"
-        echo -e "  embeddings abilitati (ad esempio con il flag --embeddings se si usa llama.cpp)."
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Recupero Chiavi JWKS Crittografiche${NC}"
+        echo -e "  Questo test verifica la logica che interroga il server OIDC (Authentik/Keycloak)"
+        echo -e "  per ottenere le chiavi crittografiche pubbliche (JWKS). Verifica inoltre"
+        echo -e "  l'efficacia del caching locale per evitare chiamate ripetute ad ogni richiesta."
         echo ""
-        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_cases.py"
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_auth.py -k \"test_get_jwks\""
         echo "  ─────────────────────────────────────────────────────────────────────────"
         echo ""
-        check_docker && docker compose exec backend pytest tests/integration/test_cases.py
+        check_docker && docker compose exec backend pytest tests/unit/test_auth.py -k "test_get_jwks"
         press_any_key
         ;;
       3)
         clear
-        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Validazione Token JWT / OIDC (Authentik)${NC}"
-        echo -e "  Questo test verifica la logica di sicurezza e autenticazione del backend."
-        echo -e "  Simula l'invio di un JWT Bearer Token, il download asincrono delle chiavi pubbliche (JWKS)"
-        echo -e "  dall'Identity Provider (Authentik o Keycloak) con caching locale, e la decodifica/verifica"
-        echo -e "  dell'aud, dell'iss, della firma crittografica RSA e della scadenza del token."
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Validazione Token JWT${NC}"
+        echo -e "  Verifica la validazione formale di un JSON Web Token (JWT). Copre i casi di:"
+        echo -e "  - Token valido (autenticazione accettata)"
+        echo -e "  - Mismatch nell'Issuer (iss non corrispondente alle attese)"
+        echo -e "  - Firma scaduta (ExpiredSignatureError)"
         echo ""
-        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_auth.py"
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_auth.py -k \"test_verify_token\""
         echo "  ─────────────────────────────────────────────────────────────────────────"
         echo ""
-        check_docker && docker compose exec backend pytest tests/unit/test_auth.py
+        check_docker && docker compose exec backend pytest tests/unit/test_auth.py -k "test_verify_token"
         press_any_key
         ;;
       4)
         clear
-        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Chat Clinica & Isolamento Utente${NC}"
-        echo -e "  Questo test verifica la gestione dello stato delle chat."
-        echo -e "  Verifica che le sessioni di conversazione vengano create e persistite nel database"
-        echo -e "  in modo sicuro e isolato. Controlla che ciascun utente possa vedere solo i propri"
-        echo -e "  dati di chat tramite l'email estratta dal token OIDC, e che lo streaming SSE"
-        echo -e "  funzioni correttamente."
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Listato Modelli su Ollama${NC}"
+        echo -e "  Verifica la connettività di base del servizio OllamaService interrogando l'endpoint"
+        echo -e "  '/api/tags' per ottenere i modelli linguistici installati. Verifica anche il fallback"
+        echo -e "  in caso di assenza temporanea o errore di connessione."
         echo ""
-        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_chat.py"
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_ollama.py -k \"test_list_models\""
         echo "  ─────────────────────────────────────────────────────────────────────────"
         echo ""
-        check_docker && docker compose exec backend pytest tests/integration/test_chat.py
+        check_docker && docker compose exec backend pytest tests/unit/test_ollama.py -k "test_list_models"
         press_any_key
         ;;
       5)
         clear
-        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Benchmark & Grounding Diagnostico (ICD-11)${NC}"
-        echo -e "  Questo test verifica la suite di benchmarking sui casi clinici e il grounding"
-        echo -e "  con i codici ICD-11. Simula l'esecuzione del confronto semantico delle risposte"
-        echo -e "  del modello contro la tassonomia ufficiale ICD-11 della WHO, calcolando i KPI"
-        echo -e "  e allineando i sintomi."
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Generazione ed Inferenza LLM Sincrona/Streaming${NC}"
+        echo -e "  Questo test verifica l'invio del prompt a Ollama e la cattura della risposta"
+        echo -e "  sia in modalità sincrona ad alta latenza sia tramite SSE (Server-Sent Events) in streaming,"
+        echo -e "  decodificando i chunk json prodotti dal modello."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_ollama.py -k \"test_run_inference or test_chat_stream\""
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/unit/test_ollama.py -k "test_run_inference or test_chat_stream"
+        press_any_key
+        ;;
+      6)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Endpoint Health Check & Parametri${NC}"
+        echo -e "  Interroga direttamente l'endpoint di stato '/health' del server FastAPI,"
+        echo -e "  verificando la conformità del JSON ritornato (status, version, ollama_url)."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_health.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_health.py
+        press_any_key
+        ;;
+      7)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Gestione Sessioni Chat Cliniche${NC}"
+        echo -e "  Questo test di integrazione verifica che le API del backend creino correttamente nuove"
+        echo -e "  sessioni di chat associate all'email dell'utente, ne consentano il recupero ed"
+        echo -e "  evitino l'accesso non autorizzato ad utenti differenti (Data Isolation)."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_chat.py -k \"session\""
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_chat.py -k "session"
+        press_any_key
+        ;;
+      8)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Canale di Comunicazione SSE (Streaming Chat)${NC}"
+        echo -e "  Questo test di integrazione simula una chiamata client Next-Auth verso l'endpoint"
+        echo -e "  '/api/chat/{session_id}/stream' ed analizza i chunk dello stream in tempo reale,"
+        echo -e "  assicurandosi che i protocolli Server-Sent Events siano conformi."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_chat.py -k \"test_stream_chat\""
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_chat.py -k "test_stream_chat"
+        press_any_key
+        ;;
+      9)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Caricamento e Registrazione Casi Clinici in DB${NC}"
+        echo -e "  Verifica che l'aggiunta di nuovi casi clinici tramite le API di backend"
+        echo -e "  funzioni correttamente inserendo i record nel database SQL locale e consentendone"
+        echo -e "  la lettura paginata."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_cases.py -k \"clinical_case\""
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_cases.py -k "clinical_case"
+        press_any_key
+        ;;
+      10)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Ricerca Avanzata per Sintomi ICD-11${NC}"
+        echo -e "  Testa le API del motore di ricerca offline ICD-11. In particolare verifica"
+        echo -e "  il nuovo parametro 'search_type=symptoms' per assicurarsi che i termini vengano"
+        echo -e "  cercati all'interno di descrizioni, criteri diagnostici, inclusioni ed esclusioni."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_cases.py -k \"symptoms\""
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_cases.py -k "symptoms"
+        press_any_key
+        ;;
+      11)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Suite Esecuzione Benchmark${NC}"
+        echo -e "  Verifica l'intero workflow di benchmark scientifico dei casi clinici:"
+        echo -e "  invio dei casi clinici al modello di inferenza selezionato, confronto con i codici"
+        echo -e "  ICD-11 attesi, salvataggio dei log di benchmark e generazione delle metriche finali."
         echo ""
         echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_benchmark.py"
         echo "  ─────────────────────────────────────────────────────────────────────────"
@@ -298,17 +381,104 @@ run_functional_menu() {
         check_docker && docker compose exec backend pytest tests/integration/test_benchmark.py
         press_any_key
         ;;
-      6)
+      12)
         clear
-        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Health Check & Servizi di Sistema${NC}"
-        echo -e "  Questo test verifica l'endpoint pubblico /health del backend FastAPI."
-        echo -e "  Verifica che il backend sia attivo, in grado di comunicare con la rete e che i parametri"
-        echo -e "  fondamentali (connessione database, url Ollama) siano configurati correttamente."
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO INTERATTIVO: Esegui Inferenza Custom${NC}"
+        echo -e "  Consente di inviare una richiesta reale al server Ollama specificando il prompt"
+        echo -e "  e il modello linguistico da utilizzare, visualizzandone i risultati in tempo reale."
         echo ""
-        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_health.py"
+        read -p "Inserisci il nome del modello (es. gemma-test, gemma2:27b) [predefinito: gemma-test]: " custom_model
+        custom_model=${custom_model:-"gemma-test"}
+        read -p "Inserisci il prompt per il modello: " custom_prompt
+        if [ -z "$custom_prompt" ]; then
+          echo -e "${RED}Prompt vuoto. Operazione annullata.${NC}"
+          press_any_key
+          continue
+        fi
+        echo ""
+        echo -e "${YELLOW}Esecuzione in corso sul container backend...${NC}"
         echo "  ─────────────────────────────────────────────────────────────────────────"
+        check_docker && docker compose exec backend python -c "
+import asyncio
+from app.services.ollama import ollama_service
+async def test():
+    r = await ollama_service.run_inference(prompt='''$custom_prompt''', model='$custom_model')
+    print('RISULTATO:')
+    print(r.get('content', 'Nessuna risposta generata.'))
+    print(f'Latenza: {r.get(\"latency_ms\", 0)}ms')
+asyncio.run(test())
+"
+        press_any_key
+        ;;
+      13)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO INTERATTIVO: Calcolo Embedding Custom${NC}"
+        echo -e "  Interroga il modello linguistico per generare il vettore semantico (embedding)"
+        echo -e "  di una query. Mostra i primi 5 float del vettore per verificare la compatibilità."
+        echo -e "  Richiede il server Ollama con embeddings abilitati."
         echo ""
-        check_docker && docker compose exec backend pytest tests/integration/test_health.py
+        read -p "Inserisci il nome del modello (es. gemma-test, gemma2:27b) [predefinito: gemma-test]: " emb_model
+        emb_model=${emb_model:-"gemma-test"}
+        read -p "Inserisci la frase da convertire in vettore: " emb_text
+        if [ -z "$emb_text" ]; then
+          echo -e "${RED}Testo vuoto. Operazione annullata.${NC}"
+          press_any_key
+          continue
+        fi
+        echo ""
+        echo -e "${YELLOW}Chiamata OllamaEmbeddings in corso...${NC}"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        check_docker && docker compose exec backend python -c "
+from langchain_community.embeddings import OllamaEmbeddings
+from app.config import get_settings
+s = get_settings()
+try:
+    e = OllamaEmbeddings(model='$emb_model', base_url=s.ollama_base_url)
+    vector = e.embed_query('$emb_text')
+    print('VETTORE GENERATO CON SUCCESSO!')
+    print(f'Dimensione totale vettore: {len(vector)}')
+    print(f'Primi 5 elementi: {vector[:5]}')
+except Exception as err:
+    print('ERRORE RISCONTRATO:', str(err))
+"
+        press_any_key
+        ;;
+      14)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO INTERATTIVO: Cerca Sintomo nel DB ICD-11${NC}"
+        echo -e "  Effettua una ricerca all'interno della tabella locale 'icd11_categories'"
+        echo -e "  del database PostgreSQL per trovare e listare le prime 5 categorie corrispondenti."
+        echo ""
+        read -p "Inserisci la parola o sintomo da cercare: " search_query
+        if [ -z "$search_query" ]; then
+          echo -e "${RED}Query vuota. Operazione annullata.${NC}"
+          press_any_key
+          continue
+        fi
+        echo ""
+        echo -e "${YELLOW}Interrogazione database in corso...${NC}"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        check_docker && docker compose exec backend python -c "
+from app.database import SessionLocal
+from app.models.icd11 import ICD11Category
+db = SessionLocal()
+try:
+    q = '$search_query'
+    cats = db.query(ICD11Category).filter(
+        (ICD11Category.code.ilike(f'%{q}%')) |
+        (ICD11Category.title_en.ilike(f'%{q}%')) |
+        (ICD11Category.title_it.ilike(f'%{q}%')) |
+        (ICD11Category.description.ilike(f'%{q}%'))
+    ).limit(5).all()
+    if not cats:
+        print('Nessuna categoria trovata.')
+    else:
+        print(f'Trovate {len(cats)} categorie (limite visualizzazione: 5):')
+        for c in cats:
+            print(f' - [{c.code}] {c.title_en} (Livello {c.level})')
+except Exception as err:
+    print('ERRORE:', str(err))
+"
         press_any_key
         ;;
       0)
