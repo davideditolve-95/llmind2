@@ -201,6 +201,127 @@ stop_sonarqube() {
   press_any_key
 }
 
+# 10. Riproduci / Testa Singoli Comportamenti (Menu Funzionale)
+run_functional_menu() {
+  while true; do
+    clear
+    echo -e "${PURPLE}${BOLD}  ████████╗███████╗███████╗████████╗    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗"
+    echo "  ╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝    ████╗ ████║██╔════╝████╗  ██║██║   ██║"
+    echo "     ██║   █████╗  ███████╗   ██║       ██╔████╔██║█████╗  ██╔██╗ ██║██║   ██║"
+    echo "     ██║   ██╔══╝  ╚════██║   ██║       ██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║"
+    echo "     ██║   ███████╗███████║   ██║       ██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝"
+    echo -e "     ╚═╝   ╚══════╝╚══════╝   ╚═╝       ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝ ${NC}"
+    echo -e "${PURPLE}${BOLD}                  Menu Riproduzione Singoli Comportamenti${NC}"
+    echo -e "  ─────────────────────────────────────────────────────────────────────────"
+    echo -e "  Seleziona la funzionalità che desideri testare e comprendere:\n"
+    
+    echo -e "  ${CYAN}[1]${NC} Connessione Ollama & Inferenza LLM"
+    echo -e "  ${CYAN}[2]${NC} Calcolo Embeddings & Vectorstore (RAG)"
+    echo -e "  ${CYAN}[3]${NC} Validazione Token JWT / OIDC (Authentik)"
+    echo -e "  ${CYAN}[4]${NC} Chat Clinica & Isolamento Utente"
+    echo -e "  ${CYAN}[5]${NC} Benchmark & Grounding Diagnostico (ICD-11)"
+    echo -e "  ${CYAN}[6]${NC} Health Check & Servizi di Sistema"
+    echo -e "  ─────────────────────────────────────────────────────────────────────────"
+    echo -e "  ${RED}[0]${NC} Torna al Menu Principale"
+    echo ""
+    
+    read -p "Opzione Funzionale > " f_choice
+    case $f_choice in
+      1)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Connessione Ollama & Inferenza LLM${NC}"
+        echo -e "  Questo test verifica la connettività del backend FastAPI verso l'API di Ollama"
+        echo -e "  (definita da OLLAMA_BASE_URL). Simula la richiesta della lista dei modelli disponibili"
+        echo -e "  e l'esecuzione di un prompt di inferenza sul modello configurato in OLLAMA_DEFAULT_MODEL."
+        echo -e "  Verifica anche la gestione degli errori di connessione e timeout."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_ollama.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/unit/test_ollama.py
+        press_any_key
+        ;;
+      2)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Calcolo Embeddings & Vectorstore (RAG)${NC}"
+        echo -e "  Questo test verifica l'integrazione di LangChain con Ollama per il calcolo degli"
+        echo -e "  embeddings e l'interrogazione semantica del vectorstore ChromaDB (RAG)."
+        echo -e "  Affinché questo test funzioni, il server Ollama esterno deve essere avviato con gli"
+        echo -e "  embeddings abilitati (ad esempio con il flag --embeddings se si usa llama.cpp)."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_cases.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_cases.py
+        press_any_key
+        ;;
+      3)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Validazione Token JWT / OIDC (Authentik)${NC}"
+        echo -e "  Questo test verifica la logica di sicurezza e autenticazione del backend."
+        echo -e "  Simula l'invio di un JWT Bearer Token, il download asincrono delle chiavi pubbliche (JWKS)"
+        echo -e "  dall'Identity Provider (Authentik o Keycloak) con caching locale, e la decodifica/verifica"
+        echo -e "  dell'aud, dell'iss, della firma crittografica RSA e della scadenza del token."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/unit/test_auth.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/unit/test_auth.py
+        press_any_key
+        ;;
+      4)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Chat Clinica & Isolamento Utente${NC}"
+        echo -e "  Questo test verifica la gestione dello stato delle chat."
+        echo -e "  Verifica che le sessioni di conversazione vengano create e persistite nel database"
+        echo -e "  in modo sicuro e isolato. Controlla che ciascun utente possa vedere solo i propri"
+        echo -e "  dati di chat tramite l'email estratta dal token OIDC, e che lo streaming SSE"
+        echo -e "  funzioni correttamente."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_chat.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_chat.py
+        press_any_key
+        ;;
+      5)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Benchmark & Grounding Diagnostico (ICD-11)${NC}"
+        echo -e "  Questo test verifica la suite di benchmarking sui casi clinici e il grounding"
+        echo -e "  con i codici ICD-11. Simula l'esecuzione del confronto semantico delle risposte"
+        echo -e "  del modello contro la tassonomia ufficiale ICD-11 della WHO, calcolando i KPI"
+        echo -e "  e allineando i sintomi."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_benchmark.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_benchmark.py
+        press_any_key
+        ;;
+      6)
+        clear
+        echo -e "${BLUE}${BOLD}🔍 COMPORTAMENTO: Health Check & Servizi di Sistema${NC}"
+        echo -e "  Questo test verifica l'endpoint pubblico /health del backend FastAPI."
+        echo -e "  Verifica che il backend sia attivo, in grado di comunicare con la rete e che i parametri"
+        echo -e "  fondamentali (connessione database, url Ollama) siano configurati correttamente."
+        echo ""
+        echo -e "${YELLOW}Comando di test eseguito:${NC} pytest tests/integration/test_health.py"
+        echo "  ─────────────────────────────────────────────────────────────────────────"
+        echo ""
+        check_docker && docker compose exec backend pytest tests/integration/test_health.py
+        press_any_key
+        ;;
+      0)
+        break
+        ;;
+      *)
+        echo -e "${RED}⚠️ Opzione non valida. Riprova.${NC}"
+        sleep 1
+        ;;
+    esac
+  done
+}
+
 # Loop principale
 while true; do
   print_banner
@@ -217,6 +338,7 @@ while true; do
   echo -e "  ${CYAN}[7]${NC} Esegui Analisi Completa SonarQube (Backend + Frontend)"
   echo -e "  ${CYAN}[8]${NC} Mostra Metriche di Copertura di SonarQube"
   echo -e "  ${CYAN}[9]${NC} Ferma/Rimuovi Container SonarQube (Docker)"
+  echo -e "  ${CYAN}[10]${NC} Riproduci / Testa Singoli Comportamenti (Menu Funzionale)"
   echo -e "  ─────────────────────────────────────────────────────────────"
   echo -e "  ${RED}[0]${NC} Esci"
   echo ""
@@ -232,6 +354,7 @@ while true; do
     7) run_sonarqube_analysis ;;
     8) show_sonarqube_metrics ;;
     9) stop_sonarqube ;;
+    10) run_functional_menu ;;
     0) 
       echo -e "\n${GREEN}Arrivederci!${NC}\n"
       exit 0
