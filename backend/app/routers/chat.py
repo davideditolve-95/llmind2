@@ -7,11 +7,15 @@ import json
 import uuid
 import sqlalchemy
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from ..services.auth import verify_token
+
+logger = logging.getLogger(__name__)
 
 from ..database import get_db
 from ..models.chat import ChatMessage, ChatSession
@@ -79,18 +83,45 @@ async def get_available_models():
 
 
 @router.get("/sessions", response_model=List[ChatSessionResponse])
-async def list_chat_sessions(db: Session = Depends(get_db)):
-    """Elenca tutte le sessioni di chat attive."""
-    return db.query(ChatSession).filter(ChatSession.is_active == True).order_by(ChatSession.updated_at.desc()).all()
+async def list_chat_sessions(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(verify_token),
+):
+    """Elenca tutte le sessioni di chat attive per l'utente corrente."""
+    user_email = current_user.get("email")
+    return (
+        db.query(ChatSession)
+        .filter(ChatSession.is_active == True, ChatSession.user_email == user_email)
+        .order_by(ChatSession.is_pinned.desc(), ChatSession.is_starred.desc(), ChatSession.updated_at.desc())
+        .all()
+    )
 
 
 @router.patch("/sessions/{session_id}", response_model=ChatSessionResponse)
-async def update_session(session_id: UUID, title: str, db: Session = Depends(get_db)):
-    """Rinomina una sessione di chat."""
+async def update_session(
+    session_id: UUID,
+    title: Optional[str] = Query(default=None),
+    is_pinned: Optional[bool] = Query(default=None),
+    is_starred: Optional[bool] = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(verify_token),
+):
+    """Aggiorna i parametri di una sessione di chat (titolo, pin, star)."""
+    user_email = current_user.get("email")
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Sessione non trovata")
-    session.title = title
+    
+    if session.user_email != user_email:
+        raise HTTPException(status_code=403, detail="Non hai i permessi per questa conversazione")
+        
+    if title is not None:
+        session.title = title
+    if is_pinned is not None:
+        session.is_pinned = is_pinned
+    if is_starred is not None:
+        session.is_starred = is_starred
+        
     db.commit()
     return session
 
@@ -99,16 +130,18 @@ async def update_session(session_id: UUID, title: str, db: Session = Depends(get
 async def chat_stream(
     request: ChatMessageRequest,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(verify_token),
 ):
     """
     Endpoint di chat con streaming SSE (Server-Sent Events).
     """
+    user_email = current_user.get("email")
     try:
         # 1. Verifica/Crea Sessione (con rollback in caso di errore)
         session = db.query(ChatSession).filter(ChatSession.id == request.session_id).first()
         if not session:
             try:
-                session = ChatSession(id=request.session_id, title="Nuova Conversazione", mode=request.mode)
+                session = ChatSession(id=request.session_id, title="Nuova Conversazione", mode=request.mode, user_email=user_email)
                 db.add(session)
                 db.commit()
             except Exception as e:
@@ -195,12 +228,17 @@ async def chat_stream(
 async def get_session_history(
     session_id: UUID,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(verify_token),
 ):
     """Recupera la cronologia completa di una sessione di chat."""
+    user_email = current_user.get("email")
     try:
         session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
         if not session:
             raise HTTPException(status_code=404, detail="Sessione non trovata")
+
+        if session.user_email != user_email:
+            raise HTTPException(status_code=403, detail="Non hai i permessi per questa conversazione")
 
         messages = (
             db.query(ChatMessage)
@@ -227,6 +265,8 @@ async def get_session_history(
             ],
             mode=session.mode,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Errore recupero history per {session_id}: {e}")
         raise HTTPException(status_code=500, detail="Impossibile recuperare la cronologia per errore database")
@@ -236,8 +276,17 @@ async def get_session_history(
 async def clear_session_history(
     session_id: UUID,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(verify_token),
 ):
     """Cancella la cronologia di una sessione di chat."""
+    user_email = current_user.get("email")
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessione non trovata")
+
+    if session.user_email != user_email:
+        raise HTTPException(status_code=403, detail="Non hai i permessi per questa conversazione")
+
     db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
     db.query(ChatSession).filter(ChatSession.id == session_id).delete()
     db.commit()

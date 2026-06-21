@@ -1,0 +1,93 @@
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[{American Psychiatric Association}(2022)]{apa2022dsm5tr}
+{American Psychiatric Association}.
+\newblock \emph{Diagnostic and Statistical Manual of Mental Disorders, Fifth
+  Edition, Text Revision (DSM-5-TR)}.
+\newblock American Psychiatric Association Publishing, Washington, DC, 2022.
+\newblock \doi{10.1176/appi.books.9780890425787}.
+
+\bibitem[{American Psychiatric Association}(2023)]{apa2023clinicalcases}
+{American Psychiatric Association}.
+\newblock \emph{DSM-5-TR Clinical Cases}.
+\newblock American Psychiatric Association Publishing, Washington, DC, 2023.
+
+\bibitem[Barnhart et~al.(2002)Barnhart, Haber, and Song]{barnhart2002ccc}
+Huiman~X. Barnhart, Michael Haber, and Jincheng Song.
+\newblock Overall concordance correlation coefficient for evaluating agreement
+  among multiple observers.
+\newblock \emph{Biometrics}, 58\penalty0 (4):\penalty0 1020--1027, 2002.
+\newblock \doi{10.1111/j.0006-341X.2002.01020.x}.
+
+\bibitem[Cremaschi et~al.(2025)Cremaschi, Ditolve, Curcio, Panzeri, Spoto, and
+  Maurino]{cremaschi2025decoding}
+Marco Cremaschi, Davide Ditolve, Cesare Curcio, Anna Panzeri, Andrea Spoto, and
+  Andrea Maurino.
+\newblock Decoding the mind: A rag-llm on icd-11 for decision support in
+  psychology.
+\newblock \emph{Expert Systems with Applications}, 279:\penalty0 127191, 2025.
+\newblock \doi{10.1016/j.eswa.2025.127191}.
+
+\bibitem[Lewis et~al.(2020)Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal,
+  Kuttler, Lewis, Yih, Rocktaschel, Riedel, and Kiela]{lewis2020rag}
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir
+  Karpukhin, Naman Goyal, Heinrich Kuttler, Mike Lewis, Wen-tau Yih, Tim
+  Rocktaschel, Sebastian Riedel, and Douwe Kiela.
+\newblock Retrieval-augmented generation for knowledge-intensive nlp tasks.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~33, pages 9459--9474, 2020.
+
+\bibitem[Li et~al.(2022)Li, Su, Cai, Wang, and Liu]{li2022survey}
+Huayang Li, Yixuan Su, Deng Cai, Yan Wang, and Lemao Liu.
+\newblock A survey on retrieval-augmented text generation.
+\newblock \emph{arXiv preprint arXiv:2202.01110}, 2022.
+\newblock URL \url{https://arxiv.org/abs/2202.01110}.
+
+\bibitem[Peng et~al.(2023)Peng, Yang, Chen, Smith, PourNejatian, Costa, Martin,
+  Flores, Zhang, Magoc, Lipori, Mitchell, Ospina, Ahmed, Hogan, Shenkman, and
+  Bian]{peng2023medical}
+Cheng Peng, Xi~Yang, Aokun Chen, Kaleb~E. Smith, Nima PourNejatian, Anthony~B.
+  Costa, Cheryl Martin, Mona~G. Flores, Ying Zhang, Tanja Magoc, Gloria Lipori,
+  Duane~A. Mitchell, Natalia~S. Ospina, Mustafa~M. Ahmed, William~R. Hogan,
+  Elizabeth~A. Shenkman, and Jiang Bian.
+\newblock A study of generative large language model for medical research and
+  healthcare.
+\newblock \emph{NPJ Digital Medicine}, 6\penalty0 (1):\penalty0 210, 2023.
+\newblock \doi{10.1038/s41746-023-00958-w}.
+
+\bibitem[Singhal et~al.(2023)Singhal, Azizi, Tu, Mahdavi, Wei, Chung, Scales,
+  Tanwani, Cole-Lewis, Pfohl, Payne, Seneviratne, Gamble, Kelly, Scharli,
+  Chowdhery, Mansfield, Demner-Fushman, Aguerrebere, Webster, Corrado, Matias,
+  Chou, Gottweis, Tomasev, Liu, Rajkomar, Barral, Semturs, Karthikesalingam,
+  and Natarajan]{singhal2023medpalm}
+Karan Singhal, Shekoofeh Azizi, Tao Tu, S.~Sara Mahdavi, Jason Wei, Hyung~Won
+  Chung, Nathan Scales, Ajay Tanwani, Heather Cole-Lewis, Stephen Pfohl, Perry
+  Payne, Manish Seneviratne, Paul Gamble, Chris Kelly, Nathanael Scharli,
+  Aakanksha Chowdhery, Philip Mansfield, Dina Demner-Fushman, Cecilia
+  Aguerrebere, Dale Webster, Greg~S. Corrado, Yossi Matias, Katherine Chou,
+  Juraj Gottweis, Nenad Tomasev, Yun Liu, Alvin Rajkomar, Joelle Barral,
+  Christopher Semturs, Alan Karthikesalingam, and Vivek Natarajan.
+\newblock Large language models encode clinical knowledge.
+\newblock \emph{Nature}, 620\penalty0 (7972):\penalty0 172--180, 2023.
+\newblock \doi{10.1038/s41586-023-06291-2}.
+
+\bibitem[{World Health Organization}(2022)]{who2022icd11}
+{World Health Organization}.
+\newblock International classification of diseases, eleventh revision (icd-11),
+  2022.
+\newblock URL \url{https://icd.who.int/}.
+\newblock Accessed 2026-06-21.
+
+\bibitem[{World Health Organization}(2024)]{who2024cddr}
+{World Health Organization}.
+\newblock \emph{Clinical descriptions and diagnostic requirements for ICD-11
+  mental, behavioural and neurodevelopmental disorders}.
+\newblock World Health Organization, Geneva, 2024.
+\newblock URL \url{https://www.who.int/publications/i/item/9789240077263}.
+
+\end{thebibliography}

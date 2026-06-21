@@ -42,6 +42,9 @@ class ChatSessionResponse(BaseModel):
     title: str
     mode: str
     is_active: bool
+    user_email: Optional[str] = None
+    is_pinned: bool = False
+    is_starred: bool = False
     created_at: datetime
     updated_at: datetime
 

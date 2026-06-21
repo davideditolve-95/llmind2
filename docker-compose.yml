@@ -9,23 +9,23 @@ services:
   # ─────────────────────────────────────────────
   # Servizio database PostgreSQL
   # ─────────────────────────────────────────────
-  db:
-    image: postgres:16-alpine
-    container_name: llmind_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - llmind-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+#  db:
+#    image: postgres:16-alpine
+#    container_name: llmind_db
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_USER: ${POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#      POSTGRES_DB: ${POSTGRES_DB}
+#    volumes:
+#      - postgres-data:/var/lib/postgresql/data
+#    networks:
+#      - llmind-net
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
 
   # ─────────────────────────────────────────────
   # Servizio API ICD-11 offline (WHO)
@@ -42,7 +42,7 @@ services:
     networks:
       - llmind-net
     ports:
-      - "8081:80"
+      - "8082:80"
     # Healthcheck per verificare che l'API ICD-11 sia pronta
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost/icd/release/11/mms || exit 1"]
@@ -68,14 +68,16 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
       SECRET_KEY: ${SECRET_KEY}
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_JWKS_URL:-}
     volumes:
       # Volume per caricare il PDF del DSM-5-TR
       - ./backend/data:/app/data
     ports:
       - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
       icd11-api:
         condition: service_started
     networks:
@@ -96,6 +98,11 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
     ports:
       - "3000:3000"
     depends_on:
@@ -106,9 +113,9 @@ services:
 # ─────────────────────────────────────────────
 # Volumi persistenti
 # ─────────────────────────────────────────────
-volumes:
-  postgres-data:
-    driver: local
+#volumes:
+#  postgres-data:
+#    driver: local
 
 # ─────────────────────────────────────────────
 # Rete interna del cluster

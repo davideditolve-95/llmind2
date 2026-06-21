@@ -40,3 +40,4 @@ aiofiles==23.2.1
 tqdm==4.66.4
 backoff==2.2.1
 simple-icd-11>=1.2.0
+google-auth==2.36.0

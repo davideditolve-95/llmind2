@@ -1,27 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
-import { useI18n } from '@/lib/i18n/context';
 import { chatApi } from '@/lib/api';
+import MarkdownContent from '@/components/ui/MarkdownContent';
 import {
+  ArrowPathIcon,
   ChatBubbleLeftRightIcon,
   PaperAirplaneIcon,
-  TrashIcon,
-  ArrowPathIcon,
-  UserIcon,
-  PlusIcon,
-  ClockIcon,
-  CheckIcon,
-  XMarkIcon,
   PencilSquareIcon,
-  SparklesIcon,
-  BeakerIcon,
-  BookOpenIcon,
-  CpuChipIcon,
+  PlusIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
-import MarkdownContent from '@/components/ui/MarkdownContent';
+
+type Mode = 'icd11' | 'wellbeing';
 
 interface Message {
   id: string;
@@ -31,99 +24,60 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const { t } = useI18n();
-  const [mode, setMode] = useState<'icd11' | 'wellbeing'>('icd11');
+  const [mode, setMode] = useState<Mode>('icd11');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [models, setModels] = useState<string[]>(['gemma4']);
   const [selectedModel, setSelectedModel] = useState('gemma4');
   const [language, setLanguage] = useState('en');
-  
-  // Session management
-  const [sessions, setSessions] = useState<{ id: string; title: string; mode: string; created_at: string }[]>([]);
+  const [sessions, setSessions] = useState<{ id: string; title: string; mode: string; is_pinned: boolean; is_starred: boolean; updated_at: string }[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState(uuidv4());
-  const [currentTitle, setCurrentTitle] = useState('New Conversation');
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [currentTitle, setCurrentTitle] = useState('New conversation');
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [showHistory, setShowHistory] = useState(false);
-
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const loadSessions = useCallback(async () => {
+    try {
+      setSessions(await chatApi.listSessions());
+    } catch {}
+  }, []);
 
   useEffect(() => {
     chatApi.getModels().then((res) => {
       setModels(res.models);
-      setSelectedModel(res.default_model);
+      setSelectedModel(res.default_model || res.models[0] || 'gemma4');
     }).catch(() => {});
     loadSessions();
-  }, []);
+  }, [loadSessions]);
 
-  const loadSessions = async () => {
-    setSessionsLoading(true);
-    try {
-      const res = await chatApi.listSessions();
-      setSessions(res);
-    } catch (err) {
-      console.error('Error loading sessions:', err);
-    } finally {
-      setSessionsLoading(false);
-    }
-  };
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const loadSessionHistory = async (id: string) => {
-    try {
-      const res = await chatApi.getHistory(id);
-      setCurrentSessionId(res.id);
-      setCurrentTitle(res.title);
-      setMode(res.mode as 'icd11' | 'wellbeing');
-      setMessages(res.messages.map(m => ({
-        id: m.id,
-        role: m.role,
-        content: m.content
-      })));
-      setShowHistory(false);
-    } catch (err) {
-      console.error('Error loading history:', err);
-    }
-  };
-
-  const startNewChat = () => {
-    const newId = uuidv4();
-    setCurrentSessionId(newId);
+  const startNew = () => {
+    setCurrentSessionId(uuidv4());
     setMessages([]);
-    setCurrentTitle('New Conversation');
-    setShowHistory(false);
+    setCurrentTitle('New conversation');
+    setIsSidebarOpen(false);
   };
 
-  const handleRename = async (id: string) => {
-    if (!newTitle.trim()) return;
-    try {
-      await chatApi.renameSession(id, newTitle.trim());
-      if (id === currentSessionId) setCurrentTitle(newTitle.trim());
-      loadSessions();
-    } catch (err) {
-      console.error('Rename error:', err);
-    }
-    setEditingSessionId(null);
+  const loadHistory = async (id: string) => {
+    const history = await chatApi.getHistory(id);
+    setCurrentSessionId(history.id);
+    setCurrentTitle(history.title);
+    setMode(history.mode as Mode);
+    setMessages(history.messages.map((m) => ({ id: m.id, role: m.role, content: m.content })));
+    setIsSidebarOpen(false);
   };
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isStreaming) return;
-
-    const userMsg: Message = {
-      id: uuidv4(),
-      role: 'user',
-      content: input.trim(),
-    };
-    const assistantMsg: Message = {
-      id: uuidv4(),
-      role: 'assistant',
-      content: '',
-      streaming: true,
-    };
-
+    const userMsg: Message = { id: uuidv4(), role: 'user', content: input.trim() };
+    const assistantMsg: Message = { id: uuidv4(), role: 'assistant', content: '', streaming: true };
     setMessages((prev) => [...prev, userMsg, assistantMsg]);
     setInput('');
     setIsStreaming(true);
@@ -136,474 +90,379 @@ export default function ChatPage() {
         model_name: selectedModel,
         language,
       });
-
       if (!stream) throw new Error('Stream unavailable');
-
       const reader = stream.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const text = decoder.decode(value, { stream: true });
-        const lines = text.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (data === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.chunk) {
-                fullContent += parsed.chunk;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantMsg.id
-                      ? { ...m, content: fullContent }
-                      : m
-                  )
-                );
-              }
-            } catch {}
-          }
+        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.chunk) {
+              fullContent += parsed.chunk;
+              setMessages((prev) => prev.map((m) => m.id === assistantMsg.id ? { ...m, content: fullContent } : m));
+            }
+          } catch {}
         }
       }
-    } catch (err) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantMsg.id
-            ? { ...m, content: '[Error connecting to AI service]' }
-            : m
-        )
-      );
+    } catch {
+      setMessages((prev) => prev.map((m) => m.id === assistantMsg.id ? { ...m, content: 'Error connecting to AI service.' } : m));
     } finally {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantMsg.id ? { ...m, streaming: false } : m
-        )
-      );
+      setMessages((prev) => prev.map((m) => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
       setIsStreaming(false);
       loadSessions();
     }
-  }, [input, isStreaming, mode, selectedModel, language, currentSessionId]);
+  }, [currentSessionId, input, isStreaming, language, loadSessions, mode, selectedModel]);
 
-  const clearConversation = () => {
-    if (confirm('Clear this conversation?')) {
-      chatApi.clearHistory(currentSessionId).then(() => {
-        startNewChat();
-        loadSessions();
-      }).catch(() => {});
+  const renameSession = async (id: string) => {
+    if (!newTitle.trim()) return;
+    await chatApi.updateSession(id, { title: newTitle.trim() });
+    if (id === currentSessionId) setCurrentTitle(newTitle.trim());
+    setRenaming(null);
+    setNewTitle('');
+    loadSessions();
+  };
+
+  const togglePin = async (id: string, currentPin: boolean) => {
+    try {
+      await chatApi.updateSession(id, { is_pinned: !currentPin });
+      loadSessions();
+    } catch (err) {
+      console.error('Failed to toggle pin:', err);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const toggleStar = async (id: string, currentStar: boolean) => {
+    try {
+      await chatApi.updateSession(id, { is_starred: !currentStar });
+      loadSessions();
+    } catch (err) {
+      console.error('Failed to toggle star:', err);
     }
   };
 
-  useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
-  const modeConfig = {
-    icd11: {
-      label: 'ICD-11 Assistant',
-      sublabel: 'Ontology & Diagnostic Coding',
-      icon: BookOpenIcon,
-      color: 'bg-indigo-600',
-      border: 'border-indigo-600',
-      badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      glow: 'shadow-indigo-500/20',
-      placeholder: 'Enter a clinical question or ICD-11 code to explore...',
-    },
-    wellbeing: {
-      label: 'Differential Diagnosis',
-      sublabel: 'Multi-agent Differential Reasoning',
-      icon: BeakerIcon,
-      color: 'bg-emerald-600',
-      border: 'border-emerald-600',
-      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      glow: 'shadow-emerald-500/20',
-      placeholder: 'Describe patient symptoms for differential analysis...',
-    }
+  const clearCurrent = async () => {
+    if (!confirm('Clear this conversation?')) return;
+    await chatApi.clearHistory(currentSessionId);
+    startNew();
+    loadSessions();
   };
 
-  const activeMode = modeConfig[mode];
+  const filteredSessions = sessions.filter((session) =>
+    session.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const pinnedSessions = filteredSessions.filter((s) => s.is_pinned);
+  const recentSessions = filteredSessions.filter((s) => !s.is_pinned);
 
-  return (
-    <div className="flex h-[calc(100vh-4rem)] bg-slate-50 page-enter overflow-hidden">
-      
-      {/* ──── LEFT SIDEBAR ──── */}
-      <div className="w-72 bg-slate-950 flex flex-col border-r border-white/10 flex-shrink-0 hidden lg:flex">
-        
-        {/* Sidebar Header */}
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg">
-              <CpuChipIcon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-black text-sm leading-none">AI Workspace</p>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Clinical Engine v4.2</p>
+  const renderSessionRow = (session: typeof sessions[0]) => {
+    const isActive = session.id === currentSessionId;
+    return (
+      <div
+        key={session.id}
+        className={clsx(
+          'group relative mb-1.5 rounded-box p-2 transition-all duration-200 border border-transparent',
+          isActive ? 'bg-base-200 border-base-300/40 text-base-content font-medium' : 'hover:bg-base-200/50 hover:text-base-content/90'
+        )}
+      >
+        {renaming === session.id ? (
+          <div className="join w-full">
+            <input
+              className="input input-xs input-bordered join-item w-full"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') renameSession(session.id);
+                if (e.key === 'Escape') setRenaming(null);
+              }}
+              autoFocus
+            />
+            <button className="btn btn-xs btn-primary join-item" onClick={() => renameSession(session.id)}>Save</button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-1">
+            <button className="min-w-0 flex-1 text-left" onClick={() => loadHistory(session.id)}>
+              <div className="truncate text-sm font-medium">{session.title}</div>
+              <div className="text-xs text-base-content/50 capitalize">{session.mode}</div>
+            </button>
+            
+            <div className="flex items-center gap-0.5 opacity-60 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                className={clsx('btn btn-ghost btn-xs btn-circle', session.is_pinned && 'text-primary opacity-100')}
+                onClick={() => togglePin(session.id, session.is_pinned)}
+                title={session.is_pinned ? "Unpin chat" : "Pin chat"}
+              >
+                <PinIcon filled={session.is_pinned} className="h-3.5 w-3.5" />
+              </button>
+              <button
+                className={clsx('btn btn-ghost btn-xs btn-circle', session.is_starred && 'text-warning opacity-100')}
+                onClick={() => toggleStar(session.id, session.is_starred)}
+                title={session.is_starred ? "Unstar chat" : "Star chat"}
+              >
+                <StarIconCustom filled={session.is_starred} className="h-3.5 w-3.5" />
+              </button>
+              <button
+                className="btn btn-ghost btn-xs btn-circle"
+                onClick={() => { setRenaming(session.id); setNewTitle(session.title); }}
+                title="Rename chat"
+              >
+                <PencilSquareIcon className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
-          
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="grid h-[calc(100vh-4rem)] grid-cols-1 overflow-hidden lg:grid-cols-[20rem_1fr] relative">
+      {/* Backdrop overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={clsx(
+          'border-r border-base-300 bg-base-100 transition-all duration-300 ease-in-out flex flex-col',
+          // Desktop behavior
+          'lg:static lg:h-full lg:w-80 lg:translate-x-0 lg:z-auto',
+          // Mobile behavior
+          'fixed inset-y-0 left-0 z-50 w-80 h-full shadow-2xl lg:shadow-none',
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
+        <div className="border-b border-base-300 p-4 flex items-center justify-between gap-2">
+          <button className="btn btn-primary flex-1" onClick={startNew}>
+            <PlusIcon className="h-4 w-4" />
+            New chat
+          </button>
           <button
-            onClick={startNewChat}
-            className="btn w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white border-none font-black text-sm gap-2 shadow-lg shadow-indigo-500/20"
+            className="btn btn-ghost btn-square btn-sm lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close sidebar"
           >
-            <PlusIcon className="w-5 h-5" />
-            New Consultation
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        {/* MODE SWITCHER — primary UI element */}
-        <div className="p-6 border-b border-white/10">
-          <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-4">Reasoning Mode</p>
-          <div className="flex flex-col gap-2">
-            {(['icd11', 'wellbeing'] as const).map((m) => {
-              const cfg = modeConfig[m];
-              const Icon = cfg.icon;
-              const isActive = mode === m;
-              const isLocked = messages.length > 0 && !isActive;
-              
-              return (
-                <button
-                  key={m}
-                  onClick={() => !messages.length && setMode(m)}
-                  disabled={messages.length > 0}
-                  title={messages.length > 0 ? "Mode is locked for this session" : ""}
-                  className={clsx(
-                    "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left w-full",
-                    isActive
-                      ? "bg-white/10 border-white/30 shadow-lg"
-                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20",
-                    messages.length > 0 && !isActive && "opacity-30 cursor-not-allowed grayscale"
-                  )}
+        {/* Search Bar */}
+        <div className="px-4 py-2 border-b border-base-300 bg-base-50">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search chats..."
+              className="input input-sm input-bordered w-full pl-8 text-sm focus:outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <svg
+              className="absolute left-2.5 top-2.5 h-4 w-4 text-base-content/40"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {searchQuery && (
+              <button
+                className="absolute right-2 top-1.5 btn btn-ghost btn-xs btn-circle"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="scroll-area flex-1 overflow-auto p-3 space-y-4">
+          {sessions.length === 0 ? (
+            <div className="alert text-sm">No saved sessions yet.</div>
+          ) : filteredSessions.length === 0 ? (
+            <div className="text-center py-6 text-sm text-base-content/50">No matches found.</div>
+          ) : (
+            <div className="space-y-4">
+              {/* Pinned Sessions */}
+              {pinnedSessions.length > 0 && (
+                <div className="space-y-1">
+                  <div className="px-2 mb-2 text-xs font-semibold uppercase tracking-wider text-base-content/40 flex items-center gap-1.5">
+                    <PinIcon filled={true} className="h-3 w-3 text-primary" />
+                    <span>Pinned</span>
+                  </div>
+                  {pinnedSessions.map((session) => renderSessionRow(session))}
+                </div>
+              )}
+
+              {/* Recent Sessions */}
+              <div className="space-y-1">
+                {pinnedSessions.length > 0 ? (
+                  <div className="px-2 pt-2 mb-2 border-t border-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/40">
+                    Recent Conversations
+                  </div>
+                ) : null}
+                {recentSessions.map((session) => renderSessionRow(session))}
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <section className="flex min-h-0 flex-col">
+        <div className="border-b border-base-300 bg-base-100 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              {/* Mobile Sidebar Toggle Button */}
+              <button
+                className="btn btn-ghost btn-sm btn-square lg:hidden"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-label="Open sidebar"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
                 >
-                  <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", isActive ? cfg.color : "bg-white/10")}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="text-xl font-semibold">{currentTitle}</h1>
+                <p className="text-sm text-base-content/60">Streaming clinical workspace</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="join">
+                <button className={clsx('btn btn-sm join-item', mode === 'icd11' && 'btn-primary')} onClick={() => setMode('icd11')}>ICD-11</button>
+                <button className={clsx('btn btn-sm join-item', mode === 'wellbeing' && 'btn-primary')} onClick={() => setMode('wellbeing')}>Differential</button>
+              </div>
+              <select className="select select-bordered select-sm" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
+                {models.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select className="select select-bordered select-sm" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                <option value="en">EN</option>
+                <option value="it">IT</option>
+              </select>
+              <button className="btn btn-ghost btn-sm" onClick={clearCurrent}><TrashIcon className="h-4 w-4" /></button>
+            </div>
+          </div>
+        </div>
+
+        <div className="scroll-area flex-1 overflow-auto p-4">
+          <div className="mx-auto max-w-4xl space-y-4">
+            {messages.length === 0 && (
+              <div className="hero min-h-[22rem] rounded-box bg-base-100">
+                <div className="hero-content text-center">
                   <div>
-                    <p className={clsx("text-sm font-black leading-none mb-0.5", isActive ? "text-white" : "text-white/50")}>{cfg.label}</p>
-                    <p className={clsx("text-[10px] leading-none", isActive ? "text-white/60" : "text-white/25")}>{cfg.sublabel}</p>
+                    <ChatBubbleLeftRightIcon className="mx-auto h-12 w-12 text-primary" />
+                    <h2 className="mt-4 text-2xl font-semibold">Start a clinical reasoning session</h2>
+                    <p className="mt-2 text-base-content/60">Ask about ICD-11 taxonomy or describe a case for differential reasoning.</p>
                   </div>
-                  {isActive && <div className="ml-auto w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />}
-                </button>
+                </div>
+              </div>
+            )}
+            {messages.map((msg) => {
+              const isThinking = msg.role === 'assistant' && msg.streaming && !msg.content;
+              return (
+                <div key={msg.id} className={clsx('chat', msg.role === 'user' ? 'chat-end' : 'chat-start')}>
+                  <div className="chat-header text-xs">{msg.role === 'user' ? 'You' : selectedModel}</div>
+                  <div className={clsx('chat-bubble max-w-3xl', msg.role === 'assistant' ? 'chat-bubble-primary' : '')}>
+                    {isThinking ? (
+                      <div className="flex items-center gap-2 py-1 px-1">
+                        <span className="text-sm italic opacity-85">Thinking</span>
+                        <span className="loading loading-dots loading-xs" />
+                      </div>
+                    ) : (
+                      <>
+                        <MarkdownContent content={msg.content || ' '} className={msg.role === 'assistant' ? 'prose-invert' : ''} />
+                        {msg.streaming && <span className="streaming-cursor" />}
+                      </>
+                    )}
+                  </div>
+                </div>
               );
             })}
+            <div ref={bottomRef} />
           </div>
         </div>
 
-        {/* Model + Language controls */}
-        <div className="p-6 border-b border-white/10 space-y-4">
-          <div>
-            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Neural Model</p>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              style={{ backgroundColor: '#1e293b', color: 'white' }}
-              className="w-full h-11 rounded-xl border border-white/20 font-black text-sm focus:border-indigo-400 focus:outline-none px-3"
-            >
-              {models.map(m => <option key={m} value={m} style={{ backgroundColor: '#0f172a' }}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Language</p>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              style={{ backgroundColor: '#1e293b', color: 'white' }}
-              className="w-full h-11 rounded-xl border border-white/20 font-black text-sm focus:border-indigo-400 focus:outline-none px-3"
-            >
-              <option value="en" style={{ backgroundColor: '#0f172a' }}>English</option>
-              <option value="it" style={{ backgroundColor: '#0f172a' }}>Italiano</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex-1 p-6 flex items-end">
-           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 w-full">
-              <p className="text-white/40 text-[9px] font-black uppercase tracking-widest text-center leading-relaxed">
-                 History is now reachable via the top-bar Clock icon.
-              </p>
-           </div>
-        </div>
-      </div>
-
-      {/* ──── MAIN CHAT AREA ──── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        {/* Top bar — mode indicator + title */}
-        <div className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between flex-shrink-0 shadow-sm">
-          <div className="flex items-center gap-4">
-            {/* Mobile History Toggle */}
-            <button 
-              onClick={() => setShowHistory(true)}
-              className="lg:hidden p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 transition-all border border-slate-200"
-              title="History"
-            >
-              <ClockIcon className="w-5 h-5" />
-            </button>
-
-            <div className={clsx("w-3 h-3 rounded-full", activeMode.color, "shadow-lg")} />
-            <div>
-              <p className="font-black text-slate-800 text-lg leading-none">{activeMode.label}</p>
-              <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest">{activeMode.sublabel}</p>
-            </div>
-            <span className={clsx("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", activeMode.badge)}>
-              {isStreaming ? '● Streaming...' : '● Ready'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setShowHistory(true)}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-slate-200 hover:border-indigo-200 font-black text-[10px] uppercase tracking-widest shadow-sm"
-            >
-              <ClockIcon className="w-4 h-4" />
-              History
-            </button>
-            <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest hidden xl:block">Model: <span className="text-indigo-600">{selectedModel}</span></span>
-          </div>
-        </div>
-
-        {/* Messages area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 md:px-16 py-10 space-y-10">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center gap-8 py-20">
-              <div className={clsx("w-28 h-28 rounded-[3rem] flex items-center justify-center shadow-2xl", activeMode.glow, activeMode.color)}>
-                {mode === 'icd11' ? <BookOpenIcon className="w-14 h-14 text-white" /> : <BeakerIcon className="w-14 h-14 text-white" />}
-              </div>
-              <div className="space-y-3 max-w-md">
-                <p className="text-3xl font-black text-slate-800 tracking-tight">{activeMode.label}</p>
-                <p className="text-slate-400 font-medium text-lg leading-relaxed">{activeMode.sublabel}</p>
-                <p className="text-slate-300 text-sm">{activeMode.placeholder}</p>
-              </div>
-              {/* Quick mode switch hint for empty state */}
-              <div className="flex gap-3 mt-4">
-                {(['icd11', 'wellbeing'] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMode(m)}
-                    className={clsx(
-                      "flex items-center gap-2 px-5 py-3 rounded-2xl border-2 font-black text-sm transition-all",
-                      mode === m
-                        ? `${modeConfig[m].color} text-white border-transparent shadow-lg`
-                        : "border-slate-200 text-slate-500 hover:border-slate-300"
-                    )}
-                  >
-                    {m === 'icd11' ? <BookOpenIcon className="w-4 h-4" /> : <BeakerIcon className="w-4 h-4" />}
-                    {modeConfig[m].label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map((m) => (
-              <div key={m.id} className={clsx("flex gap-5 animate-slide-up", m.role === 'user' ? "flex-row-reverse" : "flex-row")}>
-                {/* Avatar */}
-                <div className={clsx(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg",
-                  m.role === 'user' ? "bg-slate-800 text-white" : mode === 'icd11' ? "bg-indigo-600 text-white" : "bg-emerald-600 text-white"
-                )}>
-                  {m.role === 'user' ? <UserIcon className="w-6 h-6" /> : <SparklesIcon className="w-6 h-6" />}
-                </div>
-                
-                {/* Bubble */}
-                <div className={clsx(
-                  "max-w-[75%] rounded-3xl px-8 py-6 shadow-sm",
-                  m.role === 'user'
-                    ? "bg-indigo-600 text-white rounded-tr-md"
-                    : "bg-white text-slate-800 rounded-tl-md border border-slate-200"
-                )}>
-                  <div className={clsx(
-                    "prose prose-base max-w-none leading-relaxed",
-                    m.role === 'user' ? "prose-invert text-white" : "prose-slate"
-                  )}>
-                    <MarkdownContent content={m.content} className="text-inherit text-base" />
-                    {m.streaming && <span className="streaming-cursor" />}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input area */}
-        <div className="bg-white border-t border-slate-200 px-6 md:px-12 py-6 flex-shrink-0">
-          <div className="max-w-4xl mx-auto">
-            {/* Mode quick-switch — always active, works mid-conversation too */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex-shrink-0">Mode:</span>
-              {(['icd11', 'wellbeing'] as const).map((m) => (
-                <button
-                  key={m}
-                  disabled={messages.length > 0}
-                  onClick={() => setMode(m)}
-                  className={clsx(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border-2 transition-all",
-                    mode === m
-                      ? m === 'icd11' ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" : "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-200"
-                      : "border-slate-200 text-slate-600 bg-white hover:border-slate-300 hover:text-slate-800",
-                    messages.length > 0 && mode !== m && "opacity-30 grayscale cursor-not-allowed"
-                  )}
-                  title={messages.length > 0 ? "Start a new chat to change mode" : ""}
-                >
-                  {m === 'icd11' ? <BookOpenIcon className="w-3.5 h-3.5" /> : <BeakerIcon className="w-3.5 h-3.5" />}
-                  {m === 'icd11' ? 'ICD-11' : 'Differential Dx'}
-                </button>
-              ))}
-              {messages.length > 0 && (
-                <span className="text-slate-300 text-[9px] font-black uppercase tracking-widest ml-2 animate-pulse">
-                   Locked for session
-                </span>
-              )}
-            </div>
-
-            <div className="relative">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={activeMode.placeholder}
-                rows={3}
-                className={clsx(
-                  "w-full resize-none px-7 py-5 pr-20 text-xl font-medium text-slate-800 bg-slate-50 border-2 rounded-3xl focus:outline-none focus:bg-white transition-all placeholder:text-slate-300 leading-relaxed shadow-inner",
-                  mode === 'icd11'
-                    ? "border-slate-200 focus:border-indigo-400 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.06)]"
-                    : "border-slate-200 focus:border-emerald-400 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.06)]"
-                )}
-                disabled={isStreaming}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || isStreaming}
-                className={clsx(
-                  "absolute bottom-4 right-4 w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl transition-all border-none disabled:opacity-30",
-                  mode === 'icd11'
-                    ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30 hover:scale-105"
-                    : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/30 hover:scale-105"
-                )}
-              >
-                {isStreaming
-                  ? <ArrowPathIcon className="w-7 h-7 text-white animate-spin" />
-                  : <PaperAirplaneIcon className="w-7 h-7 text-white -rotate-45 -translate-y-0.5 translate-x-0.5" />
+        <div className="border-t border-base-300 bg-base-100 p-4">
+          <div className="mx-auto flex max-w-4xl gap-2">
+            <textarea
+              className="textarea textarea-bordered min-h-16 flex-1 resize-none"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
                 }
-              </button>
-            </div>
-            <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] text-center mt-3">
-              Press Enter to send · Shift+Enter for new line
-            </p>
+              }}
+              placeholder={mode === 'icd11' ? 'Ask an ICD-11 question...' : 'Describe the clinical case...'}
+              disabled={isStreaming}
+            />
+            <button className="btn btn-primary self-end" onClick={sendMessage} disabled={!input.trim() || isStreaming}>
+              {isStreaming ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : <PaperAirplaneIcon className="h-5 w-5" />}
+            </button>
           </div>
         </div>
-      </div>
-      {/* ──── HISTORY OVERLAY (Mobile/Drawer) ──── */}
-      {showHistory && (
-        <div className="fixed inset-0 z-[300] flex">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowHistory(false)} />
-          
-          <div className="relative w-80 bg-slate-950 h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-300">
-             <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                <div>
-                   <p className="text-white font-black text-sm">Conversation History</p>
-                   <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Manage your sessions</p>
-                </div>
-                <button onClick={() => setShowHistory(false)} className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all">
-                   <XMarkIcon className="w-5 h-5" />
-                </button>
-             </div>
-
-             <div className="p-4 border-b border-white/10">
-                <button
-                  onClick={startNewChat}
-                  className="btn w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white border-none font-black text-sm gap-2 shadow-lg shadow-indigo-500/20"
-                >
-                  <PlusIcon className="w-5 h-5" />
-                  New Consultation
-                </button>
-             </div>
-
-             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-                {sessionsLoading ? (
-                  <div className="flex justify-center py-20"><span className="loading loading-spinner loading-md text-indigo-400" /></div>
-                ) : sessions.length === 0 ? (
-                  <div className="text-center py-20 space-y-4">
-                     <ClockIcon className="w-12 h-12 text-white/10 mx-auto" strokeWidth={1} />
-                     <p className="text-white/20 text-[10px] uppercase font-black tracking-widest">No previous sessions</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sessions.map((s) => (
-                      <div
-                        key={s.id}
-                        onClick={() => !editingSessionId && loadSessionHistory(s.id)}
-                        className={clsx(
-                          "group p-4 rounded-2xl cursor-pointer transition-all border",
-                          currentSessionId === s.id
-                            ? "bg-white/10 border-white/20 shadow-lg"
-                            : "hover:bg-white/5 border-transparent"
-                        )}
-                      >
-                         <div className="flex items-start justify-between gap-3">
-                            {editingSessionId === s.id ? (
-                               <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
-                                  <input
-                                    type="text"
-                                    value={newTitle}
-                                    onChange={(e) => setNewTitle(e.target.value)}
-                                    className="input input-sm bg-white/10 text-white border-indigo-400 flex-1 text-xs font-bold"
-                                    autoFocus
-                                  />
-                                  <button onClick={() => handleRename(s.id)}><CheckIcon className="w-4 h-4 text-emerald-400" /></button>
-                                  <button onClick={() => setEditingSessionId(null)}><XMarkIcon className="w-4 h-4 text-red-400" /></button>
-                               </div>
-                            ) : (
-                               <>
-                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                       <span className={clsx("text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full", s.mode === 'wellbeing' ? "bg-emerald-500/20 text-emerald-400" : "bg-indigo-500/20 text-indigo-400")}>
-                                          {s.mode === 'wellbeing' ? 'Diff Dx' : 'ICD-11'}
-                                       </span>
-                                    </div>
-                                    <p className={clsx("text-sm font-bold leading-tight truncate", currentSessionId === s.id ? "text-white" : "text-white/50")}>
-                                       {s.title}
-                                    </p>
-                                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mt-1">
-                                       {new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                    </p>
-                                 </div>
-                                 <button 
-                                   onClick={(e) => { e.stopPropagation(); setEditingSessionId(s.id); setNewTitle(s.title); }} 
-                                   className="p-2 opacity-0 group-hover:opacity-100 text-white/30 hover:text-white transition-opacity border border-white/5 hover:border-white/20 rounded-lg"
-                                 >
-                                    <PencilSquareIcon className="w-4 h-4" />
-                                 </button>
-                               </>
-                            )}
-                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-             </div>
-
-             <div className="p-6 border-t border-white/10">
-                <button onClick={clearConversation} className="btn btn-ghost w-full h-12 rounded-2xl text-white/30 hover:text-red-400 hover:bg-red-500/10 text-xs font-black uppercase tracking-widest gap-2 border border-white/10 hover:border-red-500/30">
-                  <TrashIcon className="w-4 h-4" />
-                  Clear All History
-                </button>
-             </div>
-          </div>
-        </div>
-      )}
+      </section>
     </div>
   );
 }
+
+// Custom Icons for Pin and Star states
+const PinIcon = ({ filled, className = "h-4 w-4" }: { filled: boolean; className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth={filled ? 0 : 1.5}
+    className={className}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16.5 12V4.5a1.5 1.5 0 00-1.5-1.5h-6A1.5 1.5 0 007.5 4.5V12l-2 2v1.5h5.25v6h2.5v-6h5.25V14l-2-2z"
+    />
+  </svg>
+);
+
+const StarIconCustom = ({ filled, className = "h-4 w-4" }: { filled: boolean; className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth={1.5}
+    className={className}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M11.48 3.499c.195-.558.978-.558 1.173 0l2.36 6.822a1 1 0 00.95.69h7.14c.586 0 .83.753.354 1.1l-5.78 4.2a1 1 0 00-.36 1.118l2.36 6.82a1 1 0 01-1.45 1.1L12 19.24a1 1 0 00-.95 0l-5.78 4.2a1 1 0 01-1.45-1.1l2.36-6.82a1 1 0 00-.36-1.118l-5.78-4.2a1 1 0 01.35-1.1h7.14a1 1 0 00.95-.69l2.36-6.82z"
+    />
+  </svg>
+);

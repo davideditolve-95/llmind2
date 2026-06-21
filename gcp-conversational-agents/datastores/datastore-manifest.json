@@ -1,0 +1,47 @@
+{
+  "bucket_prefix": "clinical-corpora",
+  "datastores": [
+    {
+      "id": "icd11-cddr",
+      "display_name": "ICD-11 Clinical Descriptions and Diagnostic Requirements",
+      "description": "ICD-11 CDDR document corpus for diagnostic criteria, inclusions, exclusions, and coding guidance.",
+      "gcs_prefix": "clinical-corpora/icd11-cddr",
+      "local_files": [
+        "source-pdfs/ICD-11-CDDR.pdf"
+      ],
+      "source_files": [
+        "../backend/data/original_docs/ICD-11-CDDR.pdf",
+        "../backend/scripts/extract_icd11_data.py",
+        "postgresql://icd11_categories"
+      ]
+    },
+    {
+      "id": "dsm5-clinical-cases",
+      "display_name": "DSM-5-TR Clinical Cases",
+      "description": "Licensed DSM-5-TR clinical case PDF corpus for case review and benchmark preparation.",
+      "gcs_prefix": "clinical-corpora/dsm5-clinical-cases",
+      "local_files": [
+        "source-pdfs/DSM-5-TR_Clinical_Cases.pdf"
+      ],
+      "source_files": [
+        "../backend/data/original_docs/DSM-5-TR_Clinical_Cases.txt",
+        "../backend/data/original_docs/DSM-5-TR_Clinical_Cases_splitted.csv"
+      ]
+    },
+    {
+      "id": "llmind-research-protocols",
+      "display_name": "LLMind2 Research Protocols",
+      "description": "Local LLMind2 methodology, governance, benchmark protocol, and thesis roadmap documents exported as PDFs.",
+      "gcs_prefix": "clinical-corpora/llmind-research-protocols",
+      "local_files": [
+        "source-pdfs/LLMind2_Research_Protocol.pdf"
+      ],
+      "source_files": [
+        "../docs/00-project-overview.md",
+        "../docs/01-multi-agent-playbook.md",
+        "../docs/11-benchmark-protocol.md",
+        "../docs/13-data-governance.md"
+      ]
+    }
+  ]
+}

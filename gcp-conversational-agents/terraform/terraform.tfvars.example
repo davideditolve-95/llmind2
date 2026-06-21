@@ -1,0 +1,16 @@
+project_id      = "llmind"
+region          = "eu"
+bucket_name     = "llmind-clinical-corpora"
+bucket_location = "EU"
+
+bigquery_dataset_id = "llmind2_static_clinical"
+bigquery_location   = "EU"
+
+bucket_versioning_enabled          = false
+bucket_nearline_after_days         = 30
+bucket_delete_after_days           = 90
+bigquery_delete_contents_on_destroy = true
+bigquery_table_deletion_protection  = false
+
+# Optional:
+# automation_principal = "user:you@example.com"

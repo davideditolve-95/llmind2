@@ -1,136 +1,211 @@
-# ICD-11 Explorer & Clinical AI
+# LLMind2
 
-A research-grade web application for exploring the ICD-11 taxonomy in 3D, running multi-model LLM benchmarks against clinical cases from the DSM-5-TR, and providing a clinical AI chatbot for differential diagnosis.
+## Italiano
 
-Built for university research. Deployable locally via Docker Compose or on Coolify.
+### Descrizione
 
----
+LLMind2 e una piattaforma di ricerca scientifica per l'intelligenza artificiale clinica. Il progetto integra esplorazione della tassonomia ICD-11, gestione e benchmarking di casi clinici DSM-5-TR, interazione conversazionale con modelli linguistici eseguiti via Ollama e supporto a datastore documentali per workflow retrieval-augmented generation.
 
-## Stack
+La piattaforma e pensata come base per un progetto di dottorato in AI, non come semplice prototipo dimostrativo. Per questo motivo la repo combina sviluppo prodotto, metodologia sperimentale, documentazione bilingue e materiali orientati al lavoro multi-agente.
+
+### Obiettivi del progetto
+
+- costruire un ambiente di ricerca per reasoning clinico grounding-aware
+- confrontare modelli diversi su casi strutturati e valutabili
+- mantenere tracciabilita di prompt, output, metriche e revisioni umane
+- supportare evoluzione futura verso governance, auditabilita e conformita
+
+### Architettura sintetica
+
+| Livello | Tecnologia |
+|---|---|
+| Frontend | Next.js 14, React, TailwindCSS |
+| Backend | FastAPI, SQLAlchemy, Pydantic |
+| Database | PostgreSQL 16 |
+| AI Runtime | Ollama esterno |
+| Fonte ICD-11 | Container WHO offline |
+| Infra | Docker Compose, deploy compatibile con Coolify |
+
+### Funzionalita principali
+
+- esplorazione ICD-11 in forma gerarchica e tabellare
+- chat persistente con streaming SSE
+- benchmark multi-modello su casi DSM-5-TR
+- calcolo di metriche automatiche e raccolta di valutazioni manuali
+- datastores custom per scenari RAG
+
+### Avvio rapido locale
+
+Prerequisiti:
+
+- Docker Desktop con Compose
+- Ollama in esecuzione e modello disponibile, per esempio `gemma4`
+- dati sorgente DSM-5-TR disponibili in `backend/data/` quando richiesto
+
+Passi essenziali:
+
+1. creare `.env` a partire da `.env.example`
+2. avviare lo stack con Docker Compose
+3. eseguire ETL ICD-11
+4. opzionalmente estrarre i casi DSM-5-TR
+5. aprire frontend e backend
+
+Endpoint locali attesi:
+
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:8000`
+- docs FastAPI: `http://localhost:8000/docs`
+
+### Variabili d'ambiente chiave
+
+- `DATABASE_URL`
+- `ICD11_API_URL`
+- `ICD11_CLIENT_ID`
+- `ICD11_CLIENT_SECRET`
+- `OLLAMA_BASE_URL`
+- `OLLAMA_DEFAULT_MODEL`
+- `SECRET_KEY`
+- `ENVIRONMENT`
+- `NEXT_PUBLIC_API_URL`
+
+### Documentazione
+
+Documenti principali:
+
+- [Panoramica progetto / Project overview](docs/00-project-overview.md)
+- [Manuale multi-agente / Multi-agent playbook](docs/01-multi-agent-playbook.md)
+- [Manuale tecnico / Technical manual](docs/02-technical-manual.md)
+- [Manuale d'uso / User manual](docs/03-user-manual.md)
+- [Guida al deploy / Deployment guide](docs/04-deployment-guide.md)
+- [Maturita cloud / Cloud maturity](docs/05-cloud-maturity.md)
+- [Conformita AGID / AGID compliance](docs/06-agid-compliance.md)
+- [Prompt inverso / Reverse prompt](docs/07-reverse-prompt.md)
+- [Note di ricerca / Research notes](docs/08-research-notes.md)
+- [Mappa API, modelli e flussi / API, models, and dataflow map](docs/09-api-dataflow-map.md)
+- [Roadmap di tesi / Thesis roadmap](docs/10-thesis-roadmap.md)
+- [Protocollo benchmark / Benchmark protocol](docs/11-benchmark-protocol.md)
+- [Registro rischi / Risk register](docs/12-risk-register.md)
+- [Data governance](docs/13-data-governance.md)
+- [Dossier tecnico e priorita / Technical review dossier](docs/14-technical-review-dossier.md)
+- [GCP Conversational Agents](gcp-conversational-agents/README.md)
+- [Contributing](CONTRIBUTING.md)
+- [Agents guide](AGENTS.md)
+
+### Posizionamento corretto
+
+LLMind2 va presentato oggi come:
+
+- piattaforma di ricerca in AI clinica
+- ambiente sperimentale per benchmarking e reasoning
+- base software per tesi, pubblicazioni e collaborazione multi-agente
+
+Non va ancora presentato come:
+
+- dispositivo medico
+- sistema clinico certificato
+- piattaforma pronta per uso regolato senza ulteriore hardening
+
+## English
+
+### Description
+
+LLMind2 is a scientific research platform for clinical artificial intelligence. It integrates ICD-11 taxonomy exploration, DSM-5-TR case management and benchmarking, conversational interaction with language models through Ollama, and document datastore support for retrieval-augmented workflows.
+
+The platform is intended as the foundation for a PhD project in AI rather than as a simple demo prototype. For that reason, the repository combines product engineering, experimental methodology, bilingual documentation, and materials for multi-agent collaboration.
+
+### Project goals
+
+- build a research environment for clinically grounded reasoning
+- compare multiple models on structured and reviewable cases
+- preserve traceability of prompts, outputs, metrics, and human review
+- support future evolution toward governance, auditability, and compliance
+
+### Architecture summary
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 (App Router), TailwindCSS, React Three Fiber |
-| Backend | Python FastAPI, SQLAlchemy |
+| Frontend | Next.js 14, React, TailwindCSS |
+| Backend | FastAPI, SQLAlchemy, Pydantic |
 | Database | PostgreSQL 16 |
-| AI Engine | Ollama (**external** — not in Docker) |
-| ICD-11 Source | WHO offline Docker container |
-| Infrastructure | Docker Compose, Coolify-ready |
+| AI Runtime | External Ollama |
+| ICD-11 source | Offline WHO container |
+| Infrastructure | Docker Compose, Coolify-compatible deployment |
 
----
+### Main capabilities
 
-## Prerequisites
+- hierarchical and tabular ICD-11 exploration
+- persistent chat with SSE streaming
+- multi-model benchmarking on DSM-5-TR clinical cases
+- automatic metrics and human evaluation capture
+- custom datastores for RAG scenarios
 
-- Docker Desktop (with Compose V2)
-- Ollama installed on host machine with `gemma4` pulled:
-  ```bash
-  ollama pull gemma4
-  ollama serve
-  ```
-- The DSM-5-TR PDF (placed at `backend/data/dsm5_cases.pdf`)
+### Local quick start
 
----
+Prerequisites:
 
-## Quick Start (Local)
+- Docker Desktop with Compose
+- Ollama running with an available model, such as `gemma4`
+- DSM-5-TR source data placed in `backend/data/` when needed
 
-```bash
-# 1. Clone and enter the repository
-git clone <repo-url>
-cd llmind2
+Essential steps:
 
-# 2. Copy env file (already pre-filled for local dev)
-cp .env.example .env
+1. create `.env` from `.env.example`
+2. start the stack with Docker Compose
+3. run ICD-11 ETL
+4. optionally extract DSM-5-TR cases
+5. open frontend and backend
 
-# 3. Build and start all services
-docker compose up --build -d
+Expected local endpoints:
 
-# 4. Wait for services to be healthy, then run ICD-11 ETL
-docker compose exec backend python scripts/extract_icd11_data.py
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:8000`
+- FastAPI docs: `http://localhost:8000/docs`
 
-# 5. (Optional) Extract DSM-5 cases from PDF
-#    First copy your PDF:
-cp /path/to/your/dsm5_cases.pdf backend/data/dsm5_cases.pdf
-docker compose exec backend python scripts/extract_dsm5_cases.py --pdf-path /app/data/dsm5_cases.pdf
+### Key environment variables
 
-# 6. Open in browser
-open http://localhost:3000
-```
+- `DATABASE_URL`
+- `ICD11_API_URL`
+- `ICD11_CLIENT_ID`
+- `ICD11_CLIENT_SECRET`
+- `OLLAMA_BASE_URL`
+- `OLLAMA_DEFAULT_MODEL`
+- `SECRET_KEY`
+- `ENVIRONMENT`
+- `NEXT_PUBLIC_API_URL`
 
----
+### Documentation
 
-## Services & Ports
+Main documents:
 
-| Service | Local Port | Internal URL |
-|---|---|---|
-| Frontend (Next.js) | 3000 | — |
-| Backend (FastAPI) | 8000 | `http://backend:8000` |
-| ICD-11 API | — (internal only) | `http://icd11-api` |
-| PostgreSQL | — (internal only) | `db:5432` |
-| **Ollama** | **11434 (host)** | `http://host.docker.internal:11434` |
+- [Project overview / Panoramica progetto](docs/00-project-overview.md)
+- [Multi-agent playbook / Manuale multi-agente](docs/01-multi-agent-playbook.md)
+- [Technical manual / Manuale tecnico](docs/02-technical-manual.md)
+- [User manual / Manuale d'uso](docs/03-user-manual.md)
+- [Deployment guide / Guida al deploy](docs/04-deployment-guide.md)
+- [Cloud maturity / Maturita cloud](docs/05-cloud-maturity.md)
+- [AGID compliance / Conformita AGID](docs/06-agid-compliance.md)
+- [Reverse prompt / Prompt inverso](docs/07-reverse-prompt.md)
+- [Research notes / Note di ricerca](docs/08-research-notes.md)
+- [API, models, and dataflow map / Mappa API, modelli e flussi](docs/09-api-dataflow-map.md)
+- [Thesis roadmap / Roadmap di tesi](docs/10-thesis-roadmap.md)
+- [Benchmark protocol / Protocollo benchmark](docs/11-benchmark-protocol.md)
+- [Risk register / Registro rischi](docs/12-risk-register.md)
+- [Data governance](docs/13-data-governance.md)
+- [Technical review dossier / Dossier tecnico e priorita](docs/14-technical-review-dossier.md)
+- [GCP Conversational Agents](gcp-conversational-agents/README.md)
+- [Contributing](CONTRIBUTING.md)
+- [Agents guide](AGENTS.md)
 
----
+### Correct positioning
 
-## Features
+LLMind2 should currently be presented as:
 
-### 🌐 3D ICD-11 Universe
-Interactive force-directed 3D graph of the entire ICD-11 taxonomy. Click nodes to expand chapters. Breadcrumb trail shows your navigation path.
+- a clinical AI research platform
+- an experimental environment for benchmarking and reasoning
+- a software foundation for thesis work, publications, and multi-agent collaboration
 
-### 📊 Tabular Explorer
-Paginated, searchable, filterable data grid of all ICD-11 codes with descriptions.
+It should not yet be presented as:
 
-### 🤖 AI Chatbot
-- **ICD-11 Search mode**: Ask questions about ICD codes. Context-aware responses.
-- **Clinical Well-being mode**: Simulates a Clinical Psychologist Supervisor. Performs differential diagnosis with follow-up questions before concluding.
-
-### 🔬 Benchmarking Module
-- Import DSM-5-TR clinical cases from PDF (auto-splits into Anamnesis / Discussion / Gold Standard Diagnosis)
-- Edit and correct extracted cases manually
-- Run multi-model inference (compare Gemma vs Llama vs Mistral etc.)
-- Automatic semantic similarity scoring vs Gold Standard
-- Human-in-the-Loop 1–5 star evaluation
-- Full history persistence and KPI dashboard
-
----
-
-## Deployment on Coolify
-
-1. Create a new service in Coolify, point to this repository.
-2. In the **Environment Variables** panel, inject all variables from `.env.example` with production values.
-3. For Ollama: set `OLLAMA_BASE_URL` to your Ollama instance URL (e.g., `https://ollama.yourdomain.com`).
-4. The `.env` file is **ignored in production** — Coolify variables take priority.
-
-> **Note**: Coolify does not need extra_hosts configuration. Simply update `OLLAMA_BASE_URL` to the publicly accessible Ollama address.
-
----
-
-## Environment Variables Reference
-
-See `.env.example` for the full list. Key variables:
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `ICD11_API_URL` | Internal URL of the ICD-11 container |
-| `OLLAMA_BASE_URL` | **External** Ollama URL (not in Docker) |
-| `OLLAMA_DEFAULT_MODEL` | Default model (e.g., `gemma4`) |
-| `NEXT_PUBLIC_API_URL` | Public backend URL reachable by the browser |
-
----
-
-## Project Structure
-
-```
-llmind2/
-├── docker-compose.yml
-├── .env
-├── backend/
-│   ├── app/             # FastAPI application
-│   ├── scripts/         # ETL scripts
-│   ├── data/            # PDF uploads
-│   └── Dockerfile
-└── frontend/
-    ├── app/             # Next.js App Router pages
-    ├── components/      # React components
-    ├── lib/             # API client, i18n
-    └── Dockerfile
-```
+- a medical device
+- a certified clinical system
+- a ready-for-regulated-use platform without further hardening

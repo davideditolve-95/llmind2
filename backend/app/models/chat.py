@@ -29,6 +29,13 @@ class ChatSession(Base):
     # Indica se la sessione è visibile nella cronologia
     is_active = Column(Boolean, default=True, nullable=False)
     
+    # Utente associato alla sessione (per isolamento delle chat)
+    user_email = Column(String(100), nullable=True, index=True)
+
+    # Pin & Star
+    is_pinned = Column(Boolean, default=False, nullable=False)
+    is_starred = Column(Boolean, default=False, nullable=False)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

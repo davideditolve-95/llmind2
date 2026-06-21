@@ -178,6 +178,7 @@ async def get_icd11_codes(
     search: Optional[str] = Query(default=None),
     level: Optional[int] = Query(default=None, ge=0),
     parent_id: Optional[UUID] = Query(default=None),
+    search_type: str = Query(default="standard", description="standard, symptoms, all"),
     db: Session = Depends(get_db),
 ):
     """
@@ -197,12 +198,29 @@ async def get_icd11_codes(
     # Filtro per termine di ricerca
     if search:
         search_term = f"%{search.lower()}%"
-        query = query.filter(
-            or_(
-                func.lower(ICD11Category.code).like(search_term),
-                func.lower(ICD11Category.title_en).like(search_term),
-            )
-        )
+        from sqlalchemy import cast, String
+
+        standard_filters = [
+            func.lower(ICD11Category.code).like(search_term),
+            func.lower(ICD11Category.title_en).like(search_term),
+            func.lower(ICD11Category.title_it).like(search_term),
+        ]
+
+        symptom_filters = [
+            func.lower(ICD11Category.description).like(search_term),
+            func.lower(ICD11Category.diagnostic_criteria).like(search_term),
+            func.lower(cast(ICD11Category.inclusions, String)).like(search_term),
+            func.lower(cast(ICD11Category.exclusions, String)).like(search_term),
+            func.lower(cast(ICD11Category.index_terms, String)).like(search_term),
+            func.lower(cast(ICD11Category.differential_diagnoses, String)).like(search_term),
+        ]
+
+        if search_type == "symptoms":
+            query = query.filter(or_(*symptom_filters))
+        elif search_type == "all":
+            query = query.filter(or_(*(standard_filters + symptom_filters)))
+        else:  # standard
+            query = query.filter(or_(*standard_filters))
 
     # Conta il totale per la paginazione
     total = query.count()

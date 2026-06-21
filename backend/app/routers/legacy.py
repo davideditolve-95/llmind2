@@ -1,10 +1,8 @@
-"""
-Router per l'integrazione del supporto legacy llmind-v1.
-Espone endpoint per il Legacy Explorer.
-"""
-
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, BackgroundTasks
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from pathlib import Path
+import os
 from ..services.legacy_rag import legacy_rag_service
 
 router = APIRouter(prefix="/api/legacy", tags=["Legacy"])
@@ -32,15 +30,45 @@ async def ask_legacy(request: LegacyAskRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/batch-run")
-async def run_legacy_batch(request: BatchRunRequest):
+async def run_legacy_batch(request: BatchRunRequest, background_tasks: BackgroundTasks):
     """
-    Avvia un batch run legacy su un CSV selezionato.
+    Avvia un batch run legacy su un CSV selezionato in background.
     """
     try:
-        # Nota: in un sistema reale questo dovrebbe essere gestito con BackgroundTasks
-        # ma per semplicità lo facciamo così (il service usa run_in_executor)
-        output_file = await legacy_rag_service.run_batch(request.csv_filename)
-        return {"message": "Batch run completed", "output_file": output_file}
+        background_tasks.add_task(
+            legacy_rag_service.run_batch,
+            request.csv_filename
+        )
+        return {"message": "Batch run started in background", "output_file": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/runs")
+async def list_legacy_runs():
+    """
+    Elenca i file di output generati dai batch run legacy.
+    """
+    try:
+        output_dir = Path(os.getenv("DATA_DIR", "/app/data")) / "output" / "legacy_runs"
+        if not output_dir.exists():
+            return {"runs": []}
+        files = [f.name for f in output_dir.glob("*.csv") if f.is_file()]
+        # Ordina per data di modifica decrescente (i più recenti prima)
+        files.sort(key=lambda x: os.path.getmtime(output_dir / x), reverse=True)
+        return {"runs": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/runs/{filename}")
+async def download_legacy_run(filename: str):
+    """
+    Consente di scaricare un file CSV di output generato dai run legacy.
+    """
+    try:
+        file_path = Path(os.getenv("DATA_DIR", "/app/data")) / "output" / "legacy_runs" / filename
+        if not file_path.exists() or not file_path.is_file():
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(file_path, filename=filename, media_type="text/csv")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

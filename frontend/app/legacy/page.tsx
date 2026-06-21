@@ -1,331 +1,313 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useI18n } from '@/lib/i18n/context';
-import { legacyApi, datastoreApi, type KnowledgePreset } from '@/lib/api';
-import { 
-  ChatBubbleLeftRightIcon, 
-  PaperAirplaneIcon, 
-  CommandLineIcon,
-  BeakerIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  ArrowPathIcon,
-  TableCellsIcon,
-  DocumentTextIcon,
-  PlayCircleIcon
-} from '@heroicons/react/24/outline';
-import MarkdownContent from '@/components/ui/MarkdownContent';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import clsx from 'clsx';
+import Link from 'next/link';
+import { datastoreApi, legacyApi, type KnowledgePreset } from '@/lib/api';
+import MarkdownContent from '@/components/ui/MarkdownContent';
+import {
+  ArchiveBoxIcon,
+  ArrowPathIcon,
+  BeakerIcon,
+  ChatBubbleBottomCenterTextIcon,
+  ClockIcon,
+  DocumentTextIcon,
+  PaperAirplaneIcon,
+  ShieldExclamationIcon,
+} from '@heroicons/react/24/outline';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
 }
 
-export default function LegacyExplorerPage() {
-  const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<'chat' | 'batch' | 'logs'>('chat');
-  
-  // Chat State
+type LegacyTab = 'chat' | 'batch' | 'logs';
+
+const tabs: { id: LegacyTab; label: string; icon: typeof ChatBubbleBottomCenterTextIcon }[] = [
+  { id: 'chat', label: 'Interactive RAG', icon: ChatBubbleBottomCenterTextIcon },
+  { id: 'batch', label: 'Batch run', icon: BeakerIcon },
+  { id: 'logs', label: 'Logs', icon: DocumentTextIcon },
+];
+
+export default function LegacyPage() {
+  const [tab, setTab] = useState<LegacyTab>('chat');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Batch State
-  const [sources, setSources] = useState<KnowledgePreset[]>([]);
-  const [selectedCsv, setSelectedCsv] = useState('');
-  const [batchLoading, setBatchLoading] = useState(false);
-  const [batchResult, setBatchResult] = useState<string | null>(null);
-
-  // Logs State
+  const [presets, setPresets] = useState<KnowledgePreset[]>([]);
+  const [csv, setCsv] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
-  const [pollingLogs, setPollingLogs] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [completedRuns, setCompletedRuns] = useState<string[]>([]);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const loadSources = async () => {
-      try {
-        const presets = await datastoreApi.getPresets();
-        // Filtriamo i preset che hanno file CSV (usati per il batch)
-        const presetsWithCsv = presets.filter(p => p.files.some(f => f.toLowerCase().endsWith('.csv')));
-        setSources(presetsWithCsv);
-        if (presetsWithCsv.length > 0) {
-          // Per ora usiamo il primo file CSV del primo preset
-          const firstCsv = presetsWithCsv[0].files.find(f => f.toLowerCase().endsWith('.csv'));
-          if (firstCsv) setSelectedCsv(firstCsv);
-        }
-      } catch (err) {
-        console.error("Failed to load presets", err);
-      }
-    };
-    loadSources();
+  const loadCompletedRuns = useCallback(async () => {
+    try {
+      const res = await legacyApi.listRuns();
+      setCompletedRuns(res.runs);
+    } catch {}
   }, []);
 
-  // Poll logs when on logs tab
   useEffect(() => {
-    let interval: any;
-    if (activeTab === 'logs') {
-      const fetchLogs = async () => {
-        try {
-          const res = await legacyApi.getLogs(50);
-          setLogs(res.logs);
-        } catch (err) {
-          console.error("Log fetch failed", err);
-        }
-      };
-      fetchLogs();
-      interval = setInterval(fetchLogs, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [activeTab]);
+    datastoreApi.getPresets()
+      .then((items) => {
+        setPresets(items);
+        const first = items.flatMap((p) => p.files).find((f) => f.toLowerCase().endsWith('.csv'));
+        if (first) setCsv(first);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load legacy presets.'));
+    
+    loadCompletedRuns();
+  }, [loadCompletedRuns]);
 
-  // Auto-scroll chat
   useEffect(() => {
-    if (scrollRef.current && activeTab === 'chat') {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, activeTab]);
+    if (tab !== 'logs') return;
+    const load = () => legacyApi.getLogs(50).then((res) => setLogs(res.logs)).catch(() => {});
+    load();
+    const timer = setInterval(load, 3000);
+    return () => clearInterval(timer);
+  }, [tab]);
 
-  const handleSend = async () => {
+  // Poll completed runs every 5 seconds to show new files in real time
+  useEffect(() => {
+    const timer = setInterval(() => {
+      loadCompletedRuns();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [loadCompletedRuns]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const ask = async () => {
     if (!input.trim() || loading) return;
-    const userMessage: Message = { role: 'user', content: input, timestamp: new Date() };
-    setMessages(prev => [...prev, userMessage]);
+    const query = input.trim();
     setInput('');
+    setError(null);
+    setMessages((prev) => [...prev, { role: 'user', content: query }]);
     setLoading(true);
     try {
-      const response = await legacyApi.ask(input);
-      setMessages(prev => [...prev, { role: 'assistant', content: response.output_string, timestamp: new Date() }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error instanceof Error ? error.message : 'Legacy Error'}`, timestamp: new Date() }]);
+      const res = await legacyApi.ask(query);
+      setMessages((prev) => [...prev, { role: 'assistant', content: res.output_string }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Legacy request failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRunBatch = async () => {
-    if (!selectedCsv || batchLoading) return;
-    setBatchLoading(true);
-    setBatchResult(null);
+  const runBatch = async () => {
+    if (!csv) return;
+    setError(null);
     try {
-      const res = await legacyApi.runBatch(selectedCsv);
-      setBatchResult(res.output_file);
-      setActiveTab('logs'); // Switch to logs to see progress
-    } catch (error) {
-      alert("Batch run failed");
-    } finally {
-      setBatchLoading(false);
+      await legacyApi.runBatch(csv);
+      // Passa subito al tab dei log per far vedere il progresso
+      setTab('logs');
+      loadCompletedRuns();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Legacy batch failed.');
     }
   };
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 overflow-hidden page-enter">
-      {/* Header Legacy Dashboard */}
-      <div className="bg-white border-b border-slate-200 px-8 py-6 shadow-sm flex-shrink-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 pointer-events-none" />
-        
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
-              <ClockIcon className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight text-slate-800">Legacy Terminal</h1>
-                <span className="badge badge-warning badge-sm font-black uppercase text-[9px] tracking-widest px-2">v1.0.4-LOCKED</span>
-              </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Unified v1 Infrastructure Dashboard</p>
-            </div>
-          </div>
+  const csvFiles = presets.flatMap((p) => p.files).filter((f) => f.toLowerCase().endsWith('.csv'));
 
-          <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
-            <button 
-              onClick={() => setActiveTab('chat')}
-              className={clsx("flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'chat' ? "bg-white text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
-            >
-              <ChatBubbleLeftRightIcon className="w-4 h-4" /> Console
-            </button>
-            <button 
-              onClick={() => setActiveTab('batch')}
-              className={clsx("flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'batch' ? "bg-white text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
-            >
-              <TableCellsIcon className="w-4 h-4" /> Batch
-            </button>
-            <button 
-              onClick={() => setActiveTab('logs')}
-              className={clsx("flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'logs' ? "bg-white text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
-            >
-              <CommandLineIcon className="w-4 h-4" /> Logs
-            </button>
+  return (
+    <div className="app-page space-y-6">
+      <section className="hero rounded-box border border-warning/20 bg-base-100 shadow-sm">
+        <div className="hero-content w-full justify-between gap-8 py-8">
+          <div className="max-w-3xl">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="badge badge-warning">Legacy v1</span>
+              <span className="badge badge-outline">Static RAG</span>
+              <span className="badge badge-outline">Reproducibility</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <ArchiveBoxIcon className="h-9 w-9 text-warning" />
+              <h1 className="app-title">Legacy Pipeline</h1>
+            </div>
+            <p className="app-subtitle mt-3">
+              A preserved LLMind v1 workspace for comparison, batch reproducibility, and historical RAG behavior.
+            </p>
+          </div>
+          <div className="hidden text-right text-sm text-base-content/60 lg:block">
+            <div className="font-semibold text-base-content">Mode: archived</div>
+            <div>Engine: static chunking</div>
+            <div>Scope: comparison only</div>
           </div>
         </div>
+      </section>
+
+      <div className="alert alert-warning">
+        <ShieldExclamationIcon className="h-5 w-5" />
+        <span>
+          This module intentionally preserves the old non-agent workflow. Use it for comparison and reproducibility, not for new research runs.
+        </span>
       </div>
 
-      {activeTab === 'chat' && (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="bg-amber-50/80 border-b border-amber-100 px-8 py-2 flex items-center gap-3">
-            <ExclamationTriangleIcon className="w-4 h-4 text-amber-600" />
-            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Interactive RAG Console Active • Fixed Retrieval Core</span>
-          </div>
+      {error && (
+        <div className="alert alert-error">
+          <span>{error}</span>
+        </div>
+      )}
 
-          <div className="flex-1 overflow-auto p-8 custom-scrollbar" ref={scrollRef}>
-            <div className="max-w-4xl mx-auto space-y-8">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center animate-slide-up">
-                  <div className="w-20 h-20 rounded-[2.5rem] bg-slate-100 text-slate-300 flex items-center justify-center mb-6 shadow-inner">
-                    <CommandLineIcon className="w-10 h-10" />
-                  </div>
-                  <h2 className="text-xl font-black text-slate-400 mb-2 uppercase tracking-tight">System Ready</h2>
-                  <p className="max-w-md text-sm text-slate-400 font-medium">Original RAG pipeline. Optimized for clinical diagnostic inference via static knowledge shards.</p>
-                </div>
-              ) : (
-                messages.map((m, i) => (
-                  <div key={i} className={clsx("flex flex-col animate-slide-up", m.role === 'user' ? "items-end" : "items-start")}>
-                    <div className={clsx("max-w-[85%] px-6 py-4 rounded-3xl shadow-sm border", m.role === 'user' ? "bg-slate-900 text-white border-slate-900 rounded-tr-none" : "bg-white text-slate-800 border-slate-200 rounded-tl-none")}>
-                        <MarkdownContent content={m.content} className={m.role === 'user' ? "text-white" : "text-slate-800"} />
-                    </div>
-                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-2 px-2">
-                      {m.role === 'user' ? 'Scientist' : 'Legacy-v1'} • {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))
-              )}
-              {loading && (
-                <div className="flex flex-col items-start animate-pulse">
-                  <div className="bg-white px-6 py-4 rounded-3xl rounded-tl-none border border-slate-200 shadow-sm flex items-center gap-3">
-                    <ArrowPathIcon className="w-4 h-4 animate-spin text-amber-500" />
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Retrieval Chain Active...</span>
-                  </div>
-                </div>
-              )}
+      <div className="tabs tabs-boxed w-fit bg-base-100 shadow-sm">
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            className={clsx('tab gap-2', tab === item.id && 'tab-active')}
+            onClick={() => setTab(item.id)}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'chat' && (
+        <section className="card h-[34rem] bg-base-100 shadow-sm">
+          <div className="card-body min-h-0 gap-4">
+            <div className="flex items-center justify-between gap-3 border-b border-base-200 pb-3">
+              <div>
+                <h2 className="card-title">Interactive legacy RAG</h2>
+                <p className="text-sm text-base-content/60">Ask the preserved v1 retrieval chain and compare its answers with the current agent flow.</p>
+              </div>
+              <ClockIcon className="h-6 w-6 text-warning" />
             </div>
-          </div>
 
-          <div className="p-8 bg-white border-t border-slate-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
-            <div className="max-w-4xl mx-auto flex gap-4">
-               <input
-                type="text"
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-box bg-base-200/60 p-4">
+              {messages.length === 0 && (
+                <div className="flex h-full items-center justify-center text-center text-sm text-base-content/60">
+                  Send a query to test the legacy RAG pipeline.
+                </div>
+              )}
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <div key={index} className={clsx('chat', message.role === 'user' ? 'chat-end' : 'chat-start')}>
+                    <div className="chat-header mb-1 text-xs uppercase tracking-wide text-base-content/50">
+                      {message.role === 'user' ? 'Researcher' : 'Legacy v1'}
+                    </div>
+                    <div className={clsx('chat-bubble max-w-3xl', message.role === 'user' ? 'chat-bubble-primary' : 'bg-base-100 text-base-content shadow-sm')}>
+                      <MarkdownContent content={message.content} />
+                    </div>
+                  </div>
+                ))}
+                {loading && (
+                  <div className="chat chat-start">
+                    <div className="chat-bubble bg-base-100 text-base-content shadow-sm">
+                      <span className="loading loading-dots loading-sm" />
+                    </div>
+                  </div>
+                )}
+                <div ref={endRef} />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <input
+                className="input input-bordered flex-1"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Query the clinical archive..."
-                className="flex-1 h-16 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] px-8 text-slate-800 font-bold focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner"
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && ask()}
+                placeholder="Ask the legacy datastore..."
+                disabled={loading}
               />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || loading}
-                className={clsx("w-16 h-16 rounded-full flex items-center justify-center transition-all", input.trim() && !loading ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30 hover:bg-amber-600 hover:-translate-y-0.5" : "bg-slate-200 text-slate-400")}
-              >
-                <PaperAirplaneIcon className="w-6 h-6" />
+              <button className="btn btn-primary" onClick={ask} disabled={!input.trim() || loading}>
+                {loading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <PaperAirplaneIcon className="h-4 w-4" />}
+                Send
               </button>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {activeTab === 'batch' && (
-        <div className="flex-1 p-12 overflow-auto">
-          <div className="max-w-4xl mx-auto">
-            <div className="premium-card p-10 bg-white shadow-xl rounded-[2.5rem] border border-slate-100">
-               <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <TableCellsIcon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-none mb-1">Batch Clinical Scan</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Model-based Diagnostic evaluation over dataset</p>
-                  </div>
-               </div>
-
-               <div className="space-y-8">
-                  <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">Target Case File (CSV)</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {sources.map(s => (
-                        <button 
-                          key={s.id}
-                          onClick={() => setSelectedCsv(s.id)}
-                          className={clsx(
-                            "p-6 rounded-2xl border-2 text-left transition-all",
-                            selectedCsv === s.id ? "bg-white border-indigo-500 shadow-md ring-4 ring-indigo-50" : "bg-transparent border-slate-200 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 hover:border-indigo-200"
-                          )}
-                        >
-                           <DocumentTextIcon className="w-6 h-6 text-indigo-500 mb-2" />
-                           <span className="block font-black text-xs text-slate-800 truncate mb-1">{s.name}</span>
-                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Format: §-Delimited CSV</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-8 rounded-3xl border border-amber-100 bg-amber-50/30">
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-1">Inference Target Model</span>
-                        <span className="text-sm font-black text-slate-800">Legacy Gemma-2-27B (Quantized)</span>
-                     </div>
-                     <button 
-                       onClick={handleRunBatch}
-                       disabled={!selectedCsv || batchLoading}
-                       className="btn btn-primary h-14 px-10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 gap-3"
-                     >
-                        {batchLoading ? (
-                          <><ArrowPathIcon className="w-5 h-5 animate-spin" /> Running Sequence...</>
-                        ) : (
-                          <><PlayCircleIcon className="w-6 h-6" /> Execute Scan</>
-                        )}
-                     </button>
-                  </div>
-
-                  {batchResult && (
-                    <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                            <ExclamationTriangleIcon className="w-4 h-4" />
-                         </div>
-                         <p className="text-xs font-bold text-emerald-800">Sequence completed. Result saved: <b className="underline cursor-pointer">{batchResult}</b></p>
-                       </div>
-                    </div>
+      {tab === 'batch' && (
+        <section className="grid gap-4 lg:grid-cols-[1fr_24rem]">
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h2 className="card-title">Batch test suite</h2>
+              <p className="text-sm text-base-content/60">
+                Run the original batch workflow against a CSV source. Outputs remain useful as historical baselines for thesis comparisons.
+              </p>
+              <label className="form-control mt-4 w-full">
+                <span className="label-text mb-2">CSV source</span>
+                <select className="select select-bordered w-full" value={csv} onChange={(event) => setCsv(event.target.value)}>
+                  {csvFiles.length === 0 ? (
+                    <option value="">No legacy CSV presets available</option>
+                  ) : (
+                    csvFiles.map((file) => <option key={file} value={file}>{file}</option>)
                   )}
-               </div>
+                </select>
+              </label>
+              <div className="card-actions mt-4">
+                <button className="btn btn-primary" disabled={!csv} onClick={runBatch}>
+                  <BeakerIcon className="h-4 w-4" />
+                  Run legacy batch
+                </button>
+                <button className="btn btn-outline" onClick={() => setTab('logs')}>
+                  View logs
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="card bg-base-100 shadow-sm border border-base-200">
+            <div className="card-body">
+              <h3 className="card-title text-base">Completed Batch Runs</h3>
+              <p className="text-sm text-base-content/60 mb-2">
+                Download output CSV files from previous or running batch executions.
+              </p>
+              <div className="space-y-2 max-h-[16rem] overflow-y-auto pr-1">
+                {completedRuns.length === 0 ? (
+                  <p className="text-xs text-base-content/50 italic py-4">No completed runs found.</p>
+                ) : (
+                  completedRuns.map((run) => (
+                    <div key={run} className="flex items-center justify-between p-3 rounded-lg bg-base-200/50 border border-base-300 gap-2">
+                      <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                        <DocumentTextIcon className="h-4 w-4 text-warning flex-shrink-0" />
+                        <span className="text-xs truncate font-mono" title={run}>{run}</span>
+                      </div>
+                      <a 
+                        href={legacyApi.getRunUrl(run)} 
+                        download 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn btn-xs btn-primary gap-1 flex-shrink-0"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
-      {activeTab === 'logs' && (
-        <div className="flex-1 p-8 overflow-hidden flex flex-col">
-           <div className="max-w-5xl mx-auto w-full flex-1 bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col font-mono text-[11px] border border-slate-800">
-              <div className="bg-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-700">
-                 <div className="flex items-center gap-2">
-                    <div className="flex gap-1.5 mr-4">
-                       <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
-                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
-                       <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
-                    </div>
-                    <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">v1-SYSTEM_LOG_STREAM</span>
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">Direct Socket Hooked</span>
-                 </div>
+      {tab === 'logs' && (
+        <section className="card bg-base-100 shadow-sm">
+          <div className="card-body">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="card-title">Legacy log stream</h2>
+                <p className="text-sm text-base-content/60">Last 50 lines, refreshed while this tab is open.</p>
               </div>
-              <div className="flex-1 p-8 overflow-auto custom-scrollbar-dark bg-slate-900/50 backdrop-blur-xl">
-                 {logs.length === 0 ? (
-                   <span className="text-slate-600 italic">No historical log data available...</span>
-                 ) : (
-                   logs.map((l, i) => (
-                     <div key={i} className="mb-2 leading-relaxed">
-                        <span className="text-slate-500 mr-2">[{i.toString().padStart(3, '0')}]</span>
-                        <span className={clsx("font-bold", l.includes('Error') ? "text-red-400" : l.includes('Starting') ? "text-amber-400" : "text-emerald-400/80")}>
-                          {l}
-                        </span>
-                     </div>
-                   ))
-                 )}
-              </div>
-           </div>
-        </div>
+              <span className="badge badge-success badge-outline">streaming</span>
+            </div>
+            <div className="mt-3 max-h-[34rem] overflow-auto rounded-box bg-neutral p-4 text-xs text-neutral-content">
+              {logs.length ? (
+                logs.map((log, index) => (
+                  <pre key={index} className="whitespace-pre-wrap border-b border-neutral-content/10 py-1 last:border-b-0">
+                    <code>{log}</code>
+                  </pre>
+                ))
+              ) : (
+                <div className="text-neutral-content/60">No logs available.</div>
+              )}
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );

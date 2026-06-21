@@ -1,0 +1,10 @@
+.agent-create-response.json
+.playbook-*.response.json
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+source-pdfs/*.pdf
+generated/
+__pycache__/
+*.pyc

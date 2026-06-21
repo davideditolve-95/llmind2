@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from ..database import get_db, SessionLocal
 from ..models.datastore import Datastore
+from ..models.icd11 import ICD11Category
 from ..services.ingestion import ingestion_service
 from ..services.ollama import ollama_service  # Serve per il build_prompt
 from langchain_chroma import Chroma
@@ -89,6 +90,52 @@ async def list_presets():
     return [
         KnowledgePreset(id=k, **v) for k, v in PRESETS.items()
     ]
+
+@router.get("/icd11-scope/options")
+async def get_icd11_scope_options(db: Session = Depends(get_db)):
+    """
+    Ritorna le opzioni di ambito ICD-11 (capitolo 6 e le sue sezioni).
+    """
+    try:
+        chapter = db.query(ICD11Category).filter(
+            ICD11Category.level == 0,
+            (ICD11Category.code == "06") | (ICD11Category.code == "6") | (ICD11Category.title_en.ilike("%mental%"))
+        ).first()
+        
+        if not chapter:
+            return {"chapter": None, "sections": []}
+        
+        sections = db.query(ICD11Category).filter(
+            ICD11Category.parent_id == chapter.id
+        ).order_by(ICD11Category.code).all()
+        
+        res_sections = []
+        for sec in sections:
+            children_count = db.query(ICD11Category).filter(
+                ICD11Category.parent_id == sec.id
+            ).count()
+            
+            res_sections.append({
+                "id": str(sec.id),
+                "code": sec.code,
+                "title": sec.title_it or sec.title_en,
+                "level": sec.level,
+                "children_count": children_count
+            })
+            
+        return {
+            "chapter": {
+                "id": str(chapter.id),
+                "code": chapter.code,
+                "title": chapter.title_it or chapter.title_en,
+                "level": chapter.level,
+                "children_count": len(sections)
+            },
+            "sections": res_sections
+        }
+    except Exception as e:
+        logger.error(f"Errore recupero opzioni ambito ICD-11: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/create", response_model=DatastoreResponse)
 async def create_datastore(

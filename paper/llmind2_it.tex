@@ -1,0 +1,426 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric,calc}
+
+\geometry{margin=2.6cm}
+\setlist{noitemsep,topsep=4pt}
+
+\newcommand{\llmind}{LLMind2}
+\definecolor{llmblue}{HTML}{1F4E79}
+\definecolor{llmcyan}{HTML}{D9EAF7}
+\definecolor{llmgreen}{HTML}{DDEBDD}
+\definecolor{llmorange}{HTML}{FCE4D6}
+\definecolor{llmgray}{HTML}{F2F2F2}
+\tikzset{
+  box/.style={rounded corners, draw=llmblue, thick, fill=llmcyan, align=center, minimum height=0.9cm, text width=3.0cm, font=\small},
+  data/.style={rounded corners, draw=black!55, thick, fill=llmgray, align=center, minimum height=0.9cm, text width=2.8cm, font=\small},
+  agent/.style={rounded corners, draw=llmblue, thick, fill=llmgreen, align=center, minimum height=0.9cm, text width=2.8cm, font=\small},
+  evalbox/.style={rounded corners, draw=black!60, thick, fill=llmorange, align=center, minimum height=0.9cm, text width=2.8cm, font=\small},
+  arrow/.style={-{Latex[length=2.2mm]}, thick, draw=black!70}
+}
+\newcommand{\authoraction}[1]{%
+  \vspace{0.6em}
+  \noindent\framebox[\linewidth][l]{%
+    \begin{minipage}{0.95\linewidth}
+    \textbf{Author action required.} #1
+    \end{minipage}}
+  \vspace{0.6em}
+}
+
+\title{\textbf{\llmind: un framework ontology-grounded e multi-agente per la valutazione scientifica del reasoning diagnostico con Large Language Models in salute mentale}}
+
+\author{
+  Davide Ditolve\\
+  \small Affiliazione da confermare\\
+  \small \texttt{email da confermare}
+  \and
+  Coautori da confermare
+}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+L'impiego dei Large Language Models (LLM) nel dominio della salute mentale richiede metodologie di valutazione piu severe rispetto a quelle comunemente adottate per applicazioni conversazionali generaliste. Il rischio non riguarda soltanto l'accuratezza del testo generato, ma la possibilita che un sistema produca inferenze nosologiche non tracciabili, confonda sistemi classificatori non equivalenti, o trasformi un supporto alla ricerca in una presunta decisione clinica. Questo articolo presenta \llmind, un framework di ricerca progettato per studiare il reasoning diagnostico assistito da LLM attraverso tre principi: grounding esplicito su ICD-11 e ICD-11 Clinical Descriptions and Diagnostic Requirements (CDDR), benchmark controllato su casi DSM-5-TR, e decomposizione multi-agente orientata a separare triage, codifica nosologica, diagnosi differenziale, revisione dei casi, metodologia sperimentale e sicurezza.
+
+La proposta estende il precedente lavoro LLMind Chat, che aveva mostrato la fattibilita di un approccio Retrieval-Augmented Generation (RAG) su ICD-11 per supportare professionisti della salute mentale \citep{cremaschi2025decoding}. La versione 2 sposta il focus da un singolo assistente RAG a un ambiente sperimentale piu ampio, riproducibile con componenti locali e open source, in cui sorgenti statiche vengono normalizzate in un corpus interrogabile, i casi clinici sono gestiti come oggetti di benchmark versionati, gli agenti conversazionali sono dotati di ruoli espliciti e guardrail, e la valutazione combina metriche automatiche, rubriche esperte e analisi degli errori. L'articolo descrive il razionale scientifico, le domande di ricerca, il disegno metodologico, l'architettura concettuale e il protocollo di valutazione previsto. Eventuali integrazioni cloud sono trattate soltanto come opzioni di deployment e non come prerequisito scientifico. \llmind\ non e presentato come dispositivo diagnostico, ma come ambiente riproducibile per studiare quando, come e con quali limiti i LLM possano contribuire al reasoning nosologico in contesti di ricerca e formazione clinica.
+\end{abstract}
+
+\noindent\textbf{Parole chiave:} Large Language Models; Retrieval-Augmented Generation; ICD-11; DSM-5-TR; salute mentale; agenti conversazionali; benchmark clinico; human-in-the-loop evaluation; clinical decision support.
+
+\section{Introduzione}
+La classificazione dei disturbi mentali richiede l'integrazione di informazioni eterogenee: sintomi riportati, durata, compromissione funzionale, decorso, diagnosi differenziale, condizioni mediche o da sostanze, contesto culturale e livello di rischio. A differenza di altri domini medici in cui un segnale strumentale puo avere un peso diagnostico determinante, in psicologia e psichiatria la diagnosi e spesso il risultato di un processo interpretativo distribuito, che combina colloquio clinico, osservazione, anamnesi, criteri diagnostici e giudizio professionale. Manuali come DSM-5-TR e ICD-11 forniscono un linguaggio condiviso e criteri sistematici, ma la loro applicazione resta un compito complesso \citep{apa2022dsm5tr,who2022icd11,who2024cddr}. La complessita aumenta quando il ragionamento deve attraversare sistemi classificatori non sovrapponibili, per esempio quando casi formulati secondo DSM-5-TR vengono usati per valutare suggerimenti ancorati a ICD-11.
+
+Questa caratteristica rende la salute mentale un caso di studio particolarmente rilevante per valutare i LLM. Un modello puo generare una risposta linguisticamente plausibile anche quando non ha identificato correttamente il costrutto clinico sottostante; puo inoltre omettere esclusioni fondamentali, sovrainterpretare dati insufficienti, o confondere somiglianza semantica con equivalenza diagnostica. Di conseguenza, una valutazione scientifica non puo limitarsi a misurare se il nome di una diagnosi appare nell'output. Occorre valutare il percorso inferenziale: quali informazioni sono state usate, quali sono state ignorate, quali ipotesi alternative sono state considerate, quale incertezza e stata dichiarata e quali condizioni di non applicabilita sono state riconosciute.
+
+I LLM hanno mostrato capacita notevoli nel generare testo, sintetizzare contenuti e rispondere a domande mediche \citep{singhal2023medpalm,peng2023medical}. Tuttavia, nel dominio della salute mentale, il problema centrale non e soltanto produrre una risposta fluente. Un sistema utile alla ricerca deve rendere espliciti i propri ancoraggi, distinguere evidenze da ipotesi, mantenere traccia delle fonti, evitare diagnosi definitive su casi reali e consentire valutazioni riproducibili. La letteratura su RAG suggerisce che l'accesso a memoria non parametrica possa migliorare factuality, aggiornabilita e tracciabilita \citep{lewis2020rag,li2022survey}, ma il semplice recupero di documenti non risolve da solo il problema clinico: occorre definire che cosa viene recuperato, come viene strutturato, quali agenti lo usano, quali output sono permessi e come l'intero processo viene valutato. In altri termini, il problema non e soltanto architetturale, ma epistemologico: un sistema di supporto al reasoning deve rendere auditabile il rapporto tra fonte nosologica, caso clinico, modello linguistico e giudizio umano.
+
+Il lavoro precedente LLMind Chat ha proposto un sistema RAG basato su ICD-11 e Gemma 2 per supportare il processo diagnostico in psicologia e psichiatria, valutandolo su casi DSM-5-TR e con validazione esperta \citep{cremaschi2025decoding}. Quel lavoro ha mostrato che un modello generalista, quando ancorato a una knowledge base specialistica, puo produrre suggerimenti piu coerenti rispetto a modelli non adattati al compito. La versione 2 nasce da una domanda piu ampia: come trasformare un assistente RAG in una piattaforma scientifica per sperimentare, comparare e governare sistemi LLM nel reasoning diagnostico?
+
+\llmind\ e progettato come infrastruttura di ricerca. Non mira a sostituire il clinico, ne a fornire diagnosi operative. Il suo scopo e costruire un ambiente controllato in cui studiare il contributo di LLM e agenti conversazionali in compiti come codifica ICD-11, diagnosi differenziale, revisione di casi benchmark, navigazione metodologica e controllo di sicurezza. In questa prospettiva, l'interfaccia applicativa non e il contributo principale: essa e un mezzo per rendere osservabili, versionabili e valutabili processi di reasoning che altrimenti resterebbero incorporati in conversazioni non strutturate. Il contributo scientifico e quindi duplice: da un lato una metodologia per costruire un corpus nosologico e un benchmark controllato; dall'altro un protocollo per valutare non soltanto l'esito finale, ma anche la qualita del processo inferenziale.
+
+\section{Dal sistema LLMind originale a \llmind}
+Il paper originale ha introdotto LLMind Chat come applicazione RAG per ICD-11. La pipeline comprendeva l'estrazione del contenuto ICD-11 tramite API, l'integrazione con ICD-11-CDDR, la costruzione di prompt testuali per ciascun disturbo, l'indicizzazione vettoriale e l'interrogazione di un LLM locale. La valutazione era stata condotta usando i casi clinici DSM-5-TR e confrontando il comportamento del sistema con modelli di riferimento \citep{cremaschi2025decoding}. Il contributo principale era dimostrare che un modello open, arricchito da retrieval specialistico, poteva fornire supporto piu pertinente nel dominio della salute mentale.
+
+\llmind\ conserva questa intuizione ma modifica la domanda scientifica. Invece di chiedere soltanto se un singolo modello risponde correttamente a un caso, la piattaforma indaga quali componenti del processo contribuiscono alla qualita del reasoning. La distinzione e importante. Un errore puo derivare da una retrieval query troppo ampia, da una sovrapposizione DSM/ICD non risolta, da leakage del gold standard nel prompt, da una risposta generativa troppo assertiva, da una rubric di valutazione poco discriminante, o da una mancata separazione tra triage e diagnosi differenziale. La versione 2 introduce quindi una decomposizione funzionale del task.
+
+La piattaforma organizza il processo in sei ruoli agentici: intake clinico, codifica ICD-11, supervisione della diagnosi differenziale, revisione dei casi benchmark, navigazione del protocollo di ricerca e guardrail di sicurezza. Tale organizzazione non implica che gli agenti producano verita clinica. Al contrario, serve a rendere piu verificabile l'interazione tra fonti, vincoli e output. Ogni agente ha un perimetro dichiarato, input attesi, output ammessi, fonti consultabili e condizioni di handoff.
+
+\section{Domande di ricerca}
+La versione 2 e guidata da quattro domande di ricerca.
+
+\begin{enumerate}
+  \item \textbf{RQ1 - Grounding nosologico.} In che misura un grounding esplicito su ICD-11/CDDR migliora coerenza, tracciabilita e appropriatezza dei suggerimenti rispetto a prompt senza retrieval o con retrieval non strutturato?
+  \item \textbf{RQ2 - Decomposizione multi-agente.} La separazione tra intake, codifica, diagnosi differenziale, revisione benchmark e sicurezza riduce errori di scope, leakage e overclaiming rispetto a un singolo assistente generalista?
+  \item \textbf{RQ3 - Valutazione cross-nosologica.} Quali limiti emergono quando casi DSM-5-TR vengono usati per valutare output ancorati a ICD-11, e come si possono modellare tali limiti nel protocollo sperimentale?
+  \item \textbf{RQ4 - Riproducibilita.} Un corpus statico normalizzato e versionato, interrogabile con strumenti locali e open source, puo sostenere una pipeline agentica riproducibile senza sacrificare auditabilita scientifica?
+\end{enumerate}
+
+\authoraction{Confermare se queste quattro domande di ricerca riflettono l'obiettivo di dottorato. Se il paper deve essere inviato a una conferenza specifica, occorre adattare lunghezza, stile e priorita delle RQ al venue.}
+
+\section{Background}
+\subsection{LLM e salute mentale}
+La ricerca sugli LLM in ambito medico ha mostrato risultati promettenti su question answering, sintesi clinica e ragionamento testuale \citep{singhal2023medpalm,peng2023medical}. Tuttavia, la salute mentale presenta caratteristiche peculiari. Le diagnosi sono spesso sindromiche, dipendono dal decorso temporale, richiedono esclusioni mediche e culturali, e sono sensibili alla qualita dell'informazione raccolta. Inoltre, la comorbidita e la sovrapposizione sintomatologica rendono insufficiente un approccio puramente classificatorio. Una vignetta clinica puo contenere segnali compatibili con piu ipotesi; alcune informazioni possono essere assenti; altre possono essere ambigue o dipendere dal modo in cui il caso e stato narrato. In questi contesti, un output utile non e necessariamente quello che produce subito una diagnosi, ma quello che organizza il problema, identifica incertezze, suggerisce differenziali plausibili e chiarisce quali dati sarebbero necessari per procedere.
+
+In tale contesto, un LLM puo essere utile come strumento di strutturazione, esplorazione e confronto, ma e rischioso se produce conclusioni assertive senza esplicitare incertezza, dati mancanti e condizioni da escludere. La letteratura sui modelli clinici sottolinea infatti la necessita di mantenere supervisione umana, valutazione esterna e distinzione tra performance su benchmark e validita clinica reale \citep{singhal2023medpalm}. Questo punto e cruciale per \llmind: il sistema e progettato per misurare e rendere visibili le condizioni di affidabilita, non per mascherare l'incertezza dietro una conversazione naturale.
+
+\subsection{ICD-11, ICD-11-CDDR e DSM-5-TR}
+ICD-11 e la classificazione internazionale dell'Organizzazione Mondiale della Sanita, mentre DSM-5-TR e il manuale dell'American Psychiatric Association \citep{who2022icd11,apa2022dsm5tr}. Entrambi sono centrali nella pratica e nella ricerca, ma non sono intercambiabili. La ICD-11-CDDR fornisce descrizioni cliniche e requisiti diagnostici per disturbi mentali, comportamentali e del neurosviluppo \citep{who2024cddr}. Il DSM-5-TR Clinical Cases offre invece vignette utili per valutare il ragionamento su casi strutturati \citep{apa2023clinicalcases}.
+
+La scelta di usare casi DSM-5-TR per valutare un sistema ancorato a ICD-11 crea una tensione metodologica fertile ma delicata. Da un lato, i casi DSM consentono benchmark con gold standard. Dall'altro, il gold standard non coincide necessariamente con la formulazione ICD-11. \llmind\ tratta questa tensione come parte esplicita del disegno sperimentale, non come un dettaglio tecnico.
+
+\subsection{Retrieval-Augmented Generation e memoria esterna}
+RAG combina un modello generativo con una memoria esterna indicizzata, consentendo al sistema di recuperare contenuti rilevanti prima della generazione \citep{lewis2020rag}. Nel dominio clinico, questo paradigma e particolarmente utile perche permette di separare parametri del modello e conoscenza specialistica, riducendo la dipendenza dalla memoria interna del LLM. Tuttavia, RAG non garantisce correttezza: retrieval irrilevante, chunking non ottimale, conflitto tra fonti e generazione non fedele restano problemi aperti \citep{li2022survey}.
+
+\subsection{Agenti conversazionali e decomposizione del reasoning}
+L'orchestrazione agentica viene qui interpretata in senso metodologico: non come moltiplicazione arbitraria di chatbot, ma come separazione controllata di responsabilita epistemiche. Un agente di intake non deve diagnosticare; un agente ICD-11 non deve trasformare automaticamente etichette DSM in codici ICD; un agente di benchmark non deve correggere il gold standard senza revisione umana; un guardrail non deve discutere dettagli clinici quando emergono rischio acuto o dati identificativi. La decomposizione consente di valutare failure modes specifici e di ridurre confusione tra compiti.
+
+\section{Materiali e fonti}
+\subsection{Corpus ICD-11}
+Il corpus ICD-11 e ottenuto attraverso API e organizzato come tassonomia locale. Per \llmind, l'attenzione primaria e sul Capitolo 6, relativo ai disturbi mentali, comportamentali e del neurosviluppo. A differenza di pipeline legacy basate su file statici intermedi, la versione 2 assume che l'estrazione primaria avvenga da API e che la base locale venga poi normalizzata in tabelle interrogabili. Ogni categoria deve conservare, quando disponibili, codice, titolo, descrizione, relazioni gerarchiche, inclusioni, esclusioni, termini indice e metadati utili alla ricerca. Questa rappresentazione consente di trattare ICD-11 non come un semplice documento testuale, ma come una struttura nosologica navigabile.
+
+La scelta di estrarre ICD-11 tramite API ha una motivazione scientifica: riduce l'ambiguita introdotta da conversioni manuali, permette di ripetere l'estrazione, mantiene il legame con l'identificativo originale delle entita e consente di distinguere tra contenuto tassonomico e contenuto descrittivo. Nel contesto del benchmark, tale distinzione e importante per capire se il modello sta recuperando una categoria appropriata, se sta usando criteri diagnostici pertinenti, o se sta semplicemente generando una parafrasi plausibile.
+
+\subsection{ICD-11-CDDR}
+ICD-11-CDDR e usato come sorgente testuale per descrizioni cliniche, requisiti diagnostici, confini con normalita, esclusioni e differenziali. Nel disegno sperimentale, CDDR e considerato il riferimento nosologico principale per gli agenti ICD-11 e diagnosi differenziale. Il suo ruolo e diverso da quello della tassonomia ICD-11: mentre la tassonomia fornisce identificatori, gerarchie e categorie, CDDR offre il contenuto clinico che rende interpretabile la categoria. Per questa ragione, il corpus deve mantenere collegamenti tra categoria, descrizione diagnostica e sezioni testuali, evitando che il retrieval restituisca frammenti privi di contesto.
+
+\subsection{Casi DSM-5-TR}
+I casi DSM-5-TR Clinical Cases sono usati come materiale di benchmark e non come fonte di verita ICD-11. Ogni caso deve essere separato in campi distinti: presentazione o introduction, discussion, diagnosis e metadati. La separazione e essenziale per evitare leakage: se il modello riceve la discussion o la diagnosis durante il test, il benchmark non misura piu reasoning diagnostico ma recupero di informazione contaminata.
+
+Il valore dei casi DSM-5-TR e duplice. Da un lato, essi offrono vignette cliniche sufficientemente strutturate per testare modelli in modo comparabile. Dall'altro, introducono una tensione metodologica perche il gold standard e formulato in un sistema diagnostico diverso da quello usato come grounding principale. Questa tensione non deve essere eliminata artificialmente: deve essere misurata. \llmind\ puo quindi distinguere tra correttezza rispetto al gold standard DSM, plausibilita di mapping verso ICD-11 e qualita del ragionamento differenziale.
+
+\subsection{Corpus statico e riproducibile}
+La versione 2 introduce un corpus statico e versionato, interrogabile con strumenti locali e open source. La motivazione non e soltanto ingegneristica. Dal punto di vista scientifico, un corpus tabellare o documentale controllato consente di:
+\begin{itemize}
+  \item congelare una specifica versione delle fonti;
+  \item riprodurre le query o le ricerche effettuate dagli agenti;
+  \item misurare quali sezioni sono state recuperate;
+  \item separare retrieval strutturato e generazione;
+  \item ridurre variazioni non controllate tra esecuzioni.
+\end{itemize}
+
+La rappresentazione unificata dei chunk agentici puo contenere campi quali corpus, famiglia diagnostica, sezione, codice, testo, hash della fonte e versione dell'estrazione. Questa struttura abilita esperimenti in cui l'agente consulta soltanto l'intero Capitolo 6 oppure un sottoinsieme selezionato di sezioni, rendendo possibile uno studio sul trade-off tra ampiezza del contesto e precisione del retrieval. Implementazioni cloud, inclusa una possibile esportazione in BigQuery o l'uso di agenti gestiti, possono essere utili per scalare il prototipo o per dimostrazioni applicative, ma non costituiscono il nucleo scientifico del paper perche non sono necessariamente riproducibili gratuitamente o con strumenti aperti.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.2cm and 1.0cm]
+  \node[data] (icdapi) {ICD-11 API\\Capitolo 6};
+  \node[data, right=of icdapi] (cddr) {ICD-11 CDDR\\descrizioni cliniche};
+  \node[data, right=of cddr] (dsm) {DSM-5-TR\\casi clinici};
+  \node[box, below=of cddr] (extract) {Estrazione e normalizzazione\\versionata};
+  \node[box, below left=of extract] (taxonomy) {Tassonomia ICD-11\\codici, gerarchie, esclusioni};
+  \node[box, below=of extract] (chunks) {Chunk nosologici\\hash e metadati};
+  \node[box, below right=of extract] (cases) {Casi benchmark\\introduction, discussion, diagnosis};
+  \node[agent, below=1.1cm of chunks] (retrieval) {Retrieval locale\\filtrato e tracciabile};
+  \node[evalbox, below=of retrieval] (evaluation) {Benchmark e valutazione\\automatica + esperta};
+
+  \draw[arrow] (icdapi) -- (extract);
+  \draw[arrow] (cddr) -- (extract);
+  \draw[arrow] (dsm) -- (extract);
+  \draw[arrow] (extract) -- (taxonomy);
+  \draw[arrow] (extract) -- (chunks);
+  \draw[arrow] (extract) -- (cases);
+  \draw[arrow] (taxonomy) -- (retrieval);
+  \draw[arrow] (chunks) -- (retrieval);
+  \draw[arrow] (cases) -- (evaluation);
+  \draw[arrow] (retrieval) -- (evaluation);
+\end{tikzpicture}}
+\caption{Pipeline riproducibile di costruzione del corpus in \llmind. Le fonti ICD-11, ICD-11-CDDR e DSM-5-TR vengono trasformate in artefatti versionati e interrogabili localmente, separando tassonomia, contenuto descrittivo e casi benchmark.}
+\label{fig:data-pipeline-it}
+\end{figure}
+
+\section{Disegno del sistema di ricerca}
+\subsection{Principi di progetto}
+\llmind\ segue cinque principi metodologici:
+\begin{enumerate}
+  \item \textbf{Grounding prima della generazione.} Ogni output nosologico deve essere preceduto da retrieval o consultazione di fonti strutturate.
+  \item \textbf{Separazione dei compiti.} Gli agenti hanno ruoli limitati e dichiarati.
+  \item \textbf{Versionamento sperimentale.} Prompt, modelli, corpus, rubriche e casi devono essere tracciabili.
+  \item \textbf{Human-in-the-loop.} La validazione esperta non e opzionale quando l'output riguarda ragionamento clinico.
+  \item \textbf{Non-deployment clinico.} Il sistema e uno strumento di ricerca, formazione e valutazione, non un dispositivo medico.
+  \item \textbf{Riproducibilita locale.} Le componenti principali devono poter essere eseguite, ispezionate e sostituite in un ambiente controllato senza dipendere da servizi proprietari.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.0cm and 0.9cm]
+  \node[data] (case) {Vignetta clinica\\o richiesta di ricerca};
+  \node[agent, right=of case] (intake) {Clinical Intake\\Triage};
+  \node[agent, right=of intake, yshift=1.4cm] (coding) {ICD-11 Coding\\Assistant};
+  \node[agent, right=of intake] (diff) {Differential\\Supervisor};
+  \node[agent, right=of intake, yshift=-1.4cm] (bench) {Benchmark Case\\Reviewer};
+  \node[agent, right=of diff] (protocol) {Research Protocol\\Navigator};
+  \node[evalbox, below=1.6cm of protocol] (safety) {Safety and Scope\\Guardrail};
+  \node[data, above=1.3cm of diff] (sources) {Corpus locale\\ICD-11 + CDDR + casi};
+  \node[evalbox, right=of protocol] (output) {Output tracciato\\incertezza, fonti, limiti};
+
+  \draw[arrow] (case) -- (intake);
+  \draw[arrow] (intake) -- (coding);
+  \draw[arrow] (intake) -- (diff);
+  \draw[arrow] (intake) -- (bench);
+  \draw[arrow] (coding) -- (protocol);
+  \draw[arrow] (diff) -- (protocol);
+  \draw[arrow] (bench) -- (protocol);
+  \draw[arrow] (protocol) -- (output);
+  \draw[arrow] (safety) -- (output);
+  \draw[arrow] (sources) -- (coding);
+  \draw[arrow] (sources) -- (diff);
+  \draw[arrow] (sources) -- (bench);
+  \draw[arrow] (intake) |- (safety);
+\end{tikzpicture}}
+\caption{Architettura concettuale multi-agente. La decomposizione non rappresenta una moltiplicazione di chatbot, ma la separazione di responsabilita epistemiche: raccolta del caso, codifica nosologica, diagnosi differenziale, revisione benchmark, protocollo e sicurezza.}
+\label{fig:agent-architecture-it}
+\end{figure}
+
+\subsection{Agenti previsti}
+\begin{longtable}{p{0.23\linewidth}p{0.31\linewidth}p{0.36\linewidth}}
+\toprule
+\textbf{Agente} & \textbf{Funzione scientifica} & \textbf{Output ammesso}\\
+\midrule
+Clinical Intake Triage & Struttura la vignetta, identifica dati mancanti e decide il percorso successivo. & Sommario neutro, dati mancanti, rischio, handoff.\\
+ICD-11 Coding Assistant & Recupera categorie ICD-11 candidate e requisiti diagnostici. & Candidati ICD-11, evidenze pro/contro, esclusioni, incertezza.\\
+Differential Diagnosis Supervisor & Confronta ipotesi diagnostiche mantenendo separate evidenze e inferenze. & Tabella differenziale, condizioni da non perdere, domande successive.\\
+Benchmark Case Reviewer & Verifica qualita dei casi DSM e rischio di leakage. & Readiness del caso, artefatti, contaminazioni, richieste di revisione umana.\\
+Research Protocol Navigator & Aiuta a mantenere coerenza metodologica tra esperimenti. & Protocollo, metriche, rischi di validita, prossime azioni.\\
+Safety and Scope Guardrail & Blocca uso clinico diretto, dati identificativi o rischio acuto. & Risposta sicura, escalation umana, delimitazione dello scope.\\
+\bottomrule
+\end{longtable}
+
+\subsection{Condizioni sperimentali}
+Il paper propone di confrontare almeno cinque condizioni:
+\begin{enumerate}
+  \item modello base senza retrieval;
+  \item modello con RAG non strutturato su ICD-11/CDDR;
+  \item modello con corpus statico locale e retrieval filtrato;
+  \item singolo agente generalista con accesso alle stesse fonti;
+  \item orchestrazione multi-agente con ruoli separati.
+\end{enumerate}
+
+Queste condizioni permettono di isolare l'effetto del grounding, della strutturazione del corpus e della decomposizione agentica. La comparazione non deve essere ridotta alla sola accuracy diagnostica, perche un sistema piu cauto ma meno assertivo puo essere scientificamente preferibile a un sistema che indovina piu spesso ma produce giustificazioni fragili. Un eventuale deployment su cloud o su piattaforme conversazionali gestite puo essere riportato in appendice o come nota di trasferibilita tecnologica, ma non dovrebbe entrare nelle condizioni sperimentali principali.
+
+\section{Riproducibilita}
+La riproducibilita e un requisito centrale di \llmind, non un attributo accessorio del software. Il primo lavoro LLMind aveva gia posto attenzione alla descrizione della pipeline di costruzione del dataset, alla scelta del modello, alla configurazione RAG e alla valutazione su casi DSM-5-TR. La versione 2 estende tale impostazione rendendo espliciti tutti gli elementi che devono essere fissati prima dell'esperimento e conservati dopo l'esecuzione. L'obiettivo e consentire a un gruppo indipendente di ricostruire non soltanto l'applicazione, ma il disegno sperimentale: quali fonti sono state usate, come sono state trasformate, quali prompt sono stati inviati, quali modelli hanno risposto e come le risposte sono state valutate.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.9cm and 0.7cm]
+  \node[data] (sources) {Fonti\\versionate};
+  \node[data, right=of sources] (data) {Dataset\\hash + schema};
+  \node[data, right=of data] (retrieval) {Retrieval\\parametri};
+  \node[data, right=of retrieval] (prompts) {Prompt\\template};
+  \node[data, right=of prompts] (models) {Modelli\\versioni};
+  \node[evalbox, below=of retrieval] (eval) {Valutazione\\rubrica + script};
+  \node[agent, below=of eval] (package) {Pacchetto di replica\\codice, config, log};
+
+  \draw[arrow] (sources) -- (data);
+  \draw[arrow] (data) -- (retrieval);
+  \draw[arrow] (retrieval) -- (prompts);
+  \draw[arrow] (prompts) -- (models);
+  \draw[arrow] (models) |- (eval);
+  \draw[arrow] (eval) -- (package);
+  \draw[arrow] (sources) |- (package);
+  \draw[arrow] (data) |- (package);
+\end{tikzpicture}}
+\caption{Catena degli artefatti di riproducibilita. Ogni risultato sperimentale dovrebbe poter essere ricondotto a fonti, dataset, retrieval, prompt, modelli, parametri e procedure di valutazione.}
+\label{fig:reproducibility-it}
+\end{figure}
+
+\subsection{Riproducibilita dei dati}
+Le fonti devono essere descritte con versione, origine e procedura di estrazione. Per ICD-11, questo significa indicare endpoint o container API, data dell'estrazione, lingua, filtro sul Capitolo 6 e schema della tabella risultante. Per ICD-11-CDDR, occorre indicare edizione, formato sorgente, procedura di segmentazione e criterio di associazione tra testo descrittivo e categoria diagnostica. Per DSM-5-TR Clinical Cases, occorre documentare la procedura di separazione tra introduction, discussion e diagnosis, poiche questo passaggio determina il rischio di leakage e quindi la validita del benchmark.
+
+Ogni record trasformato dovrebbe includere un identificatore stabile, un hash del contenuto sorgente o del chunk generato, il nome della pipeline di estrazione e la versione del codice usata. In questo modo, se una risposta del modello viene contestata, e possibile risalire al frammento recuperato e verificare se l'errore dipende dal modello, dal retrieval, dalla preparazione del dato o dal gold standard.
+
+\subsection{Riproducibilita del retrieval e dei prompt}
+Per ogni condizione sperimentale devono essere salvati prompt di sistema, prompt utente, template di retrieval, numero di documenti recuperati, soglie di similarita, strategia di chunking, modello di embedding e parametri di generazione. Nel caso multi-agente, deve essere registrato anche quale agente ha ricevuto il caso, quale handoff e stato attivato e quale contesto e stato passato all'agente successivo. Senza questa tracciabilita, due esecuzioni apparentemente identiche potrebbero differire in modo sostanziale.
+
+La riproducibilita non richiede necessariamente determinismo perfetto, spesso impossibile con modelli generativi. Richiede pero che le fonti di variabilita siano note e misurate. Per questa ragione, il protocollo dovrebbe fissare temperatura, top-p, seed quando disponibile, modello e versione del runtime. Quando il modello non consente pieno controllo del seed, il paper deve dichiararlo e prevedere esecuzioni ripetute o analisi di stabilita.
+
+\subsection{Riproducibilita dell'ambiente}
+L'ambiente minimo riproducibile dovrebbe essere locale e basato su strumenti ispezionabili: database relazionale per ICD-11 e casi, indice vettoriale locale, script di estrazione versionati, runtime LLM locale o modello open-weight eseguibile da terzi, e file di configurazione dichiarativi. L'uso di Docker o di ambienti equivalenti consente di fissare dipendenze, versioni e servizi necessari. Un deployment cloud puo essere utile per scalare o mostrare una demo, ma non deve essere richiesto per riprodurre i risultati del paper.
+
+\subsection{Riproducibilita della valutazione}
+La valutazione deve essere ricostruibile come la pipeline tecnica. Devono essere archiviati l'elenco dei casi inclusi, i criteri di esclusione, le condizioni sperimentali, la rubrica esperta, le istruzioni ai valutatori, la forma delle risposte mostrate ai valutatori e l'eventuale randomizzazione. Le metriche automatiche devono essere calcolate da script versionati, mentre le valutazioni manuali devono conservare punteggio, valutatore, timestamp e note qualitative. Quando il materiale sorgente non puo essere redistribuito per ragioni di copyright, il paper dovrebbe comunque descrivere procedure e schemi in modo sufficiente a permettere la replica da parte di chi possiede accesso legittimo alle stesse fonti.
+
+\authoraction{Preparare una tabella finale ``Reproducibility artifacts'' con: versione ICD-11, versione CDDR, numero di casi DSM, modelli, embedding, parametri generativi, schema dati, prompt template, rubrica, numero valutatori e commit/tag del codice.}
+
+\section{Protocollo di valutazione}
+\subsection{Task sperimentali}
+La valutazione dovrebbe includere task distinti:
+\begin{itemize}
+  \item identificazione di diagnosi candidate da vignette DSM-5-TR;
+  \item mapping tra diagnosi DSM e categorie ICD-11 candidate;
+  \item generazione di diagnosi differenziale;
+  \item rilevazione di dati mancanti;
+  \item rilevazione di leakage nei casi;
+  \item classificazione di richieste fuori perimetro o safety-sensitive.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.0cm and 0.9cm]
+  \node[data] (cases) {Casi DSM-5-TR\\senza leakage};
+  \node[box, right=of cases] (conditions) {Condizioni\\sperimentali};
+  \node[agent, right=of conditions] (runs) {Esecuzioni LLM\\log e output};
+  \node[evalbox, right=of runs, yshift=0.9cm] (metrics) {Metriche\\automatiche};
+  \node[evalbox, right=of runs, yshift=-0.9cm] (raters) {Valutazione\\esperta};
+  \node[box, right=of metrics, yshift=-0.9cm] (errors) {Analisi errori\\failure modes};
+  \node[box, right=of errors] (report) {Risultati\\e limiti};
+
+  \draw[arrow] (cases) -- (conditions);
+  \draw[arrow] (conditions) -- (runs);
+  \draw[arrow] (runs) -- (metrics);
+  \draw[arrow] (runs) -- (raters);
+  \draw[arrow] (metrics) -- (errors);
+  \draw[arrow] (raters) -- (errors);
+  \draw[arrow] (errors) -- (report);
+\end{tikzpicture}}
+\caption{Workflow di valutazione. Le metriche automatiche e la valutazione esperta sono mantenute separate e poi integrate nell'analisi degli errori, evitando di ridurre il reasoning diagnostico alla sola accuracy.}
+\label{fig:evaluation-workflow-it}
+\end{figure}
+
+\subsection{Metriche automatiche}
+Le metriche automatiche possono includere accuracy top-1, accuracy top-k, precision, recall e F1 quando e disponibile un gold standard. Per risposte testuali piu ricche, occorre affiancare metriche semantiche e rubriche manuali. La misurazione dei casi ``no diagnosis'' e importante perche distingue tra errore assertivo e astensione. Il tempo di risposta e il costo di retrieval vanno misurati come variabili secondarie, non come obiettivi primari.
+
+\subsection{Valutazione esperta}
+La valutazione esperta dovrebbe usare una rubrica a piu dimensioni:
+\begin{itemize}
+  \item coerenza con il caso;
+  \item appropriatezza nosologica;
+  \item qualita della diagnosi differenziale;
+  \item esplicitazione di esclusioni e dati mancanti;
+  \item calibrazione dell'incertezza;
+  \item assenza di overclaiming clinico;
+  \item utilita per ricerca o formazione.
+\end{itemize}
+
+L'accordo tra valutatori puo essere stimato usando indici di concordanza, ad esempio concordance correlation coefficient quando appropriato \citep{barnhart2002ccc}. La rubrica deve essere definita prima dell'esperimento, non adattata a posteriori.
+
+\authoraction{Servono almeno due valutatori esperti o, in alternativa, una giustificazione metodologica forte per una valutazione single-rater. Occorre decidere scala della rubrica: binaria, Likert 1--5, oppure punteggio continuo 0--1 come nel lavoro precedente.}
+
+\subsection{Analisi degli errori}
+L'analisi degli errori deve distinguere categorie clinicamente e metodologicamente significative:
+\begin{itemize}
+  \item diagnosi candidata assente;
+  \item diagnosi corretta ma giustificazione errata;
+  \item confusione DSM/ICD;
+  \item esclusione mancante;
+  \item dato mancante non rilevato;
+  \item leakage dal prompt;
+  \item allucinazione di codice o criterio;
+  \item risposta troppo assertiva;
+  \item risposta sicura ma poco utile.
+\end{itemize}
+
+Questa tassonomia permette di valutare se l'orchestrazione multi-agente riduce specifici errori anche quando non migliora immediatamente l'accuracy aggregata.
+
+\section{Ipotesi}
+Le ipotesi principali sono:
+\begin{enumerate}
+  \item Il grounding su ICD-11/CDDR aumenta la qualita nosologica rispetto a prompt non ancorati.
+  \item Il retrieval filtrato su corpus statico riduce rumore e costo rispetto a retrieval documentale non strutturato.
+  \item La decomposizione multi-agente riduce overclaiming e leakage rispetto a un agente generalista.
+  \item La valutazione esperta mostrera divergenze tra correttezza del label e qualita del reasoning, rendendo insufficiente la sola accuracy.
+\end{enumerate}
+
+\section{Considerazioni etiche e di governance}
+\llmind\ deve essere interpretato come piattaforma di ricerca. L'uso su pazienti reali, dati identificativi o situazioni di rischio richiede procedure esterne, approvazioni etiche e supervisione qualificata. Nel paper, il confine deve essere esplicito: il sistema supporta studio, benchmark e analisi metodologica; non produce diagnosi cliniche e non sostituisce valutazione professionale.
+
+La governance dei dati e centrale. I casi DSM-5-TR sono materiale protetto da copyright e devono essere gestiti secondo licenza e finalita ammesse. Le fonti ICD-11 e CDDR devono essere citate correttamente. La configurazione raccomandata per gli esperimenti e locale o comunque controllata, in modo da minimizzare trasferimenti di dati verso servizi terzi. Eventuali interazioni con agenti cloud devono essere considerate extra-protocollari, evitare dati personali e prevedere logging, minimizzazione e controllo degli accessi. Se in futuro saranno usati dati clinici reali, sara necessario un protocollo etico dedicato, con de-identificazione, base giuridica, data protection impact assessment e revisione istituzionale.
+
+\authoraction{Indicare esplicitamente nel paper se la v2 usa solo casi pubblicati/sintetici o anche dati clinici reali. Se sono previsti dati reali, serve approvazione etica prima di qualunque esperimento.}
+
+\section{Risultati attesi e piano di analisi}
+Questa bozza non riporta risultati empirici nuovi, perche la fase sperimentale della versione 2 deve ancora essere completata. Il paper e quindi strutturato come base per uno studio empirico: le sezioni di risultati dovranno essere popolate dopo l'esecuzione dei benchmark.
+
+I risultati dovrebbero essere organizzati in quattro blocchi:
+\begin{enumerate}
+  \item performance diagnostica e nosologica per condizione sperimentale;
+  \item valutazione esperta del reasoning;
+  \item analisi degli errori e dei failure modes;
+  \item latenza, costo computazionale locale e riproducibilita delle query agentiche.
+\end{enumerate}
+
+\authoraction{Dopo il primo run sperimentale, inserire: numero di casi, modelli testati, configurazione retrieval, versione corpus, numero valutatori, metriche aggregate, intervalli di confidenza se disponibili, e almeno 3 esempi qualitativi di successo/fallimento.}
+
+\section{Minacce alla validita}
+\subsection{Validita interna}
+La principale minaccia interna e il leakage. Se elementi della diagnosis o della discussion entrano nel prompt, la valutazione sovrastima la capacita del modello. Una seconda minaccia riguarda la variabilita del retrieval: versioni diverse del corpus o parametri diversi di chunking possono cambiare gli output. Una terza minaccia e la non-determinismo dei modelli generativi.
+
+\subsection{Validita esterna}
+I casi DSM-5-TR sono casi pubblicati e didattici. Non rappresentano necessariamente la distribuzione di complessita, incompletezza e ambiguita dei casi reali. Inoltre, risultati su vignette non implicano performance clinica in contesti operativi.
+
+\subsection{Validita di costrutto}
+Accuracy diagnostica non misura pienamente la qualita del reasoning. Un output puo avere label corretta ma motivazione scorretta; oppure puo essere clinicamente prudente pur non producendo una label specifica. Per questo motivo, la valutazione deve includere dimensioni qualitative e safety-oriented.
+
+\subsection{Validita conclusiva}
+Campioni ridotti, numero limitato di valutatori e differenze tra DSM e ICD possono limitare la generalizzabilita. Le conclusioni dovranno essere formulate in termini di supporto sperimentale e non di efficacia clinica.
+
+\section{Contributi attesi}
+Il contributo scientifico della versione 2 puo essere riassunto in quattro punti:
+\begin{enumerate}
+  \item un framework per studiare LLM ontology-grounded nel dominio della salute mentale;
+  \item un protocollo di benchmark che distingue label accuracy, reasoning quality e safety;
+  \item una proposta di orchestrazione multi-agente con ruoli epistemici separati;
+  \item una strategia di corpus statico e versionato, riproducibile localmente, per rendere retrieval e valutazione piu controllabili.
+\end{enumerate}
+
+\section{Conclusioni}
+\llmind\ estende il lavoro LLMind Chat trasformando un assistente RAG in una piattaforma di ricerca per il reasoning diagnostico assistito da LLM. Il punto centrale non e dimostrare che un modello possa sostituire un professionista, ma studiare in quali condizioni il grounding nosologico, la strutturazione del corpus, l'orchestrazione agentica e la valutazione human-in-the-loop possano rendere l'uso dei LLM piu trasparente, controllabile e scientificamente valutabile.
+
+La versione 2 propone un passaggio concettuale rilevante: dal chatbot come interfaccia al sistema come laboratorio. In un dominio ad alto rischio epistemico come la salute mentale, tale passaggio e essenziale. Solo separando fonti, compiti, vincoli e metriche e possibile capire se i LLM contribuiscano realmente alla qualita del ragionamento o se producano soltanto spiegazioni linguisticamente plausibili. Il lavoro futuro consistera nell'eseguire il protocollo, completare la validazione esperta, pubblicare risultati riproducibili e valutare l'impatto della decomposizione multi-agente sui failure modes piu critici.
+
+\section*{Checklist rapida per completare il paper}
+\begin{enumerate}
+  \item Confermare titolo, autori, affiliazioni e venue target.
+  \item Decidere quali modelli confrontare nella v2.
+  \item Eseguire benchmark su casi DSM-5-TR con condizioni sperimentali definite.
+  \item Coinvolgere valutatori esperti e congelare la rubrica prima della valutazione.
+  \item Inserire risultati quantitativi, esempi qualitativi e analisi degli errori.
+  \item Verificare licenze e permessi per citare o descrivere casi DSM-5-TR.
+  \item Decidere se includere figure: architettura concettuale, flusso agentico, protocollo di valutazione.
+\end{enumerate}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

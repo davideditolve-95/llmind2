@@ -15,6 +15,7 @@ from .routers import benchmark as router_benchmark
 from .routers import legacy as router_legacy
 from .routers import datastore as router_datastore
 from .routers import system as router_system
+from .routers import gcp_agents as router_gcp_agents
 from .config import get_settings
 
 # Importa tutti i modelli per assicurarsi che vengano registrati prima di create_all
@@ -100,6 +101,13 @@ async def startup_event():
                 logger.warning("MISMATCH: colonna session_id mancante in chat_history. Reset necessario.")
                 needs_reset = True
 
+        # 3. Controlla le colonne di chat_sessions per i nuovi campi (user_email, is_pinned, is_starred)
+        if not needs_reset and "chat_sessions" in tables:
+            cs_columns = [c['name'] for c in inspector.get_columns("chat_sessions")]
+            if "user_email" not in cs_columns or "is_pinned" not in cs_columns or "is_starred" not in cs_columns:
+                logger.warning("MISMATCH: Colonne di chat_sessions non aggiornate (manca user_email, is_pinned, o is_starred). Reset necessario.")
+                needs_reset = True
+
         if needs_reset:
             logger.info(">>> ESECUZIONE RESET FORZATO TABELLE CHAT PER SINCRONIZZAZIONE SCHEMA <<<")
             from sqlalchemy import text
@@ -119,13 +127,17 @@ async def startup_event():
 
 
 # ─── Registrazione dei router ──────────────────────────────────────────────
-app.include_router(router_icd11.router)
-app.include_router(router_chat.router)
-app.include_router(router_cases.router)
-app.include_router(router_benchmark.router)
-app.include_router(router_legacy.router)
-app.include_router(router_datastore.router)
-app.include_router(router_system.router)
+from .services.auth import verify_token
+from fastapi import Depends
+
+app.include_router(router_icd11.router)  # Rimane pubblico per la home page
+app.include_router(router_chat.router, dependencies=[Depends(verify_token)])
+app.include_router(router_cases.router, dependencies=[Depends(verify_token)])
+app.include_router(router_benchmark.router, dependencies=[Depends(verify_token)])
+app.include_router(router_legacy.router, dependencies=[Depends(verify_token)])
+app.include_router(router_datastore.router, dependencies=[Depends(verify_token)])
+app.include_router(router_system.router, dependencies=[Depends(verify_token)])
+app.include_router(router_gcp_agents.router, dependencies=[Depends(verify_token)])
 
 
 # ─── Endpoint di utilità ───────────────────────────────────────────────────

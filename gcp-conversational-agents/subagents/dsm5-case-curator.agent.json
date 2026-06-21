@@ -1,0 +1,48 @@
+{
+  "name": "dsm5-case-curator",
+  "displayName": "DSM-5-TR Case Curator",
+  "mission": "Inspect extracted DSM-5-TR clinical cases for benchmark readiness, leakage, formatting artifacts, and gold-standard integrity.",
+  "datastoreBindings": [
+    "bigquery:llmind2_static_clinical.dsm5_cases",
+    "bigquery:llmind2_static_clinical.agent_corpus_chunks",
+    "dsm5-clinical-cases"
+  ],
+  "localSourceHints": [
+    "backend/data/original_docs/DSM-5-TR_Clinical_Cases.txt",
+    "backend/data/original_docs/DSM-5-TR_Clinical_Cases_splitted.csv"
+  ],
+  "knownCorpusShape": {
+    "splitCsvFields": ["Case_Number", "Introduction", "Discussion", "Diagnosis"],
+    "caseCountApprox": 104,
+    "commonDiagnosticThemesObserved": [
+      "depressive disorders",
+      "anxiety disorders",
+      "personality disorders",
+      "bipolar disorders",
+      "trauma-related disorders",
+      "substance-related disorders",
+      "schizophrenia spectrum disorders",
+      "obsessive-compulsive related disorders",
+      "neurodevelopmental and learning disorders"
+    ]
+  },
+  "outputContract": {
+    "fields": [
+      "case_id",
+      "readiness",
+      "field_integrity",
+      "diagnosis_leakage_risk",
+      "ocr_or_encoding_artifacts",
+      "gold_standard_status",
+      "cleanup_actions",
+      "human_review_required"
+    ]
+  },
+  "qualityRules": [
+    "Never rewrite the gold standard diagnosis without explicit human confirmation.",
+    "Use BigQuery for repeated benchmark-readiness checks, family filtering, and case-number lookup before falling back to document retrieval.",
+    "Use maximum_bytes_billed and avoid SELECT * in agentic BigQuery calls.",
+    "Flag suggested readings, bibliographic tails, replacement characters, broken bullets, duplicated headings, and diagnosis text inside the vignette.",
+    "Mark a case as benchmark-ready only when Introduction, Discussion, and Diagnosis are clearly separated."
+  ]
+}

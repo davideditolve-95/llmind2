@@ -15,9 +15,9 @@ def de_stutter(text: str) -> str:
     cleaned_lines = []
     
     # Pattern per trovare caratteri duplicati (es. "AA", "bb", "11", "A A" o "A  A")
-    # Supporta fino a 2 spazi tra i caratteri duplicati
     stutter_regex = r'([^\s])\s{0,2}\1'
     stutter_pattern = re.compile(stutter_regex)
+    letter_stutter_pattern = re.compile(r'([a-zA-Z])\s{0,2}\1')
 
     for line in lines:
         if len(line.strip()) < 2:
@@ -35,8 +35,8 @@ def de_stutter(text: str) -> str:
         # SOGLIA AGGRESSIVA: 15% sulla singola riga
         stutter_density = (len(matches) * 2) / total_chars
         
-        if stutter_density > 0.15:
-            # Applichiamo la deduplicazione
+        # Applichiamo la deduplicazione SOLO se c'è almeno una lettera duplicata nella riga!
+        if stutter_density > 0.15 and letter_stutter_pattern.search(line):
             cleaned_line = re.sub(stutter_regex, r'\1', line)
             # Seconda passata per blocchi densi residui (es. 11..11)
             if stutter_density > 0.5:
@@ -65,5 +65,20 @@ def de_stutter_case_number(num_str: str) -> str:
     """Specializzato per i numeri di caso (es. '11..33' -> '1.3')"""
     if not num_str:
         return num_str
-    # Rimuove doppie cifre e doppi punti
+    
+    # Se contiene punti di stuttering (es. '..'), puliamo i punti e deduplichiamo
+    if '..' in num_str:
+        return re.sub(r'(.)\1', r'\1', num_str)
+        
+    # Se la stringa è semplicemente '11', '22', '33' ecc., o '100'
+    # non deve essere de-stutterata a singola cifra.
+    if len(num_str) == 2:
+        return num_str
+    if len(num_str) == 3:
+        return num_str
+    if len(num_str) == 4:
+        if num_str[0] == num_str[1] and num_str[2] == num_str[3]:
+            return num_str[0] + num_str[2] # Es: '1111' -> '11'
+        return num_str
+        
     return re.sub(r'(.)\1', r'\1', num_str)

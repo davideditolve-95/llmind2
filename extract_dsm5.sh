@@ -44,7 +44,7 @@ fi
 # Verifica che il container backend sia attivo
 if ! docker compose ps --services --filter status=running 2>/dev/null | grep -q "backend"; then
   echo "⚠️  Il container backend non è attivo. Avvio dei servizi..."
-  docker compose up -d db backend
+  docker compose up -d backend
   echo "   Attendo che il backend sia pronto..."
   sleep 5
 fi

@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -15,6 +17,7 @@
     "clsx": "^2.1.1",
     "daisyui": "^5.5.19",
     "next": "latest",
+    "next-auth": "^4.24.14",
     "react": "latest",
     "react-dom": "latest",
     "react-markdown": "latest",
@@ -23,6 +26,10 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
@@ -31,8 +38,11 @@
     "autoprefixer": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
     "postcss": "latest",
     "tailwindcss": "latest",
+    "ts-node": "^10.9.2",
     "typescript": "latest"
   }
 }

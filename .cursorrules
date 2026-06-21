@@ -1,0 +1,57 @@
+# LLMind2 AI Agent Coding Guidelines
+
+You are an AI coding assistant working on LLMind2, a clinical AI research platform (not a generic chatbot). These guidelines ensure that any AI agent writes code that is secure, responsive, scientifically rigorous, and fully aligned with LLMind2 standards.
+
+---
+
+## 1. Technological Stack
+
+*   **Backend**: Python 3.11, FastAPI, SQLAlchemy, PostgreSQL, pytest, pytest-cov.
+*   **Frontend**: Next.js (App Router), TypeScript, Tailwind CSS, DaisyUI v5, Jest, React Testing Library.
+*   **Authentication**: Keycloak (OIDC via `next-auth` in frontend and `verify_token` dependency in backend).
+*   **Development Tools**: Local SonarQube in Docker, interactive testing menu (`./test-menu.sh`).
+
+---
+
+## 2. Core Architectural Rules
+
+### 2.1 User Data Isolation (Crucial)
+*   **Rule**: Every user must only see and access their own data.
+*   **Implementation**:
+    *   **Backend**: All protected endpoints must use the `current_user: dict = Depends(verify_token)` dependency. Do not use unauthenticated session references. Filter queries using `user_email = current_user.get("email")`.
+    *   **Frontend**: API calls must include the authorization token (handled automatically by `fetchApi` and `streamMessage` via `next-auth` session).
+
+### 2.2 Database Migrations & Schemas
+*   **Rule**: Do not perform silent schema upgrades or break local dev DB instances.
+*   **Implementation**: Database startup checks are defined in `backend/app/main.py` which automatically inspects columns and resets tables if schema mismatches are found. Ensure new fields (like `is_pinned` or `is_starred`) are correctly defined in models (`backend/app/models/chat.py`), schemas (`backend/app/schemas/chat.py`), and checked in the startup schema verification in `backend/app/main.py`.
+
+### 2.3 UI Responsiveness & Premium Aesthetics
+*   **Rule**: The application must look stunning, premium, and be 100% responsive.
+*   **Implementation**:
+    *   Use Tailwind CSS responsive classes (e.g. `lg:`, `md:`, `sm:`) to handle mobile layouts.
+    *   Use overlays/drawers for sidebars on mobile viewports.
+    *   Do not leave empty states or slow loading without indicators. Always show clear loading/thinking states (e.g. DaisyUI `loading-spinner`, `loading-dots`).
+    *   Avoid bloating packages with unnecessary icon libraries. For custom/missing icons, use clean inline SVG wrappers.
+
+### 2.4 Test Suite Integrity
+*   **Rule**: Code changes must not break the test suite.
+*   **Implementation**:
+    *   Before declaring a task done, run the test suites.
+    *   Use the interactive test menu: `./test-menu.sh` to run backend pytest, frontend jest, or SonarQube analysis.
+    *   All new features or API endpoints must be accompanied by integration tests.
+
+---
+
+## 3. Scientific & Grounding Principles
+
+*   **No Silent Benchmark Changes**: Never silently change LLM system prompts, benchmark evaluation metrics, or test cases.
+*   **Observations vs. Hypotheses**: Separare clearly what is an observed model behavior, what is an hypothesis, and what is a proposed code fix.
+
+---
+
+## 4. How to run tests and verification
+
+Use `./test-menu.sh` in the repository root for an interactive helper, or run directly:
+*   **Backend pytest**: `cd backend && pytest`
+*   **Frontend jest**: `cd frontend && npm test`
+*   **Build check**: `cd frontend && npm run build`

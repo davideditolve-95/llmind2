@@ -1,0 +1,10 @@
+{
+  "displayName": "LLMind2 Clinical Research Agent",
+  "defaultLanguageCode": "en",
+  "supportedLanguageCodes": ["it"],
+  "timeZone": "Europe/Rome",
+  "description": "Conversational agent for LLMind2 clinical AI research, ICD-11 coding support, benchmark case review, and research protocol navigation.",
+  "enableStackdriverLogging": true,
+  "enableSpellCorrection": true
+}
+
