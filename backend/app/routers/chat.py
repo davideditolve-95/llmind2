@@ -103,10 +103,11 @@ async def update_session(
     title: Optional[str] = Query(default=None),
     is_pinned: Optional[bool] = Query(default=None),
     is_starred: Optional[bool] = Query(default=None),
+    patient_id: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     current_user: dict = Depends(verify_token),
 ):
-    """Aggiorna i parametri di una sessione di chat (titolo, pin, star)."""
+    """Aggiorna i parametri di una sessione di chat (titolo, pin, star, paziente)."""
     user_email = current_user.get("email")
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not session:
@@ -122,7 +123,22 @@ async def update_session(
     if is_starred is not None:
         session.is_starred = is_starred
         
+    if patient_id is not None:
+        if patient_id.lower() in ("none", "null", "clear", ""):
+            session.patient_id = None
+        else:
+            try:
+                from ..models.patient import Patient
+                pid = UUID(patient_id)
+                patient = db.query(Patient).filter(Patient.id == pid, Patient.owner_email == user_email).first()
+                if not patient:
+                    raise HTTPException(status_code=404, detail="Paziente non trovato o non autorizzato")
+                session.patient_id = pid
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Formato UUID per patient_id non valido")
+        
     db.commit()
+    db.refresh(session)
     return session
 
 
@@ -141,7 +157,13 @@ async def chat_stream(
         session = db.query(ChatSession).filter(ChatSession.id == request.session_id).first()
         if not session:
             try:
-                session = ChatSession(id=request.session_id, title="Nuova Conversazione", mode=request.mode, user_email=user_email)
+                session = ChatSession(
+                    id=request.session_id,
+                    title="Nuova Conversazione",
+                    mode=request.mode,
+                    user_email=user_email,
+                    patient_id=request.patient_id
+                )
                 db.add(session)
                 db.commit()
             except Exception as e:
@@ -153,6 +175,30 @@ async def chat_stream(
         if session.title == "Nuova Conversazione":
             session.title = request.message[:40] + ("..." if len(request.message) > 40 else "")
             db.commit()
+
+        # Verifica se la sessione ha o deve essere legata a un paziente per la contestualizzazione
+        active_patient_id = request.patient_id or session.patient_id
+        patient_context_prompt = ""
+        if active_patient_id:
+            from ..models.patient import Patient
+            patient = db.query(Patient).filter(Patient.id == active_patient_id, Patient.owner_email == user_email).first()
+            if patient:
+                # Aggiorna l'associazione del paziente se non già legata
+                if session.patient_id != patient.id:
+                    session.patient_id = patient.id
+                    db.commit()
+                
+                patient_context_prompt = f"""
+[CONTEXT CLINICO DEL PAZIENTE ATTIVO]
+Nome: {patient.name}
+Età: {patient.age if patient.age is not None else 'Non specificata'}
+Genere: {patient.gender if patient.gender else 'Non specificato'}
+Comportamenti/Sintomi: {patient.behaviors if patient.behaviors else 'Nessuno registrato'}
+Tratti Specifici/Personalità: {patient.specific_traits if patient.specific_traits else 'Nessuno registrato'}
+Anamnesi/Storia Clinica: {patient.clinical_history if patient.clinical_history else 'Nessuna registrata'}
+--------------------------------------------------
+Focalizza le tue risposte, le valutazioni dei criteri ICD-11 e il ragionamento clinico specificamente sul profilo di questo paziente.
+"""
 
         # Recupera cronologia
         history = (
@@ -184,6 +230,9 @@ async def chat_stream(
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
     system_prompt = ollama_service.get_system_prompt(request.mode)
+    if patient_context_prompt:
+        system_prompt = patient_context_prompt + "\n" + system_prompt
+        
     full_response = []
 
     async def event_generator():
@@ -264,6 +313,7 @@ async def get_session_history(
                 for msg in messages
             ],
             mode=session.mode,
+            patient_id=session.patient_id,
         )
     except HTTPException:
         raise

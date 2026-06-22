@@ -281,23 +281,24 @@ export const chatApi = {
     fetchApi<{ models: string[]; default_model: string }>('/api/chat/models'),
 
   listSessions: () =>
-    fetchApi<{ id: string; title: string; mode: string; is_pinned: boolean; is_starred: boolean; created_at: string; updated_at: string }[]>(
+    fetchApi<{ id: string; title: string; mode: string; is_pinned: boolean; is_starred: boolean; patient_id: string | null; created_at: string; updated_at: string }[]>(
       '/api/chat/sessions'
     ),
 
-  updateSession: (sessionId: string, params: { title?: string; is_pinned?: boolean; is_starred?: boolean }) => {
+  updateSession: (sessionId: string, params: { title?: string; is_pinned?: boolean; is_starred?: boolean; patient_id?: string | null }) => {
     const query = new URLSearchParams();
     if (params.title !== undefined) query.set('title', params.title);
     if (params.is_pinned !== undefined) query.set('is_pinned', String(params.is_pinned));
     if (params.is_starred !== undefined) query.set('is_starred', String(params.is_starred));
-    return fetchApi<{ id: string; title: string; is_pinned: boolean; is_starred: boolean }>(
+    if (params.patient_id !== undefined) query.set('patient_id', params.patient_id || 'none');
+    return fetchApi<{ id: string; title: string; is_pinned: boolean; is_starred: boolean; patient_id: string | null }>(
       `/api/chat/sessions/${sessionId}?${query}`,
       { method: 'PATCH' }
     );
   },
 
   getHistory: (sessionId: string) =>
-    fetchApi<{ id: string; title: string; messages: any[]; mode: string }>(
+    fetchApi<{ id: string; title: string; messages: any[]; mode: string; patient_id: string | null }>(
       `/api/chat/history/${sessionId}`
     ),
 
@@ -331,6 +332,7 @@ export const chatApi = {
     mode: 'icd11' | 'wellbeing';
     model_name: string;
     language: string;
+    patient_id?: string | null;
   }): Promise<ReadableStream<Uint8Array> | null> => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -381,6 +383,44 @@ export const casesApi = {
     fetchApi<{ total_cases: number; reviewed: number; pending_review: number }>(
       '/api/cases/stats/summary'
     ),
+};
+
+// ─── Patients ──────────────────────────────────────────────────────────────
+
+export interface Patient {
+  id: string;
+  owner_email: string;
+  name: string;
+  age: number | null;
+  gender: string | null;
+  behaviors: string | null;
+  specific_traits: string | null;
+  clinical_history: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const patientsApi = {
+  list: (search?: string) => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return fetchApi<Patient[]>(`/api/patients${query}`);
+  },
+  get: (id: string) => fetchApi<Patient>(`/api/patients/${id}`),
+  create: (data: Omit<Patient, 'id' | 'owner_email' | 'created_at' | 'updated_at'>) =>
+    fetchApi<Patient>('/api/patients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Omit<Patient, 'id' | 'owner_email' | 'created_at' | 'updated_at'>>) =>
+    fetchApi<Patient>(`/api/patients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) => fetchApi<{ deleted: boolean; patient_id: string }>(`/api/patients/${id}`, { method: 'DELETE' }),
+  convertFromCase: (caseId: string) =>
+    fetchApi<Patient>(`/api/patients/convert-from-case/${caseId}`, {
+      method: 'POST',
+    }),
 };
 
 // ─── Benchmark ─────────────────────────────────────────────────────────────

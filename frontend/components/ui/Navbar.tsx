@@ -15,6 +15,7 @@ import {
   CommandLineIcon,
   HomeIcon,
   Squares2X2Icon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import LogModal from './LogModal';
@@ -28,6 +29,7 @@ const nav = [
     items: [
       { href: '/chat', label: 'Local Chat', icon: ChatBubbleLeftRightIcon },
       { href: '/gcp-agents', label: 'GCP Agents', icon: CloudIcon },
+      { href: '/patients', label: 'Patients', icon: UserIcon },
     ],
   },
   {

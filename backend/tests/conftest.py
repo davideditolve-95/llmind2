@@ -33,7 +33,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
     # Import all models to ensure they are registered on Base.metadata
-    from app.models import icd11, benchmark, chat, datastore
+    from app.models import icd11, benchmark, chat, datastore, patient
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)

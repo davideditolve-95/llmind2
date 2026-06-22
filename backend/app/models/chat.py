@@ -36,14 +36,20 @@ class ChatSession(Base):
     is_pinned = Column(Boolean, default=False, nullable=False)
     is_starred = Column(Boolean, default=False, nullable=False)
     
+    # Riferimento al Paziente (opzionale per contestualizzare la chat)
+    patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="SET NULL"), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relazione con i messaggi
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan", order_by="ChatMessage.created_at")
+    
+    # Relazione con il paziente
+    patient = relationship("Patient", lazy="select")
 
     def __repr__(self):
-        return f"<ChatSession title={self.title!r} mode={self.mode!r}>"
+        return f"<ChatSession title={self.title!r} mode={self.mode!r} patient_id={self.patient_id}>"
 
 
 class ChatMessage(Base):

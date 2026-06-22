@@ -2,13 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
-import { benchmarkApi, casesApi, chatApi, type DSM5CaseSummary } from '@/lib/api';
+import { benchmarkApi, casesApi, chatApi, patientsApi, type DSM5CaseSummary, type Patient } from '@/lib/api';
 import { ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon, PlayIcon } from '@heroicons/react/24/outline';
 
 export default function CasesPage() {
   const { status } = useSession();
+  const router = useRouter();
   const [cases, setCases] = useState<DSM5CaseSummary[]>([]);
+  const [convertingMap, setConvertingMap] = useState<Record<string, boolean>>({});
+  const [successPatient, setSuccessPatient] = useState<Patient | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
@@ -53,6 +57,18 @@ export default function CasesPage() {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
+
+  const convertToPatient = async (caseId: string) => {
+    setConvertingMap((prev) => ({ ...prev, [caseId]: true }));
+    try {
+      const patient = await patientsApi.convertFromCase(caseId);
+      setSuccessPatient(patient);
+    } catch (err: any) {
+      alert(`Conversion failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setConvertingMap((prev) => ({ ...prev, [caseId]: false }));
+    }
+  };
 
   const runBenchmark = async () => {
     if (!selectedCases.length || !selectedModels.length) return;
@@ -123,7 +139,22 @@ export default function CasesPage() {
                       </td>
                       <td>{item.is_reviewed ? <span className="badge badge-success">Reviewed</span> : <span className="badge badge-warning">Pending</span>}</td>
                       <td>{item.run_count}</td>
-                      <td><Link className="btn btn-sm" href={`/benchmark/cases/${item.id}`}>Open</Link></td>
+                      <td>
+                        <div className="flex gap-2">
+                          <Link className="btn btn-sm" href={`/benchmark/cases/${item.id}`}>Open</Link>
+                          <button
+                            className="btn btn-sm btn-outline btn-accent"
+                            onClick={() => convertToPatient(item.id)}
+                            disabled={convertingMap[item.id]}
+                          >
+                            {convertingMap[item.id] ? (
+                              <span className="loading loading-spinner loading-xs" />
+                            ) : (
+                              'Convert to Patient'
+                            )}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -162,6 +193,29 @@ export default function CasesPage() {
           </div>
         </aside>
       </div>
+
+      {/* Success Modal */}
+      {successPatient && (
+        <div className="modal modal-open">
+          <div className="modal-box bg-base-100 border border-base-300">
+            <h3 className="font-bold text-lg text-success">Conversion Successful!</h3>
+            <p className="py-4 text-base-content/80">
+              Clinical case successfully parsed! Patient profile created for <strong>{successPatient.name}</strong> (Age: {successPatient.age || 'N/A'}, Gender: {successPatient.gender || 'N/A'}).
+            </p>
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={() => setSuccessPatient(null)}>Close</button>
+              <Link href="/patients" className="btn btn-outline">Go to Patients</Link>
+              <button className="btn btn-primary" onClick={() => {
+                const pid = successPatient.id;
+                setSuccessPatient(null);
+                router.push(`/chat?patientId=${pid}`);
+              }}>
+                Start Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ from .routers import legacy as router_legacy
 from .routers import datastore as router_datastore
 from .routers import system as router_system
 from .routers import gcp_agents as router_gcp_agents
+from .routers import patient as router_patient
 from .config import get_settings
 
 # Importa tutti i modelli per assicurarsi che vengano registrati prima di create_all
@@ -23,6 +24,7 @@ from .models import icd11 as icd11_model  # noqa: F401
 from .models import benchmark as benchmark_model  # noqa: F401
 from .models import chat as chat_model  # noqa: F401
 from .models import datastore as datastore_model  # noqa: F401
+from .models import patient as patient_model  # noqa: F401
 
 settings = get_settings()
 
@@ -127,6 +129,19 @@ async def startup_event():
     try:
         inspector = inspect(engine)
         tables = inspector.get_table_names()
+        if "chat_sessions" in tables:
+            cs_columns = [c['name'] for c in inspector.get_columns("chat_sessions")]
+            if "patient_id" not in cs_columns:
+                logger.info("Aggiornamento schema chat_sessions: aggiungo patient_id")
+                with engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN patient_id UUID REFERENCES patients(id) ON DELETE SET NULL"))
+                    conn.commit()
+    except Exception as e:
+        logger.error(f"Errore aggiunta colonna patient_id a chat_sessions: {e}", exc_info=True)
+
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
         if "benchmark_runs" in tables:
             benchmark_columns = [c["name"] for c in inspector.get_columns("benchmark_runs")]
             benchmark_additions = {
@@ -166,6 +181,7 @@ app.include_router(router_legacy.router, dependencies=[Depends(verify_token)])
 app.include_router(router_datastore.router, dependencies=[Depends(verify_token)])
 app.include_router(router_system.router, dependencies=[Depends(verify_token)])
 app.include_router(router_gcp_agents.router, dependencies=[Depends(verify_token)])
+app.include_router(router_patient.router, dependencies=[Depends(verify_token)])
 
 
 # ─── Endpoint di utilità ───────────────────────────────────────────────────

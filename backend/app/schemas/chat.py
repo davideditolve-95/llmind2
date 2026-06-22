@@ -19,6 +19,8 @@ class ChatMessageRequest(BaseModel):
     model_name: str = "gemma4"
     # Lingua della risposta desiderata
     language: str = Field(default="en", pattern="^(en|it)$")
+    # Riferimento al Paziente (opzionale per contestualizzare)
+    patient_id: Optional[UUID] = None
 
 
 class ChatMessageResponse(BaseModel):
@@ -45,6 +47,7 @@ class ChatSessionResponse(BaseModel):
     user_email: Optional[str] = None
     is_pinned: bool = False
     is_starred: bool = False
+    patient_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
 
@@ -58,6 +61,7 @@ class ChatSessionHistory(BaseModel):
     title: str
     messages: List[ChatMessageResponse]
     mode: str
+    patient_id: Optional[UUID] = None
 
 
 class AvailableModelsResponse(BaseModel):

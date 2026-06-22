@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
-import { chatApi } from '@/lib/api';
+import { chatApi, patientsApi, type Patient } from '@/lib/api';
 import MarkdownContent from '@/components/ui/MarkdownContent';
 import {
   ArrowPathIcon,
@@ -31,7 +31,7 @@ export default function ChatPage() {
   const [models, setModels] = useState<string[]>(['gemma4']);
   const [selectedModel, setSelectedModel] = useState('gemma4');
   const [language, setLanguage] = useState('en');
-  const [sessions, setSessions] = useState<{ id: string; title: string; mode: string; is_pinned: boolean; is_starred: boolean; updated_at: string }[]>([]);
+  const [sessions, setSessions] = useState<{ id: string; title: string; mode: string; is_pinned: boolean; is_starred: boolean; patient_id: string | null; updated_at: string }[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState(uuidv4());
   const [currentTitle, setCurrentTitle] = useState('New conversation');
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -39,6 +39,11 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Patient contextualization states
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [activePatientId, setActivePatientId] = useState<string | null>(null);
+  const [isPristineParam, setIsPristineParam] = useState(true);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -51,6 +56,7 @@ export default function ChatPage() {
       setModels(res.models);
       setSelectedModel(res.default_model || res.models[0] || 'gemma4');
     }).catch(() => {});
+    patientsApi.list().then(setPatients).catch(() => {});
     loadSessions();
   }, [loadSessions]);
 
@@ -58,10 +64,38 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle URL query parameter ?patientId=... to auto-initiate contextualized chat
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const patientId = urlParams.get('patientId');
+    if (patientId && isPristineParam) {
+      setIsPristineParam(false);
+      const newId = uuidv4();
+      setCurrentSessionId(newId);
+      setMessages([]);
+      setActivePatientId(patientId);
+
+      patientsApi.get(patientId).then((p) => {
+        setCurrentTitle(`Consulto: ${p.name}`);
+        chatApi.updateSession(newId, { patient_id: patientId }).then(() => {
+          loadSessions();
+        });
+      }).catch(() => {
+        setCurrentTitle('Consulto Paziente');
+      });
+
+      // Clear search query param without reload
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [isPristineParam, loadSessions]);
+
   const startNew = () => {
     setCurrentSessionId(uuidv4());
     setMessages([]);
     setCurrentTitle('New conversation');
+    setActivePatientId(null);
     setIsSidebarOpen(false);
   };
 
@@ -71,7 +105,19 @@ export default function ChatPage() {
     setCurrentTitle(history.title);
     setMode(history.mode as Mode);
     setMessages(history.messages.map((m) => ({ id: m.id, role: m.role, content: m.content })));
+    setActivePatientId(history.patient_id);
     setIsSidebarOpen(false);
+  };
+
+  const handlePatientChange = async (patientId: string) => {
+    const cleanId = patientId === 'none' ? null : patientId;
+    setActivePatientId(cleanId);
+    try {
+      await chatApi.updateSession(currentSessionId, { patient_id: cleanId });
+      loadSessions();
+    } catch (err) {
+      console.error('Failed to associate patient with session:', err);
+    }
   };
 
   const sendMessage = useCallback(async () => {
@@ -89,6 +135,7 @@ export default function ChatPage() {
         mode,
         model_name: selectedModel,
         language,
+        patient_id: activePatientId,
       });
       if (!stream) throw new Error('Stream unavailable');
       const reader = stream.getReader();
@@ -117,7 +164,7 @@ export default function ChatPage() {
       setIsStreaming(false);
       loadSessions();
     }
-  }, [currentSessionId, input, isStreaming, language, loadSessions, mode, selectedModel]);
+  }, [currentSessionId, input, isStreaming, language, loadSessions, mode, selectedModel, activePatientId]);
 
   const renameSession = async (id: string) => {
     if (!newTitle.trim()) return;
@@ -353,6 +400,19 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <select
+                className="select select-bordered select-sm max-w-xs font-semibold"
+                value={activePatientId || 'none'}
+                onChange={(e) => handlePatientChange(e.target.value)}
+                title="Select Patient Context"
+              >
+                <option value="none">No Patient Context</option>
+                {patients.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.age !== null ? `(${p.age})` : ''}
+                  </option>
+                ))}
+              </select>
               <div className="join">
                 <button className={clsx('btn btn-sm join-item', mode === 'icd11' && 'btn-primary')} onClick={() => setMode('icd11')}>ICD-11</button>
                 <button className={clsx('btn btn-sm join-item', mode === 'wellbeing' && 'btn-primary')} onClick={() => setMode('wellbeing')}>Differential</button>
@@ -408,6 +468,18 @@ export default function ChatPage() {
         </div>
 
         <div className="border-t border-base-300 bg-base-100 p-4">
+          {activePatientId && (
+            <div className="mx-auto max-w-4xl px-4 py-1.5 mb-2.5 rounded-lg bg-accent/15 text-accent-content text-xs font-semibold flex items-center justify-between border border-accent/25 shadow-sm">
+              <span className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                </span>
+                Active Patient Context: <strong className="underline">{patients.find(p => p.id === activePatientId)?.name}</strong>
+              </span>
+              <button className="btn btn-ghost btn-xs text-xs px-1 h-auto min-h-0 text-accent-content/75 hover:text-accent-content" onClick={() => handlePatientChange('none')}>Clear Context</button>
+            </div>
+          )}
           <div className="mx-auto flex max-w-4xl gap-2">
             <textarea
               className="textarea textarea-bordered min-h-16 flex-1 resize-none"
