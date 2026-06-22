@@ -89,6 +89,11 @@ export interface BenchmarkRun {
   system_prompt_used: string | null;
   llm_response: string | null;
   similarity_score: number | null;
+  label_accuracy: number | null;
+  precision_score: number | null;
+  recall_score: number | null;
+  f1_score: number | null;
+  no_diagnosis: boolean;
   latency_ms: number | null;
   include_discussion: boolean;
   status: string;
@@ -112,6 +117,12 @@ export interface ModelKPI {
   model_name: string;
   total_runs: number;
   avg_similarity: number | null;
+  avg_label_accuracy: number | null;
+  avg_precision: number | null;
+  avg_recall: number | null;
+  avg_f1: number | null;
+  no_diagnosis_count: number;
+  no_diagnosis_rate: number | null;
   avg_latency_ms: number | null;
   avg_human_rating: number | null;
   rated_runs: number;

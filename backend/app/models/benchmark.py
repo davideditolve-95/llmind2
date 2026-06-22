@@ -90,6 +90,14 @@ class BenchmarkRun(Base):
     # Similarità coseno tra embedding della risposta e del Gold Standard (0–1)
     similarity_score = Column(Float, nullable=True)
 
+    # Metriche diagnostiche automatiche calcolate rispetto al gold standard.
+    # Sono euristiche riproducibili per il benchmark, non giudizi clinici.
+    label_accuracy = Column(Float, nullable=True)
+    precision_score = Column(Float, nullable=True)
+    recall_score = Column(Float, nullable=True)
+    f1_score = Column(Float, nullable=True)
+    no_diagnosis = Column(Boolean, default=False, nullable=False)
+
     # Punteggio LLM-as-judge (opzionale, da un secondo modello)
     llm_judge_score = Column(Float, nullable=True)
 

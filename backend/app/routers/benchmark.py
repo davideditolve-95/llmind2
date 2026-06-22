@@ -6,6 +6,7 @@ Gestisce l'esecuzione batch di inferenze LLM e la raccolta delle metriche.
 import asyncio
 import logging
 import json
+import re
 from typing import Mapping
 from uuid import UUID
 from typing import Optional
@@ -31,6 +32,119 @@ router = APIRouter(prefix="/api/benchmark", tags=["Benchmark"])
 # Flag globale per la cancellazione dei benchmark in background
 # In un sistema multi-utente reale andrebbe gestito con Redis o batch_id
 _CANCEL_ALL = False
+
+_METRIC_STOPWORDS = {
+    "a", "about", "also", "and", "are", "as", "at", "be", "by", "case", "clinical",
+    "code", "diagnosis", "diagnostic", "disorder", "for", "from", "has", "have",
+    "in", "is", "it", "of", "on", "or", "patient", "the", "this", "to", "with",
+    "un", "una", "uno", "il", "lo", "la", "i", "gli", "le", "di", "del", "della",
+    "dei", "delle", "e", "o", "con", "per", "nel", "nella", "diagnosi", "disturbo",
+}
+
+_NO_DIAGNOSIS_PATTERNS = (
+    "no diagnosis",
+    "cannot determine",
+    "insufficient information",
+    "not enough information",
+    "unable to diagnose",
+    "nessuna diagnosi",
+    "non posso determinare",
+    "informazioni insufficienti",
+)
+
+
+def _normalize_metric_text(value: Optional[str]) -> str:
+    """Normalizza testo clinico per confronti lessicali riproducibili."""
+    if not value:
+        return ""
+    value = value.lower()
+    value = re.sub(r"[^a-z0-9àèéìòùüäöçñ\s-]+", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def _metric_tokens(value: Optional[str]) -> set[str]:
+    normalized = _normalize_metric_text(value)
+    raw_tokens = re.findall(r"[a-z0-9àèéìòùüäöçñ-]{3,}", normalized)
+    return {token for token in raw_tokens if token not in _METRIC_STOPWORDS}
+
+
+def compute_benchmark_metrics(response: Optional[str], gold_standard: Optional[str]) -> dict[str, Optional[float] | bool]:
+    """
+    Calcola metriche automatiche deterministiche per il benchmark.
+
+    Le metriche sono volutamente semplici e auditabili: label_accuracy misura
+    la corrispondenza complessiva con la diagnosi attesa, mentre precision/recall/F1
+    usano overlap lessicale normalizzato. La valutazione esperta resta necessaria.
+    """
+    normalized_response = _normalize_metric_text(response)
+    normalized_gold = _normalize_metric_text(gold_standard)
+    response_tokens = _metric_tokens(response)
+    gold_tokens = _metric_tokens(gold_standard)
+
+    no_diagnosis = (
+        not normalized_response
+        or any(pattern in normalized_response for pattern in _NO_DIAGNOSIS_PATTERNS)
+    )
+
+    if not normalized_gold or not gold_tokens:
+        return {
+            "label_accuracy": None,
+            "precision_score": None,
+            "recall_score": None,
+            "f1_score": None,
+            "no_diagnosis": no_diagnosis,
+        }
+
+    overlap = response_tokens.intersection(gold_tokens)
+    precision = len(overlap) / len(response_tokens) if response_tokens else 0.0
+    recall = len(overlap) / len(gold_tokens) if gold_tokens else 0.0
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+
+    label_match = normalized_gold in normalized_response
+    token_match = recall >= 0.65 and len(overlap) >= min(3, len(gold_tokens))
+    label_accuracy = 1.0 if label_match or token_match else 0.0
+
+    return {
+        "label_accuracy": label_accuracy,
+        "precision_score": precision,
+        "recall_score": recall,
+        "f1_score": f1,
+        "no_diagnosis": no_diagnosis and not label_accuracy,
+    }
+
+
+def _average_metric(runs: list[BenchmarkRun], attr: str) -> Optional[float]:
+    values = [getattr(run, attr) for run in runs if getattr(run, attr) is not None]
+    return sum(values) / len(values) if values else None
+
+
+def _build_model_kpi(model: str, runs: list[BenchmarkRun]) -> ModelKPI:
+    all_evals = []
+    rated_runs_count = 0
+    for run in runs:
+        if run.evaluations:
+            all_evals.extend([evaluation.rating for evaluation in run.evaluations])
+            rated_runs_count += 1
+
+    avg_rating = sum(all_evals) / len(all_evals) if all_evals else None
+    no_diagnosis_count = sum(1 for run in runs if run.no_diagnosis)
+    no_diagnosis_rate = no_diagnosis_count / len(runs) if runs else None
+
+    return ModelKPI(
+        model_name=model,
+        total_runs=len(runs),
+        avg_similarity=_average_metric(runs, "similarity_score"),
+        avg_label_accuracy=_average_metric(runs, "label_accuracy"),
+        avg_precision=_average_metric(runs, "precision_score"),
+        avg_recall=_average_metric(runs, "recall_score"),
+        avg_f1=_average_metric(runs, "f1_score"),
+        no_diagnosis_count=no_diagnosis_count,
+        no_diagnosis_rate=no_diagnosis_rate,
+        avg_latency_ms=_average_metric(runs, "latency_ms"),
+        avg_human_rating=avg_rating,
+        rated_runs=rated_runs_count,
+    )
 
 
 async def execute_single_run(
@@ -119,6 +233,10 @@ async def execute_single_run(
 
     # Calcola la similarità semantica con il Gold Standard
     similarity = None
+    diagnostic_metrics = compute_benchmark_metrics(
+        result.get("content", ""),
+        case.gold_standard_diagnosis,
+    )
     if result["success"] and result["content"] and case.gold_standard_diagnosis:
         try:
             similarity = embedding_service.compute_cosine_similarity(
@@ -132,6 +250,11 @@ async def execute_single_run(
     run.llm_response = result.get("content", "")
     run.latency_ms = result.get("latency_ms")
     run.similarity_score = similarity
+    run.label_accuracy = diagnostic_metrics["label_accuracy"]
+    run.precision_score = diagnostic_metrics["precision_score"]
+    run.recall_score = diagnostic_metrics["recall_score"]
+    run.f1_score = diagnostic_metrics["f1_score"]
+    run.no_diagnosis = bool(diagnostic_metrics["no_diagnosis"])
     run.status = "completed" if result["success"] else "failed"
     run.error_message = result.get("error") if not result["success"] else None
 
@@ -310,6 +433,11 @@ async def get_benchmark_history(
             "system_prompt_used": run.system_prompt_used,
             "llm_response": run.llm_response,
             "similarity_score": run.similarity_score,
+            "label_accuracy": run.label_accuracy,
+            "precision_score": run.precision_score,
+            "recall_score": run.recall_score,
+            "f1_score": run.f1_score,
+            "no_diagnosis": run.no_diagnosis,
             "llm_judge_score": run.llm_judge_score,
             "latency_ms": run.latency_ms,
             "evaluations": [
@@ -413,37 +541,7 @@ async def get_benchmark_kpis(db: Session = Depends(get_db)):
             BenchmarkRun.model_name == model,
             BenchmarkRun.status == "completed",
         ).all()
-        
-        # New evaluation logic: calculate average across all associated evaluations
-        all_evals = []
-        rated_runs_count = 0
-        for r in runs:
-            if r.evaluations:
-                all_evals.extend([e.rating for e in r.evaluations])
-                rated_runs_count += 1
-
-        avg_sim = None
-        similarities = [r.similarity_score for r in runs if r.similarity_score is not None]
-        if similarities:
-            avg_sim = sum(similarities) / len(similarities)
-
-        avg_lat = None
-        latencies = [r.latency_ms for r in runs if r.latency_ms is not None]
-        if latencies:
-            avg_lat = sum(latencies) / len(latencies)
-
-        avg_rating = None
-        if all_evals:
-            avg_rating = sum(all_evals) / len(all_evals)
-
-        model_kpis.append(ModelKPI(
-            model_name=model,
-            total_runs=len(runs),
-            avg_similarity=avg_sim,
-            avg_latency_ms=avg_lat,
-            avg_human_rating=avg_rating,
-            rated_runs=rated_runs_count,
-        ))
+        model_kpis.append(_build_model_kpi(model, runs))
 
     # Serie temporale similarità (ultimi 100 run per modello)
     recent_runs = (
@@ -458,6 +556,8 @@ async def get_benchmark_kpis(db: Session = Depends(get_db)):
             "date": run.created_at.strftime("%Y-%m-%d %H:%M"),
             "model": run.model_name,
             "similarity": round(run.similarity_score, 3),
+            "f1": round(run.f1_score, 3) if run.f1_score is not None else None,
+            "accuracy": round(run.label_accuracy, 3) if run.label_accuracy is not None else None,
         }
         for run in reversed(recent_runs)
     ]
@@ -504,33 +604,7 @@ async def get_batch_kpis(batch_id: UUID, db: Session = Depends(get_db)):
     model_kpis = []
     for model in model_names:
         m_runs = [r for r in runs if r.model_name == model]
-        
-        all_evals = []
-        rated_runs_count = 0
-        for r in m_runs:
-            if r.evaluations:
-                all_evals.extend([e.rating for e in r.evaluations])
-                rated_runs_count += 1
-
-        avg_sim = None
-        sims = [r.similarity_score for r in m_runs if r.similarity_score is not None]
-        if sims: avg_sim = sum(sims) / len(sims)
-
-        avg_lat = None
-        lats = [r.latency_ms for r in m_runs if r.latency_ms is not None]
-        if lats: avg_lat = sum(lats) / len(lats)
-
-        avg_rating = None
-        if all_evals: avg_rating = sum(all_evals) / len(all_evals)
-
-        model_kpis.append(ModelKPI(
-            model_name=model,
-            total_runs=len(m_runs),
-            avg_similarity=avg_sim,
-            avg_latency_ms=avg_lat,
-            avg_human_rating=avg_rating,
-            rated_runs=rated_runs_count,
-        ))
+        model_kpis.append(_build_model_kpi(model, m_runs))
 
     # Serie temporale per questo batch (ordinata per creazione)
     similarity_over_time = [
@@ -538,6 +612,8 @@ async def get_batch_kpis(batch_id: UUID, db: Session = Depends(get_db)):
             "date": r.created_at.strftime("%H:%M:%S"),
             "model": r.model_name,
             "similarity": round(r.similarity_score, 3) if r.similarity_score else 0,
+            "f1": round(r.f1_score, 3) if r.f1_score is not None else None,
+            "accuracy": round(r.label_accuracy, 3) if r.label_accuracy is not None else None,
         }
         for r in sorted(runs, key=lambda x: x.created_at)
     ]
@@ -595,6 +671,11 @@ async def export_benchmark_data(
                 },
                 "status": run.status,
                 "similarity": run.similarity_score,
+                "label_accuracy": run.label_accuracy,
+                "precision": run.precision_score,
+                "recall": run.recall_score,
+                "f1": run.f1_score,
+                "no_diagnosis": run.no_diagnosis,
                 "latency_ms": run.latency_ms,
                 "llm_response": run.llm_response,
                 "evaluations": [
@@ -631,6 +712,9 @@ async def export_benchmark_data(
                 output.write(f"  > MODEL: {run.model_name} ({run.status.upper()})\n")
                 if run.status == "completed":
                     output.write(f"    SIMILARITY: {round((run.similarity_score or 0)*100, 1)}%\n")
+                    output.write(f"    LABEL ACCURACY: {round((run.label_accuracy or 0)*100, 1)}%\n")
+                    output.write(f"    PRECISION / RECALL / F1: {round((run.precision_score or 0)*100, 1)}% / {round((run.recall_score or 0)*100, 1)}% / {round((run.f1_score or 0)*100, 1)}%\n")
+                    output.write(f"    NO DIAGNOSIS: {'yes' if run.no_diagnosis else 'no'}\n")
                     output.write(f"    LATENCY: {run.latency_ms}ms\n")
                     evals_str = ", ".join([f"{e.evaluator_name}: {e.rating}/5" for e in run.evaluations])
                     output.write(f"    EVALUATIONS: {evals_str or 'None'}\n")
@@ -661,12 +745,34 @@ async def export_benchmark_data(
     
     headers = ["Case ID", "Case Number", "Case Title", "Original Anamnesis", "Discussion", "Gold Standard Diagnosis"]
     for model in all_models:
-        headers.extend([f"[{model}] LLM Output", f"[{model}] Similarity", f"[{model}] Latency", f"[{model}] Status"])
+        headers.extend([
+            f"[{model}] LLM Output",
+            f"[{model}] Similarity",
+            f"[{model}] Label Accuracy",
+            f"[{model}] Precision",
+            f"[{model}] Recall",
+            f"[{model}] F1",
+            f"[{model}] No Diagnosis",
+            f"[{model}] Latency",
+            f"[{model}] Status",
+        ])
         for e in all_evaluator_names: headers.append(f"[{model}] {e}")
             
     writer.writerow(headers)
     
-    stats_map = {m: {"s_sum": 0, "s_count": 0, "l_sum": 0, "l_count": 0, "evals": {e: {"sum": 0, "count": 0} for e in all_evaluator_names}} for m in all_models}
+    stats_map = {
+        m: {
+            "s_sum": 0, "s_count": 0,
+            "acc_sum": 0, "acc_count": 0,
+            "precision_sum": 0, "precision_count": 0,
+            "recall_sum": 0, "recall_count": 0,
+            "f1_sum": 0, "f1_count": 0,
+            "no_diagnosis_count": 0,
+            "l_sum": 0, "l_count": 0,
+            "evals": {e: {"sum": 0, "count": 0} for e in all_evaluator_names}
+        }
+        for m in all_models
+    }
     
     for case_id, model_runs in runs_by_case.items():
         case = db.query(DSM5Case).filter(DSM5Case.id == case_id).first()
@@ -676,11 +782,33 @@ async def export_benchmark_data(
         for model in all_models:
             run = model_runs.get(model)
             if run:
-                row.extend([run.llm_response or "", run.similarity_score or 0, run.latency_ms or 0, run.status])
+                row.extend([
+                    run.llm_response or "",
+                    run.similarity_score or 0,
+                    run.label_accuracy or 0,
+                    run.precision_score or 0,
+                    run.recall_score or 0,
+                    run.f1_score or 0,
+                    "yes" if run.no_diagnosis else "no",
+                    run.latency_ms or 0,
+                    run.status,
+                ])
                 if run.status == "completed":
                     if run.similarity_score is not None:
                         stats_map[model]["s_sum"] += run.similarity_score
                         stats_map[model]["s_count"] += 1
+                    for attr, stat_prefix in [
+                        ("label_accuracy", "acc"),
+                        ("precision_score", "precision"),
+                        ("recall_score", "recall"),
+                        ("f1_score", "f1"),
+                    ]:
+                        value = getattr(run, attr)
+                        if value is not None:
+                            stats_map[model][f"{stat_prefix}_sum"] += value
+                            stats_map[model][f"{stat_prefix}_count"] += 1
+                    if run.no_diagnosis:
+                        stats_map[model]["no_diagnosis_count"] += 1
                     if run.latency_ms is not None:
                         stats_map[model]["l_sum"] += run.latency_ms
                         stats_map[model]["l_count"] += 1
@@ -693,15 +821,20 @@ async def export_benchmark_data(
                         stats_map[model]["evals"][e]["sum"] += rating
                         stats_map[model]["evals"][e]["count"] += 1
             else:
-                row.extend(["", "", "", "N/A"])
+                row.extend(["", "", "", "", "", "", "", "", "N/A"])
                 for _ in all_evaluator_names: row.append("")
         writer.writerow(row)
         
     avg_row_data = ["AVERAGE", "", "", "", "", ""]
     for model in all_models:
         s_avg = (stats_map[model]["s_sum"] / stats_map[model]["s_count"]) if stats_map[model]["s_count"] > 0 else ""
+        acc_avg = (stats_map[model]["acc_sum"] / stats_map[model]["acc_count"]) if stats_map[model]["acc_count"] > 0 else ""
+        precision_avg = (stats_map[model]["precision_sum"] / stats_map[model]["precision_count"]) if stats_map[model]["precision_count"] > 0 else ""
+        recall_avg = (stats_map[model]["recall_sum"] / stats_map[model]["recall_count"]) if stats_map[model]["recall_count"] > 0 else ""
+        f1_avg = (stats_map[model]["f1_sum"] / stats_map[model]["f1_count"]) if stats_map[model]["f1_count"] > 0 else ""
+        no_diagnosis_count = stats_map[model]["no_diagnosis_count"]
         l_avg = (stats_map[model]["l_sum"] / stats_map[model]["l_count"]) if stats_map[model]["l_count"] > 0 else ""
-        avg_row_data.extend(["", s_avg, l_avg, ""])
+        avg_row_data.extend(["", s_avg, acc_avg, precision_avg, recall_avg, f1_avg, no_diagnosis_count, l_avg, ""])
         for e in all_evaluator_names:
             e_avg = (stats_map[model]["evals"][e]["sum"] / stats_map[model]["evals"][e]["count"]) if stats_map[model]["evals"][e]["count"] > 0 else ""
             avg_row_data.append(e_avg)

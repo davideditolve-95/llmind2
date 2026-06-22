@@ -12,9 +12,11 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{tikz}
+\usepackage{pgfplots}
 \usepackage{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
 \usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric,calc}
+\pgfplotsset{compat=1.18}
 
 \geometry{margin=2.6cm}
 \setlist{noitemsep,topsep=4pt}
@@ -166,6 +168,63 @@ La rappresentazione unificata dei chunk agentici puo contenere campi quali corpu
 \label{fig:data-pipeline-it}
 \end{figure}
 
+% BEGIN_DYNAMIC_ARTIFACT_SNAPSHOT_IT
+\subsection{Snapshot numerico degli artefatti}
+Per distinguere il contributo metodologico dai risultati sperimentali, questa sezione riporta uno snapshot statico degli artefatti presenti nella repository al momento della stesura. I valori non sono risultati clinici, ma numeriche di riproducibilita: descrivono la dimensione del corpus disponibile, dei casi di benchmark e degli artefatti agentici che il protocollo puo usare.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Artefatto} & \textbf{Numero}\\
+\midrule
+Categorie ICD-11 estratte & 720\\
+Casi DSM-5-TR strutturati & 104\\
+Chunk ICD-11 per datastore agentico & 523\\
+Chunk DSM-5-TR per datastore agentico & 853\\
+Chunk agentici totali & 1\,376\\
+Playbook conversazionali & 6\\
+Subagent definiti & 7\\
+PDF sorgente disponibili per datastore & 3\\
+\bottomrule
+\end{tabular}
+\caption{Snapshot quantitativo degli artefatti riproducibili. Le numeriche indicano la scala del corpus e dell'orchestrazione, non la performance diagnostica del sistema.}
+\label{tab:repo-snapshot-it}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  width=\linewidth,
+  height=6cm,
+  bar width=18pt,
+  ymin=0,
+  ylabel={Numero di elementi},
+  symbolic x coords={ICD-11,DSM-5,Chunk ICD,Chunk DSM,Chunk totali},
+  xtick=data,
+  x tick label style={rotate=25,anchor=east},
+  nodes near coords,
+  nodes near coords align={vertical},
+  enlarge x limits=0.14,
+  grid=major,
+  major grid style={draw=black!10},
+]
+\addplot[fill=llmblue!70, draw=llmblue] coordinates {
+  (ICD-11,720)
+  (DSM-5,104)
+  (Chunk ICD,523)
+  (Chunk DSM,853)
+  (Chunk totali,1376)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Distribuzione quantitativa degli artefatti di corpus. Il grafico rende evidente la separazione tra tassonomia ICD-11, casi benchmark DSM-5-TR e chunk documentali usati dagli agenti.}
+\label{fig:repo-snapshot-chart-it}
+\end{figure}
+% END_DYNAMIC_ARTIFACT_SNAPSHOT_IT
+
 \section{Disegno del sistema di ricerca}
 \subsection{Principi di progetto}
 \llmind\ segue cinque principi metodologici:
@@ -177,6 +236,35 @@ La rappresentazione unificata dei chunk agentici puo contenere campi quali corpu
   \item \textbf{Non-deployment clinico.} Il sistema e uno strumento di ricerca, formazione e valutazione, non un dispositivo medico.
   \item \textbf{Riproducibilita locale.} Le componenti principali devono poter essere eseguite, ispezionate e sostituite in un ambiente controllato senza dipendere da servizi proprietari.
 \end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.0cm and 1.1cm]
+  \node[agent] (frontend) {Frontend\\Next.js + DaisyUI};
+  \node[box, right=of frontend] (api) {Backend API\\FastAPI};
+  \node[data, above right=of api] (postgres) {PostgreSQL\\casi, run, metriche};
+  \node[data, below right=of api] (vector) {Vector store locale\\chunk ICD/CDDR/DSM};
+  \node[box, right=of postgres] (etl) {Pipeline dati\\ICD API + PDF};
+  \node[agent, right=of vector] (llm) {LLM locali\\Ollama / legacy RAG};
+  \node[evalbox, below=of api] (benchmark) {Benchmark engine\\prompt, run, export};
+  \node[evalbox, below=of vector] (metrics) {Metriche\\similarita, accuracy, P/R/F1};
+  \node[data, right=of llm] (optional) {Estensioni opzionali\\GCP agenti gestiti};
+
+  \draw[arrow] (frontend) -- (api);
+  \draw[arrow] (api) -- (postgres);
+  \draw[arrow] (api) -- (vector);
+  \draw[arrow] (etl) -- (postgres);
+  \draw[arrow] (etl) -- (vector);
+  \draw[arrow] (api) -- (llm);
+  \draw[arrow] (benchmark) -- (api);
+  \draw[arrow] (benchmark) -- (metrics);
+  \draw[arrow] (metrics) -- (postgres);
+  \draw[arrow] (llm) -- (optional);
+\end{tikzpicture}}
+\caption{Architettura implementativa del prototipo locale. Il nucleo riproducibile e composto da frontend, API, database relazionale, datastore vettoriale, pipeline di estrazione, LLM locali e motore di benchmark. Le integrazioni GCP sono estensioni opzionali di deployment e non dipendenze del protocollo scientifico.}
+\label{fig:system-architecture-it}
+\end{figure}
 
 \begin{figure}[htbp]
 \centering
@@ -319,7 +407,26 @@ La valutazione dovrebbe includere task distinti:
 \end{figure}
 
 \subsection{Metriche automatiche}
-Le metriche automatiche possono includere accuracy top-1, accuracy top-k, precision, recall e F1 quando e disponibile un gold standard. Per risposte testuali piu ricche, occorre affiancare metriche semantiche e rubriche manuali. La misurazione dei casi ``no diagnosis'' e importante perche distingue tra errore assertivo e astensione. Il tempo di risposta e il costo di retrieval vanno misurati come variabili secondarie, non come obiettivi primari.
+Nel prototipo sono implementate metriche automatiche calcolate al termine di ogni run di benchmark e salvate insieme alla risposta del modello. La similarita semantica confronta embedding della risposta e della diagnosi gold standard. La label accuracy e un indicatore binario che verifica corrispondenza testuale o overlap lessicale sufficiente con la diagnosi attesa. Precision, recall e F1 sono calcolate su token normalizzati della risposta e del gold standard. Il flag ``no diagnosis'' identifica risposte vuote o astensive, distinguendo errore assertivo e mancata formulazione diagnostica. Latenza e valutazione umana sono conservate come dimensioni complementari.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{p{0.22\linewidth}p{0.52\linewidth}p{0.18\linewidth}}
+\toprule
+\textbf{Metrica} & \textbf{Definizione operativa} & \textbf{Implementata}\\
+\midrule
+Similarita semantica & Coseno tra embedding della risposta e embedding del gold standard. & Si\\
+Label accuracy & Valore 1 se la diagnosi attesa appare nella risposta o se il richiamo lessicale supera la soglia; 0 altrimenti. & Si\\
+Precision & Quota di token diagnostici della risposta presenti nel gold standard. & Si\\
+Recall & Quota di token diagnostici del gold standard recuperati nella risposta. & Si\\
+F1 & Media armonica tra precision e recall. & Si\\
+No diagnosis & Flag per risposte vuote, astensive o insufficienti. & Si\\
+Top-k accuracy & Accuratezza su lista ordinata di candidati diagnostici. Richiede il salvataggio strutturato dei candidati. & Pianificata\\
+\bottomrule
+\end{tabular}
+\caption{Metriche automatiche del benchmark. Le misure lessicali sono euristiche riproducibili e devono essere interpretate insieme alla valutazione esperta, non come prova di validita clinica.}
+\label{tab:automatic-metrics-it}
+\end{table}
 
 \subsection{Valutazione esperta}
 La valutazione esperta dovrebbe usare una rubrica a piu dimensioni:

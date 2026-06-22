@@ -114,6 +114,11 @@ class BenchmarkRunResponse(BaseModel):
     system_prompt_used: Optional[str] = None
     llm_response: Optional[str] = None
     similarity_score: Optional[float] = None
+    label_accuracy: Optional[float] = None
+    precision_score: Optional[float] = None
+    recall_score: Optional[float] = None
+    f1_score: Optional[float] = None
+    no_diagnosis: bool = False
     llm_judge_score: Optional[float] = None
     latency_ms: Optional[int] = None
     include_discussion: bool
@@ -140,6 +145,12 @@ class ModelKPI(BaseModel):
     model_name: str
     total_runs: int
     avg_similarity: Optional[float] = None
+    avg_label_accuracy: Optional[float] = None
+    avg_precision: Optional[float] = None
+    avg_recall: Optional[float] = None
+    avg_f1: Optional[float] = None
+    no_diagnosis_count: int = 0
+    no_diagnosis_rate: Optional[float] = None
     avg_latency_ms: Optional[float] = None
     avg_human_rating: Optional[float] = None
     rated_runs: int = 0

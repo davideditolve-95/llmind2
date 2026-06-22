@@ -12,9 +12,11 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{tikz}
+\usepackage{pgfplots}
 \usepackage{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
 \usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric,calc}
+\pgfplotsset{compat=1.18}
 
 \geometry{margin=2.6cm}
 \setlist{noitemsep,topsep=4pt}
@@ -166,6 +168,63 @@ The unified agent chunk representation may include fields such as corpus, diagno
 \label{fig:data-pipeline-en}
 \end{figure}
 
+% BEGIN_DYNAMIC_ARTIFACT_SNAPSHOT_EN
+\subsection{Numerical artifact snapshot}
+To keep methodological contribution separate from experimental findings, this section reports a static snapshot of the artifacts available in the repository at the time of writing. These values are not clinical results. They are reproducibility counts: they describe the scale of the available corpus, benchmark cases, and agentic artifacts used by the protocol.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Artifact} & \textbf{Count}\\
+\midrule
+Extracted ICD-11 categories & 720\\
+Structured DSM-5-TR cases & 104\\
+ICD-11 chunks for agent datastore & 523\\
+DSM-5-TR chunks for agent datastore & 853\\
+Total agent chunks & 1\,376\\
+Conversational playbooks & 6\\
+Defined subagents & 7\\
+Source PDFs available for datastores & 3\\
+\bottomrule
+\end{tabular}
+\caption{Quantitative snapshot of reproducible artifacts. Counts indicate the scale of the corpus and orchestration artifacts, not diagnostic performance.}
+\label{tab:repo-snapshot-en}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  width=\linewidth,
+  height=6cm,
+  bar width=18pt,
+  ymin=0,
+  ylabel={Number of elements},
+  symbolic x coords={ICD-11,DSM-5,ICD chunks,DSM chunks,Total chunks},
+  xtick=data,
+  x tick label style={rotate=25,anchor=east},
+  nodes near coords,
+  nodes near coords align={vertical},
+  enlarge x limits=0.14,
+  grid=major,
+  major grid style={draw=black!10},
+]
+\addplot[fill=llmblue!70, draw=llmblue] coordinates {
+  (ICD-11,720)
+  (DSM-5,104)
+  (ICD chunks,523)
+  (DSM chunks,853)
+  (Total chunks,1376)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Quantitative distribution of corpus artifacts. The chart highlights the separation between ICD-11 taxonomy, DSM-5-TR benchmark cases, and document chunks used by agents.}
+\label{fig:repo-snapshot-chart-en}
+\end{figure}
+% END_DYNAMIC_ARTIFACT_SNAPSHOT_EN
+
 \section{Research system design}
 \subsection{Design principles}
 \llmind\ follows five methodological principles:
@@ -177,6 +236,35 @@ The unified agent chunk representation may include fields such as corpus, diagno
   \item \textbf{No clinical deployment claim.} The system is a research, education, and evaluation tool, not a medical device.
   \item \textbf{Local reproducibility.} Core components should be executable, inspectable, and replaceable in a controlled environment without dependence on proprietary services.
 \end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.0cm and 1.1cm]
+  \node[agent] (frontend) {Frontend\\Next.js + DaisyUI};
+  \node[box, right=of frontend] (api) {Backend API\\FastAPI};
+  \node[data, above right=of api] (postgres) {PostgreSQL\\cases, runs, metrics};
+  \node[data, below right=of api] (vector) {Local vector store\\ICD/CDDR/DSM chunks};
+  \node[box, right=of postgres] (etl) {Data pipeline\\ICD API + PDFs};
+  \node[agent, right=of vector] (llm) {Local LLMs\\Ollama / legacy RAG};
+  \node[evalbox, below=of api] (benchmark) {Benchmark engine\\prompts, runs, export};
+  \node[evalbox, below=of vector] (metrics) {Metrics\\similarity, accuracy, P/R/F1};
+  \node[data, right=of llm] (optional) {Optional extensions\\managed GCP agents};
+
+  \draw[arrow] (frontend) -- (api);
+  \draw[arrow] (api) -- (postgres);
+  \draw[arrow] (api) -- (vector);
+  \draw[arrow] (etl) -- (postgres);
+  \draw[arrow] (etl) -- (vector);
+  \draw[arrow] (api) -- (llm);
+  \draw[arrow] (benchmark) -- (api);
+  \draw[arrow] (benchmark) -- (metrics);
+  \draw[arrow] (metrics) -- (postgres);
+  \draw[arrow] (llm) -- (optional);
+\end{tikzpicture}}
+\caption{Implementation architecture of the local prototype. The reproducible core consists of the frontend, API, relational database, vector datastore, extraction pipeline, local LLMs, and benchmark engine. GCP integrations are optional deployment extensions rather than dependencies of the scientific protocol.}
+\label{fig:system-architecture-en}
+\end{figure}
 
 \begin{figure}[htbp]
 \centering
@@ -319,7 +407,26 @@ Evaluation should include distinct tasks:
 \end{figure}
 
 \subsection{Automatic metrics}
-Automatic metrics may include top-1 accuracy, top-k accuracy, precision, recall, and F1 when a gold standard is available. For richer textual responses, semantic measures and manual rubrics must be added. Measuring ``no diagnosis'' answers is important because it distinguishes assertive errors from abstention. Response time and retrieval cost should be measured as secondary variables rather than primary objectives.
+In the prototype, automatic metrics are computed at the end of each benchmark run and stored together with the model response. Semantic similarity compares embeddings of the response and the gold-standard diagnosis. Label accuracy is a binary indicator based on exact textual containment or sufficient lexical overlap with the expected diagnosis. Precision, recall, and F1 are computed on normalized tokens from the response and the gold standard. The ``no diagnosis'' flag identifies empty or abstentive answers, distinguishing assertive error from failure to formulate a diagnosis. Latency and human evaluation are stored as complementary dimensions.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{p{0.22\linewidth}p{0.52\linewidth}p{0.18\linewidth}}
+\toprule
+\textbf{Metric} & \textbf{Operational definition} & \textbf{Implemented}\\
+\midrule
+Semantic similarity & Cosine similarity between response embedding and gold-standard embedding. & Yes\\
+Label accuracy & 1 if the expected diagnosis appears in the response or lexical recall exceeds the threshold; 0 otherwise. & Yes\\
+Precision & Share of diagnostic response tokens present in the gold standard. & Yes\\
+Recall & Share of gold-standard diagnostic tokens recovered in the response. & Yes\\
+F1 & Harmonic mean of precision and recall. & Yes\\
+No diagnosis & Flag for empty, abstentive, or insufficient answers. & Yes\\
+Top-k accuracy & Accuracy over a ranked list of diagnostic candidates. Requires structured candidate storage. & Planned\\
+\bottomrule
+\end{tabular}
+\caption{Automatic benchmark metrics. Lexical measures are reproducible heuristics and must be interpreted together with expert evaluation rather than as evidence of clinical validity.}
+\label{tab:automatic-metrics-en}
+\end{table}
 
 \subsection{Expert evaluation}
 Expert evaluation should use a multidimensional rubric:

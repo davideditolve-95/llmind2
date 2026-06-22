@@ -31,43 +31,52 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.2}ICD-11-CDDR}{5}{subsection.5.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3}DSM-5-TR cases}{5}{subsection.5.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Static and reproducible corpus}{5}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Research system design}{5}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Design principles}{5}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Numerical artifact snapshot}{5}{subsection.5.5}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Reproducible corpus construction pipeline in LLMind2. ICD-11, ICD-11-CDDR, and DSM-5-TR sources are transformed into versioned artifacts that can be queried locally while separating taxonomy, descriptive clinical content, and benchmark cases.}}{6}{figure.1}\protected@file@percent }
 \newlabel{fig:data-pipeline-en}{{1}{6}{Reproducible corpus construction pipeline in \llmind . ICD-11, ICD-11-CDDR, and DSM-5-TR sources are transformed into versioned artifacts that can be queried locally while separating taxonomy, descriptive clinical content, and benchmark cases}{figure.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Quantitative snapshot of reproducible artifacts. Counts indicate the scale of the corpus and orchestration artifacts, not diagnostic performance.}}{6}{table.1}\protected@file@percent }
+\newlabel{tab:repo-snapshot-en}{{1}{6}{Quantitative snapshot of reproducible artifacts. Counts indicate the scale of the corpus and orchestration artifacts, not diagnostic performance}{table.1}{}}
 \gdef \LT@i {\LT@entry 
     {1}{115.39531pt}\LT@entry 
     {1}{151.3604pt}\LT@entry 
     {1}{173.83943pt}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Conceptual multi-agent architecture. Decomposition is not a multiplication of chatbots, but the separation of epistemic responsibilities: case intake, nosological coding, differential diagnosis, benchmark review, protocol navigation, and safety.}}{7}{figure.2}\protected@file@percent }
-\newlabel{fig:agent-architecture-en}{{2}{7}{Conceptual multi-agent architecture. Decomposition is not a multiplication of chatbots, but the separation of epistemic responsibilities: case intake, nosological coding, differential diagnosis, benchmark review, protocol navigation, and safety}{figure.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Quantitative distribution of corpus artifacts. The chart highlights the separation between ICD-11 taxonomy, DSM-5-TR benchmark cases, and document chunks used by agents.}}{7}{figure.2}\protected@file@percent }
+\newlabel{fig:repo-snapshot-chart-en}{{2}{7}{Quantitative distribution of corpus artifacts. The chart highlights the separation between ICD-11 taxonomy, DSM-5-TR benchmark cases, and document chunks used by agents}{figure.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Research system design}{7}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Design principles}{7}{subsection.6.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Planned agents}{7}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Experimental conditions}{7}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Experimental conditions}{8}{subsection.6.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}Reproducibility}{8}{section.7}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Reproducibility artifact chain. Every experimental result should be traceable to sources, datasets, retrieval settings, prompts, models, parameters, and evaluation procedures.}}{8}{figure.3}\protected@file@percent }
-\newlabel{fig:reproducibility-en}{{3}{8}{Reproducibility artifact chain. Every experimental result should be traceable to sources, datasets, retrieval settings, prompts, models, parameters, and evaluation procedures}{figure.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Data reproducibility}{8}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Retrieval and prompt reproducibility}{9}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Environment reproducibility}{9}{subsection.7.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Evaluation reproducibility}{9}{subsection.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Evaluation protocol}{9}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Experimental tasks}{9}{subsection.8.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Automatic metrics}{9}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Retrieval and prompt reproducibility}{8}{subsection.7.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Implementation architecture of the local prototype. The reproducible core consists of the frontend, API, relational database, vector datastore, extraction pipeline, local LLMs, and benchmark engine. GCP integrations are optional deployment extensions rather than dependencies of the scientific protocol.}}{9}{figure.3}\protected@file@percent }
+\newlabel{fig:system-architecture-en}{{3}{9}{Implementation architecture of the local prototype. The reproducible core consists of the frontend, API, relational database, vector datastore, extraction pipeline, local LLMs, and benchmark engine. GCP integrations are optional deployment extensions rather than dependencies of the scientific protocol}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Conceptual multi-agent architecture. Decomposition is not a multiplication of chatbots, but the separation of epistemic responsibilities: case intake, nosological coding, differential diagnosis, benchmark review, protocol navigation, and safety.}}{9}{figure.4}\protected@file@percent }
+\newlabel{fig:agent-architecture-en}{{4}{9}{Conceptual multi-agent architecture. Decomposition is not a multiplication of chatbots, but the separation of epistemic responsibilities: case intake, nosological coding, differential diagnosis, benchmark review, protocol navigation, and safety}{figure.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Reproducibility artifact chain. Every experimental result should be traceable to sources, datasets, retrieval settings, prompts, models, parameters, and evaluation procedures.}}{9}{figure.5}\protected@file@percent }
+\newlabel{fig:reproducibility-en}{{5}{9}{Reproducibility artifact chain. Every experimental result should be traceable to sources, datasets, retrieval settings, prompts, models, parameters, and evaluation procedures}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Environment reproducibility}{10}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Evaluation reproducibility}{10}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Evaluation protocol}{10}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Experimental tasks}{10}{subsection.8.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Evaluation workflow. Automatic metrics and expert evaluation are kept separate and then integrated in error analysis, avoiding reduction of diagnostic reasoning to accuracy alone.}}{10}{figure.6}\protected@file@percent }
+\newlabel{fig:evaluation-workflow-en}{{6}{10}{Evaluation workflow. Automatic metrics and expert evaluation are kept separate and then integrated in error analysis, avoiding reduction of diagnostic reasoning to accuracy alone}{figure.6}{}}
 \citation{barnhart2002ccc}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Evaluation workflow. Automatic metrics and expert evaluation are kept separate and then integrated in error analysis, avoiding reduction of diagnostic reasoning to accuracy alone.}}{10}{figure.4}\protected@file@percent }
-\newlabel{fig:evaluation-workflow-en}{{4}{10}{Evaluation workflow. Automatic metrics and expert evaluation are kept separate and then integrated in error analysis, avoiding reduction of diagnostic reasoning to accuracy alone}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Expert evaluation}{10}{subsection.8.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Error analysis}{10}{subsection.8.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Hypotheses}{10}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Ethics and governance}{11}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Expected results and analysis plan}{11}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}Threats to validity}{11}{section.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Internal validity}{11}{subsection.12.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}External validity}{12}{subsection.12.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Construct validity}{12}{subsection.12.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.4}Conclusion validity}{12}{subsection.12.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {13}Expected contributions}{12}{section.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {14}Conclusion}{12}{section.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Automatic metrics}{11}{subsection.8.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Automatic benchmark metrics. Lexical measures are reproducible heuristics and must be interpreted together with expert evaluation rather than as evidence of clinical validity.}}{11}{table.3}\protected@file@percent }
+\newlabel{tab:automatic-metrics-en}{{3}{11}{Automatic benchmark metrics. Lexical measures are reproducible heuristics and must be interpreted together with expert evaluation rather than as evidence of clinical validity}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Expert evaluation}{11}{subsection.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Error analysis}{11}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Hypotheses}{12}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Ethics and governance}{12}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Expected results and analysis plan}{12}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Threats to validity}{13}{section.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Internal validity}{13}{subsection.12.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}External validity}{13}{subsection.12.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Construct validity}{13}{subsection.12.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4}Conclusion validity}{13}{subsection.12.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {13}Expected contributions}{13}{section.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {14}Conclusion}{13}{section.14}\protected@file@percent }
 \bibstyle{plainnat}
 \bibdata{references}
 \bibcite{apa2022dsm5tr}{{1}{2022}{{American Psychiatric Association}}{{}}}
@@ -80,4 +89,4 @@
 \bibcite{singhal2023medpalm}{{8}{2023}{{Singhal et~al.}}{{Singhal, Azizi, Tu, Mahdavi, Wei, Chung, Scales, Tanwani, Cole-Lewis, Pfohl, Payne, Seneviratne, Gamble, Kelly, Scharli, Chowdhery, Mansfield, Demner-Fushman, Aguerrebere, Webster, Corrado, Matias, Chou, Gottweis, Tomasev, Liu, Rajkomar, Barral, Semturs, Karthikesalingam, and Natarajan}}}
 \bibcite{who2022icd11}{{9}{2022}{{World Health Organization}}{{}}}
 \bibcite{who2024cddr}{{10}{2024}{{World Health Organization}}{{}}}
-\gdef \@abspage@last{13}
+\gdef \@abspage@last{15}

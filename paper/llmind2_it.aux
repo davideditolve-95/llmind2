@@ -34,41 +34,50 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Corpus statico e riproducibile}{5}{subsection.5.4}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Pipeline riproducibile di costruzione del corpus in LLMind2. Le fonti ICD-11, ICD-11-CDDR e DSM-5-TR vengono trasformate in artefatti versionati e interrogabili localmente, separando tassonomia, contenuto descrittivo e casi benchmark.}}{6}{figure.1}\protected@file@percent }
 \newlabel{fig:data-pipeline-it}{{1}{6}{Pipeline riproducibile di costruzione del corpus in \llmind . Le fonti ICD-11, ICD-11-CDDR e DSM-5-TR vengono trasformate in artefatti versionati e interrogabili localmente, separando tassonomia, contenuto descrittivo e casi benchmark}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Snapshot numerico degli artefatti}{7}{subsection.5.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Snapshot quantitativo degli artefatti riproducibili. Le numeriche indicano la scala del corpus e dell'orchestrazione, non la performance diagnostica del sistema.}}{7}{table.1}\protected@file@percent }
+\newlabel{tab:repo-snapshot-it}{{1}{7}{Snapshot quantitativo degli artefatti riproducibili. Le numeriche indicano la scala del corpus e dell'orchestrazione, non la performance diagnostica del sistema}{table.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Distribuzione quantitativa degli artefatti di corpus. Il grafico rende evidente la separazione tra tassonomia ICD-11, casi benchmark DSM-5-TR e chunk documentali usati dagli agenti.}}{7}{figure.2}\protected@file@percent }
+\newlabel{fig:repo-snapshot-chart-it}{{2}{7}{Distribuzione quantitativa degli artefatti di corpus. Il grafico rende evidente la separazione tra tassonomia ICD-11, casi benchmark DSM-5-TR e chunk documentali usati dagli agenti}{figure.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Disegno del sistema di ricerca}{7}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Principi di progetto}{7}{subsection.6.1}\protected@file@percent }
 \gdef \LT@i {\LT@entry 
     {1}{115.39531pt}\LT@entry 
     {1}{151.3604pt}\LT@entry 
     {1}{173.83943pt}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Disegno del sistema di ricerca}{7}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Principi di progetto}{7}{subsection.6.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Architettura concettuale multi-agente. La decomposizione non rappresenta una moltiplicazione di chatbot, ma la separazione di responsabilita epistemiche: raccolta del caso, codifica nosologica, diagnosi differenziale, revisione benchmark, protocollo e sicurezza.}}{7}{figure.2}\protected@file@percent }
-\newlabel{fig:agent-architecture-it}{{2}{7}{Architettura concettuale multi-agente. La decomposizione non rappresenta una moltiplicazione di chatbot, ma la separazione di responsabilita epistemiche: raccolta del caso, codifica nosologica, diagnosi differenziale, revisione benchmark, protocollo e sicurezza}{figure.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Agenti previsti}{7}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Condizioni sperimentali}{8}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Riproducibilita}{8}{section.7}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Catena degli artefatti di riproducibilita. Ogni risultato sperimentale dovrebbe poter essere ricondotto a fonti, dataset, retrieval, prompt, modelli, parametri e procedure di valutazione.}}{8}{figure.3}\protected@file@percent }
-\newlabel{fig:reproducibility-it}{{3}{8}{Catena degli artefatti di riproducibilita. Ogni risultato sperimentale dovrebbe poter essere ricondotto a fonti, dataset, retrieval, prompt, modelli, parametri e procedure di valutazione}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Riproducibilita dei dati}{8}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Riproducibilita del retrieval e dei prompt}{9}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Riproducibilita dell'ambiente}{9}{subsection.7.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Riproducibilita della valutazione}{9}{subsection.7.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Architettura implementativa del prototipo locale. Il nucleo riproducibile e composto da frontend, API, database relazionale, datastore vettoriale, pipeline di estrazione, LLM locali e motore di benchmark. Le integrazioni GCP sono estensioni opzionali di deployment e non dipendenze del protocollo scientifico.}}{8}{figure.3}\protected@file@percent }
+\newlabel{fig:system-architecture-it}{{3}{8}{Architettura implementativa del prototipo locale. Il nucleo riproducibile e composto da frontend, API, database relazionale, datastore vettoriale, pipeline di estrazione, LLM locali e motore di benchmark. Le integrazioni GCP sono estensioni opzionali di deployment e non dipendenze del protocollo scientifico}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Architettura concettuale multi-agente. La decomposizione non rappresenta una moltiplicazione di chatbot, ma la separazione di responsabilita epistemiche: raccolta del caso, codifica nosologica, diagnosi differenziale, revisione benchmark, protocollo e sicurezza.}}{8}{figure.4}\protected@file@percent }
+\newlabel{fig:agent-architecture-it}{{4}{8}{Architettura concettuale multi-agente. La decomposizione non rappresenta una moltiplicazione di chatbot, ma la separazione di responsabilita epistemiche: raccolta del caso, codifica nosologica, diagnosi differenziale, revisione benchmark, protocollo e sicurezza}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Agenti previsti}{8}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Condizioni sperimentali}{9}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Riproducibilita}{9}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Riproducibilita dei dati}{9}{subsection.7.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Catena degli artefatti di riproducibilita. Ogni risultato sperimentale dovrebbe poter essere ricondotto a fonti, dataset, retrieval, prompt, modelli, parametri e procedure di valutazione.}}{10}{figure.5}\protected@file@percent }
+\newlabel{fig:reproducibility-it}{{5}{10}{Catena degli artefatti di riproducibilita. Ogni risultato sperimentale dovrebbe poter essere ricondotto a fonti, dataset, retrieval, prompt, modelli, parametri e procedure di valutazione}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Riproducibilita del retrieval e dei prompt}{10}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Riproducibilita dell'ambiente}{10}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Riproducibilita della valutazione}{10}{subsection.7.4}\protected@file@percent }
 \citation{barnhart2002ccc}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Protocollo di valutazione}{10}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Task sperimentali}{10}{subsection.8.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Workflow di valutazione. Le metriche automatiche e la valutazione esperta sono mantenute separate e poi integrate nell'analisi degli errori, evitando di ridurre il reasoning diagnostico alla sola accuracy.}}{10}{figure.4}\protected@file@percent }
-\newlabel{fig:evaluation-workflow-it}{{4}{10}{Workflow di valutazione. Le metriche automatiche e la valutazione esperta sono mantenute separate e poi integrate nell'analisi degli errori, evitando di ridurre il reasoning diagnostico alla sola accuracy}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Metriche automatiche}{10}{subsection.8.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Valutazione esperta}{10}{subsection.8.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Analisi degli errori}{10}{subsection.8.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Ipotesi}{11}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Considerazioni etiche e di governance}{11}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Risultati attesi e piano di analisi}{11}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}Minacce alla validita}{12}{section.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Validita interna}{12}{subsection.12.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}Validita esterna}{12}{subsection.12.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Validita di costrutto}{12}{subsection.12.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.4}Validita conclusiva}{12}{subsection.12.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {13}Contributi attesi}{12}{section.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {14}Conclusioni}{12}{section.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Protocollo di valutazione}{11}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Task sperimentali}{11}{subsection.8.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Workflow di valutazione. Le metriche automatiche e la valutazione esperta sono mantenute separate e poi integrate nell'analisi degli errori, evitando di ridurre il reasoning diagnostico alla sola accuracy.}}{11}{figure.6}\protected@file@percent }
+\newlabel{fig:evaluation-workflow-it}{{6}{11}{Workflow di valutazione. Le metriche automatiche e la valutazione esperta sono mantenute separate e poi integrate nell'analisi degli errori, evitando di ridurre il reasoning diagnostico alla sola accuracy}{figure.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Metriche automatiche}{11}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Valutazione esperta}{11}{subsection.8.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Metriche automatiche del benchmark. Le misure lessicali sono euristiche riproducibili e devono essere interpretate insieme alla valutazione esperta, non come prova di validita clinica.}}{12}{table.3}\protected@file@percent }
+\newlabel{tab:automatic-metrics-it}{{3}{12}{Metriche automatiche del benchmark. Le misure lessicali sono euristiche riproducibili e devono essere interpretate insieme alla valutazione esperta, non come prova di validita clinica}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Analisi degli errori}{12}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Ipotesi}{12}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Considerazioni etiche e di governance}{13}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Risultati attesi e piano di analisi}{13}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Minacce alla validita}{13}{section.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Validita interna}{13}{subsection.12.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}Validita esterna}{14}{subsection.12.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Validita di costrutto}{14}{subsection.12.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4}Validita conclusiva}{14}{subsection.12.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {13}Contributi attesi}{14}{section.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {14}Conclusioni}{14}{section.14}\protected@file@percent }
 \bibstyle{plainnat}
 \bibdata{references}
 \bibcite{apa2022dsm5tr}{{1}{2022}{{American Psychiatric Association}}{{}}}
@@ -81,4 +90,4 @@
 \bibcite{singhal2023medpalm}{{8}{2023}{{Singhal et~al.}}{{Singhal, Azizi, Tu, Mahdavi, Wei, Chung, Scales, Tanwani, Cole-Lewis, Pfohl, Payne, Seneviratne, Gamble, Kelly, Scharli, Chowdhery, Mansfield, Demner-Fushman, Aguerrebere, Webster, Corrado, Matias, Chou, Gottweis, Tomasev, Liu, Rajkomar, Barral, Semturs, Karthikesalingam, and Natarajan}}}
 \bibcite{who2022icd11}{{9}{2022}{{World Health Organization}}{{}}}
 \bibcite{who2024cddr}{{10}{2024}{{World Health Organization}}{{}}}
-\gdef \@abspage@last{14}
+\gdef \@abspage@last{15}

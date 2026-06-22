@@ -123,6 +123,34 @@ async def startup_event():
 
     # Crea tutte le tabelle (incluse quelle appena rimosse, con lo schema corretto)
     Base.metadata.create_all(bind=engine)
+
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        if "benchmark_runs" in tables:
+            benchmark_columns = [c["name"] for c in inspector.get_columns("benchmark_runs")]
+            benchmark_additions = {
+                "label_accuracy": "DOUBLE PRECISION",
+                "precision_score": "DOUBLE PRECISION",
+                "recall_score": "DOUBLE PRECISION",
+                "f1_score": "DOUBLE PRECISION",
+                "no_diagnosis": "BOOLEAN DEFAULT FALSE NOT NULL",
+            }
+
+            missing_columns = [
+                (name, ddl_type)
+                for name, ddl_type in benchmark_additions.items()
+                if name not in benchmark_columns
+            ]
+            if missing_columns:
+                logger.info(f"Aggiornamento schema benchmark_runs: aggiungo {missing_columns}")
+                with engine.connect() as conn:
+                    for name, ddl_type in missing_columns:
+                        conn.execute(text(f"ALTER TABLE benchmark_runs ADD COLUMN {name} {ddl_type}"))
+                    conn.commit()
+    except Exception as e:
+        logger.error(f"Errore sincronizzazione schema benchmark: {e}", exc_info=True)
+
     logger.info("Inizializzazione schema database completata.")
 
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { benchmarkApi, type BenchmarkKPIs, type BenchmarkRun } from '@/lib/api';
 import MarkdownContent from '@/components/ui/MarkdownContent';
@@ -66,9 +66,14 @@ export default function BenchmarkPage() {
           <div key={model.model_name} className="card bg-base-100 shadow-sm">
             <div className="card-body">
               <h2 className="card-title">{model.model_name}</h2>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-sm xl:grid-cols-3">
                 <Metric label="Runs" value={model.total_runs} />
-                <Metric label="Similarity" value={model.avg_similarity?.toFixed(3) ?? '-'} />
+                <Metric label="Similarity" value={formatScore(model.avg_similarity)} />
+                <Metric label="Accuracy" value={formatPercent(model.avg_label_accuracy)} />
+                <Metric label="Precision" value={formatPercent(model.avg_precision)} />
+                <Metric label="Recall" value={formatPercent(model.avg_recall)} />
+                <Metric label="F1" value={formatPercent(model.avg_f1)} />
+                <Metric label="No diagnosis" value={`${model.no_diagnosis_count} (${formatPercent(model.no_diagnosis_rate)})`} />
                 <Metric label="Latency" value={model.avg_latency_ms ? `${Math.round(model.avg_latency_ms)} ms` : '-'} />
                 <Metric label="Human rating" value={model.avg_human_rating?.toFixed(2) ?? '-'} />
               </div>
@@ -88,6 +93,8 @@ export default function BenchmarkPage() {
                   <th>Model</th>
                   <th>Status</th>
                   <th>Similarity</th>
+                  <th>Accuracy</th>
+                  <th>F1</th>
                   <th>Latency</th>
                   <th>Rating</th>
                   <th></th>
@@ -95,9 +102,9 @@ export default function BenchmarkPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="py-12 text-center"><span className="loading loading-spinner loading-lg" /></td></tr>
+                  <tr><td colSpan={9} className="py-12 text-center"><span className="loading loading-spinner loading-lg" /></td></tr>
                 ) : runs.length ? runs.map((run) => (
-                  <>
+                  <Fragment key={run.id}>
                     <tr key={run.id}>
                       <td>
                         <div className="font-medium">{run.case_title || 'Untitled case'}</div>
@@ -105,7 +112,9 @@ export default function BenchmarkPage() {
                       </td>
                       <td>{run.model_name}</td>
                       <td><span className="badge badge-outline">{run.status}</span></td>
-                      <td>{run.similarity_score?.toFixed(3) ?? '-'}</td>
+                      <td>{formatScore(run.similarity_score)}</td>
+                      <td>{formatPercent(run.label_accuracy)}</td>
+                      <td>{formatPercent(run.f1_score)}</td>
                       <td>{run.latency_ms ? `${run.latency_ms} ms` : '-'}</td>
                       <td>
                         <div className="rating rating-sm">
@@ -123,7 +132,7 @@ export default function BenchmarkPage() {
                     </tr>
                     {expanded === run.id && (
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={9}>
                           <div className="grid gap-4 lg:grid-cols-2">
                             <div className="rounded-box bg-base-200 p-4">
                               <h3 className="mb-2 font-semibold">Prompt</h3>
@@ -131,15 +140,21 @@ export default function BenchmarkPage() {
                             </div>
                             <div className="rounded-box bg-base-200 p-4">
                               <h3 className="mb-2 font-semibold">Response</h3>
+                              <div className="mb-3 flex flex-wrap gap-2">
+                                <span className="badge badge-outline">Precision {formatPercent(run.precision_score)}</span>
+                                <span className="badge badge-outline">Recall {formatPercent(run.recall_score)}</span>
+                                <span className="badge badge-outline">F1 {formatPercent(run.f1_score)}</span>
+                                {run.no_diagnosis && <span className="badge badge-warning">No diagnosis</span>}
+                              </div>
                               <MarkdownContent content={run.llm_response || 'No response'} />
                             </div>
                           </div>
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )) : (
-                  <tr><td colSpan={7} className="py-12 text-center text-base-content/60">No benchmark runs yet.</td></tr>
+                  <tr><td colSpan={9} className="py-12 text-center text-base-content/60">No benchmark runs yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -163,4 +178,12 @@ function Metric({ label, value }: { label: string; value: string | number }) {
       <div className="text-lg font-semibold">{value}</div>
     </div>
   );
+}
+
+function formatScore(value: number | null | undefined) {
+  return value === null || value === undefined ? '-' : value.toFixed(3);
+}
+
+function formatPercent(value: number | null | undefined) {
+  return value === null || value === undefined ? '-' : `${Math.round(value * 100)}%`;
 }
