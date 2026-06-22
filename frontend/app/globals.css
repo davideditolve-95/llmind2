@@ -10,10 +10,22 @@
 }
 
 @layer base {
+  :root, [data-theme="emerald"] {
+    --b1: 0 0% 100% !important;        /* Pure white for card backgrounds */
+    --b2: 215 20% 98% !important;      /* Soft slate-white for body background */
+    --b3: 215 15% 92% !important;      /* Light grey for borders and inputs */
+    --bc: 215 35% 15% !important;      /* Dark slate-blue for readable text */
+    --p: 175 80% 30% !important;       /* Clinical deep teal primary */
+    --pc: 0 0% 100% !important;        /* White text on primary buttons */
+    --a: 245 75% 55% !important;       /* Indigo accent */
+    --ac: 0 0% 100% !important;
+  }
+
   html,
   body {
     min-height: 100%;
-    background: hsl(var(--b2));
+    background-color: hsl(var(--b2)) !important;
+    color: hsl(var(--bc)) !important;
   }
 }
 

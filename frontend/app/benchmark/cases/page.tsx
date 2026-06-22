@@ -133,9 +133,9 @@ export default function CasesPage() {
                           setSelectedCases((prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]);
                         }} />
                       </td>
-                      <td>
-                        <div className="font-medium">{item.title}</div>
-                        <div className="line-clamp-1 text-xs text-base-content/60">{item.anamnesis_preview}</div>
+                      <td className="max-w-[12rem] md:max-w-[20rem] lg:max-w-[30rem] truncate">
+                        <div className="font-semibold truncate text-base-content" title={item.title}>{item.title}</div>
+                        <div className="text-xs text-base-content/60 truncate mt-0.5" title={item.anamnesis_preview}>{item.anamnesis_preview}</div>
                       </td>
                       <td>{item.is_reviewed ? <span className="badge badge-success">Reviewed</span> : <span className="badge badge-warning">Pending</span>}</td>
                       <td>{item.run_count}</td>

@@ -59,7 +59,7 @@ function ExplorerContent() {
   };
 
   return (
-    <div className="grid h-[calc(100vh-4rem)] grid-cols-1 overflow-hidden lg:grid-cols-[20rem_1fr]">
+    <div className="grid h-[calc(100vh-4.75rem)] grid-cols-1 overflow-hidden lg:grid-cols-[20rem_1fr]">
       <aside className="border-r border-base-300 bg-base-100 p-4">
         <h1 className="text-lg font-semibold">Custom Explorer</h1>
         <p className="mt-1 text-sm text-base-content/60">Query a ready datastore.</p>

@@ -267,7 +267,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="grid h-[calc(100vh-4rem)] grid-cols-1 overflow-hidden lg:grid-cols-[20rem_1fr] relative">
+    <div className="grid h-[calc(100vh-4.75rem)] grid-cols-1 overflow-hidden lg:grid-cols-[20rem_1fr] relative">
       {/* Backdrop overlay for mobile sidebar */}
       {isSidebarOpen && (
         <div
