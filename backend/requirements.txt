@@ -18,7 +18,9 @@ pydantic-settings==2.2.1
 
 # ─── NLP, RAG e Similarity ─────────────────────
 sentence-transformers==2.7.0
-torch==2.3.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.0+cpu; sys_platform == 'linux' and platform_machine == 'x86_64'
+torch==2.3.0; sys_platform != 'linux' or platform_machine != 'x86_64'
 numpy==1.26.4
 scikit-learn==1.4.2
 langchain==0.2.1
