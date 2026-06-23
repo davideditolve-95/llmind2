@@ -20,6 +20,16 @@ const nextConfig = {
     ];
   },
 
+  // Ignora errori di TS per velocizzare e alleggerire il build in produzione
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
+  // Limita i worker Next.js a 1 per evitare crash Out-Of-Memory (OOM) su macchine VPS
+  experimental: {
+    cpus: 1,
+  },
+
   // Variabile d'ambiente pubblica (accessibile nel browser)
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',

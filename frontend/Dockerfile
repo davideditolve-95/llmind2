@@ -15,6 +15,7 @@ COPY . .
 # Variabile d'ambiente per il build Next.js standalone
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 RUN npm run build
 
