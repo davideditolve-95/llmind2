@@ -17,6 +17,7 @@ engine = create_engine(
     pool_size=10,             # Dimensione del pool di connessioni
     max_overflow=20,          # Connessioni aggiuntive oltre il pool
     echo=(settings.environment == "development"),  # Log SQL in sviluppo
+    connect_args={"connect_timeout": 5},  # Evita hang indefiniti se il DB è offline/bloccato da firewall
 )
 
 # Factory per le sessioni del database
