@@ -58,12 +58,15 @@ class OllamaService:
     def __init__(self):
         self.base_url = settings.ollama_base_url
         self.default_model = settings.ollama_default_model
+        self.headers = {}
+        if settings.ollama_api_key:
+            self.headers["Authorization"] = f"Bearer {settings.ollama_api_key}"
 
     async def list_models(self) -> List[str]:
         """Recupera la lista dei modelli disponibili su Ollama."""
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
+                response = await client.get(f"{self.base_url}/api/tags", headers=self.headers)
                 response.raise_for_status()
                 data = response.json()
                 return [m["name"] for m in data.get("models", [])]
@@ -105,6 +108,7 @@ class OllamaService:
                     "POST",
                     f"{self.base_url}/api/chat",
                     json=payload,
+                    headers=self.headers,
                 ) as response:
                     response.raise_for_status()
                     async for line in response.aiter_lines():
@@ -160,6 +164,7 @@ class OllamaService:
                 response = await client.post(
                     f"{self.base_url}/api/chat",
                     json=payload,
+                    headers=self.headers,
                 )
                 response.raise_for_status()
                 data = response.json()

@@ -69,7 +69,13 @@ docker compose exec backend python scripts/extract_dsm5_cases.py \
   --pdf-path "$CONTAINER_PDF_PATH" \
   "$@"
 
+# Esegue anche il seeding delle categorie DSM-5 per l'Explorer
 echo ""
-echo "✅ Estrazione completata!"
+echo "🗄️  Seeding delle categorie DSM-5 per l'Explorer..."
+docker compose exec backend python scripts/seed_dsm5.py
+
+echo ""
+echo "✅ Estrazione e Seeding completati!"
 echo "   Apri http://localhost:3000/benchmark/cases per vedere i casi estratti."
+echo "   Apri http://localhost:3000/tabular/dsm5 per l'Explorer DSM-5."
 echo ""

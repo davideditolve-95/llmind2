@@ -107,8 +107,8 @@ export default function BenchmarkPage() {
                   <Fragment key={run.id}>
                     <tr key={run.id}>
                       <td>
-                        <div className="font-medium">{run.case_title || 'Untitled case'}</div>
-                        <div className="text-xs text-base-content/50">{run.case_number}</div>
+                        <div className="font-semibold text-base-content">{run.case_title || 'Untitled case'}</div>
+                        <div className="text-xs text-base-content/75 font-medium">{run.case_number}</div>
                       </td>
                       <td>{run.model_name}</td>
                       <td><span className="badge badge-outline">{run.status}</span></td>
@@ -154,7 +154,7 @@ export default function BenchmarkPage() {
                     )}
                   </Fragment>
                 )) : (
-                  <tr><td colSpan={9} className="py-12 text-center text-base-content/60">No benchmark runs yet.</td></tr>
+                  <tr><td colSpan={9} className="py-12 text-center text-base-content font-semibold">No benchmark runs yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -173,9 +173,9 @@ export default function BenchmarkPage() {
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-box bg-base-200 p-3">
-      <div className="text-xs text-base-content/60">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
+    <div className="rounded-box bg-base-200/80 border border-base-300 p-3 shadow-sm">
+      <div className="text-xs text-base-content/85 font-bold uppercase tracking-wider">{label}</div>
+      <div className="text-lg font-bold text-base-content mt-0.5">{value}</div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ from .routers import datastore as router_datastore
 from .routers import system as router_system
 from .routers import gcp_agents as router_gcp_agents
 from .routers import patient as router_patient
+from .routers import dsm5 as router_dsm5
 from .config import get_settings
 
 # Importa tutti i modelli per assicurarsi che vengano registrati prima di create_all
@@ -25,6 +26,7 @@ from .models import benchmark as benchmark_model  # noqa: F401
 from .models import chat as chat_model  # noqa: F401
 from .models import datastore as datastore_model  # noqa: F401
 from .models import patient as patient_model  # noqa: F401
+from .models import dsm5 as dsm5_model  # noqa: F401
 
 settings = get_settings()
 
@@ -166,6 +168,50 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Errore sincronizzazione schema benchmark: {e}", exc_info=True)
 
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        if "dsm5_categories" in tables:
+            dsm5_columns = [c["name"] for c in inspector.get_columns("dsm5_categories")]
+            dsm5_indexes = inspector.get_indexes("dsm5_categories")
+            dsm5_additions = {
+                "parent_category": "TEXT",
+                "variant_label": "TEXT",
+                "severity": "VARCHAR(50)",
+                "sort_order": "INTEGER",
+                "diagnostic_features": "TEXT",
+                "prevalence": "TEXT",
+                "development_and_course": "TEXT",
+                "risk_and_prognostic_factors": "TEXT",
+                "culture_related_issues": "TEXT",
+                "sex_gender_related_issues": "TEXT",
+                "functional_consequences": "TEXT",
+                "differential_diagnosis": "TEXT",
+                "comorbidity": "TEXT",
+            }
+
+            missing_columns = [
+                (name, ddl_type)
+                for name, ddl_type in dsm5_additions.items()
+                if name not in dsm5_columns
+            ]
+            if missing_columns:
+                logger.info(f"Aggiornamento schema dsm5_categories: aggiungo {missing_columns}")
+                with engine.connect() as conn:
+                    for name, ddl_type in missing_columns:
+                        conn.execute(text(f"ALTER TABLE dsm5_categories ADD COLUMN {name} {ddl_type}"))
+                    conn.commit()
+
+            code_index = next((idx for idx in dsm5_indexes if idx["name"] == "ix_dsm5_categories_code"), None)
+            if code_index and code_index.get("unique"):
+                logger.info("Aggiornamento schema dsm5_categories: rendo non univoco l'indice code")
+                with engine.connect() as conn:
+                    conn.execute(text("DROP INDEX IF EXISTS ix_dsm5_categories_code"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_dsm5_categories_code ON dsm5_categories (code)"))
+                    conn.commit()
+    except Exception as e:
+        logger.error(f"Errore sincronizzazione schema DSM-5: {e}", exc_info=True)
+
     logger.info("Inizializzazione schema database completata.")
 
 
@@ -182,6 +228,7 @@ app.include_router(router_datastore.router, dependencies=[Depends(verify_token)]
 app.include_router(router_system.router, dependencies=[Depends(verify_token)])
 app.include_router(router_gcp_agents.router, dependencies=[Depends(verify_token)])
 app.include_router(router_patient.router, dependencies=[Depends(verify_token)])
+app.include_router(router_dsm5.router, dependencies=[Depends(verify_token)])
 
 
 # ─── Endpoint di utilità ───────────────────────────────────────────────────

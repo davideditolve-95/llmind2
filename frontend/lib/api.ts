@@ -33,6 +33,8 @@ export interface IcdTableRow {
   level: number;
   has_children: boolean;
   children_count: number;
+  dsm5_analogy_code?: string | null;
+  dsm5_analogy_title?: string | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -196,7 +198,7 @@ export interface GcpAgentChatResponse {
   diagnostic_info?: Record<string, any> | null;
 }
 
-import { getSession } from 'next-auth/react';
+import { getSession, signOut } from 'next-auth/react';
 
 // ─── Helper fetch ──────────────────────────────────────────────────────────
 
@@ -237,6 +239,10 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   });
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      console.warn("API returned 401. Access token expired or invalid. Signing out...");
+      signOut({ callbackUrl: '/auth/signin' });
+    }
     const error = await response.text();
     throw new Error(`API Error ${response.status}: ${error}`);
   }
@@ -260,7 +266,20 @@ export const icd11Api = {
   getCode: (nodeId: string) =>
     fetchApi<IcdTableRow>(`/api/icd11/node/${nodeId}`),
 
-  getCodes: (params: { page?: number; page_size?: number; search?: string; level?: number; parent_id?: string; search_type?: string }) => {
+  getCodes: (params: { 
+    page?: number; 
+    page_size?: number; 
+    search?: string; 
+    level?: number; 
+    parent_id?: string; 
+    search_type?: string;
+    chapter_id?: string;
+    has_criteria?: boolean;
+    has_inclusions?: boolean;
+    has_exclusions?: boolean;
+    has_differential?: boolean;
+    has_italian?: boolean;
+  }) => {
     const query = new URLSearchParams();
     if (params.page) query.set('page', String(params.page));
     if (params.page_size) query.set('page_size', String(params.page_size));
@@ -268,10 +287,79 @@ export const icd11Api = {
     if (params.level !== undefined) query.set('level', String(params.level));
     if (params.parent_id) query.set('parent_id', params.parent_id);
     if (params.search_type) query.set('search_type', params.search_type);
+    if (params.chapter_id) query.set('chapter_id', params.chapter_id);
+    if (params.has_criteria !== undefined) query.set('has_criteria', String(params.has_criteria));
+    if (params.has_inclusions !== undefined) query.set('has_inclusions', String(params.has_inclusions));
+    if (params.has_exclusions !== undefined) query.set('has_exclusions', String(params.has_exclusions));
+    if (params.has_differential !== undefined) query.set('has_differential', String(params.has_differential));
+    if (params.has_italian !== undefined) query.set('has_italian', String(params.has_italian));
     return fetchApi<PaginatedResponse<IcdTableRow>>(`/api/icd11/codes?${query}`);
   },
 
+  getChapters: () => fetchApi<{ id: string; code: string; title: string }[]>('/api/icd11/chapters'),
+
   getStats: () => fetchApi<{ total_codes: number; chapters: number; status: string }>('/api/icd11/stats'),
+};
+
+// ─── DSM-5 ─────────────────────────────────────────────────────────────────
+
+export interface DSM5Category {
+  id: string;
+  code: string;
+  title: string;
+  chapter: string;
+  parent_category: string | null;
+  variant_label: string | null;
+  severity: string | null;
+  sort_order: number | null;
+  diagnostic_criteria: string | null;
+  diagnostic_features: string | null;
+  prevalence: string | null;
+  development_and_course: string | null;
+  risk_and_prognostic_factors: string | null;
+  culture_related_issues: string | null;
+  sex_gender_related_issues: string | null;
+  functional_consequences: string | null;
+  differential_diagnosis: string | null;
+  comorbidity: string | null;
+  icd10_code: string | null;
+  icd11_code: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DSM5CategoryCompare {
+  dsm5: DSM5Category;
+  icd11: IcdTableRow | null;
+}
+
+export const dsm5Api = {
+  getChapters: () =>
+    fetchApi<string[]>('/api/dsm5/chapters'),
+
+  getCategories: (params: {
+    chapter?: string;
+    search?: string;
+    search_type?: 'standard' | 'criteria' | 'all';
+    has_criteria?: boolean;
+    has_icd10?: boolean;
+    has_icd11?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.chapter) query.set('chapter', params.chapter);
+    if (params.search) query.set('search', params.search);
+    if (params.search_type) query.set('search_type', params.search_type);
+    if (params.has_criteria !== undefined) query.set('has_criteria', String(params.has_criteria));
+    if (params.has_icd10 !== undefined) query.set('has_icd10', String(params.has_icd10));
+    if (params.has_icd11 !== undefined) query.set('has_icd11', String(params.has_icd11));
+    return fetchApi<DSM5Category[]>(`/api/dsm5/categories?${query}`);
+  },
+
+  getCategory: (identifier: string) =>
+    fetchApi<DSM5Category>(`/api/dsm5/categories/${identifier}`),
+
+  getComparison: (icd11Code: string) =>
+    fetchApi<DSM5CategoryCompare>(`/api/dsm5/compare/${icd11Code}`),
 };
 
 // ─── Chat ──────────────────────────────────────────────────────────────────

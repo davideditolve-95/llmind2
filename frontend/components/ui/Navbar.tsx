@@ -22,14 +22,21 @@ import LogModal from './LogModal';
 
 const nav = [
   { href: '/', label: 'Home', icon: HomeIcon },
-  { href: '/tabular', label: 'ICD-11', icon: Squares2X2Icon },
+  { href: '/patients', label: 'Patients', icon: UserIcon },
+  {
+    label: 'Taxonomies',
+    icon: Squares2X2Icon,
+    items: [
+      { href: '/tabular', label: 'ICD-11 Explorer', icon: Squares2X2Icon },
+      { href: '/tabular/dsm5', label: 'DSM-5 Explorer', icon: Squares2X2Icon },
+    ],
+  },
   {
     label: 'Chat',
     icon: ChatBubbleLeftRightIcon,
     items: [
       { href: '/chat', label: 'Local Chat', icon: ChatBubbleLeftRightIcon },
       { href: '/gcp-agents', label: 'GCP Agents', icon: CloudIcon },
-      { href: '/patients', label: 'Patients', icon: UserIcon },
     ],
   },
   {
@@ -49,7 +56,6 @@ const nav = [
     ],
   },
   { href: '/legacy', label: 'Legacy', icon: ClockIcon },
-  { href: '/settings', label: 'Settings', icon: Cog6ToothIcon },
 ];
 
 export default function Navbar() {
@@ -149,45 +155,105 @@ export default function Navbar() {
             <ul className="menu menu-horizontal gap-2 px-1">{renderLinks(false)}</ul>
           </div>
           
-          <div className="navbar-end gap-4 flex items-center justify-end">
-            <button className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200" onClick={() => setOpenLogs(true)} aria-label="Open logs">
-              <CommandLineIcon className="h-5 w-5" />
-            </button>
-            
-            <div className="join mr-1 border border-base-300">
-              {(['en', 'it'] as const).map((l) => (
-                <button key={l} className={clsx('btn btn-xs join-item font-semibold px-3 py-1', lang === l ? 'btn-primary text-primary-content' : 'bg-base-100 hover:bg-base-200')} onClick={() => setLang(l)}>
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            {status === 'authenticated' ? (
-              <div className="dropdown dropdown-end flex items-center">
-                <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder hover:bg-base-200 transition-colors flex items-center justify-center">
+          <div className="navbar-end flex items-center justify-end">
+            <div className="dropdown dropdown-bottom dropdown-end flex items-center">
+              <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder hover:bg-base-200 transition-colors flex items-center justify-center">
+                {status === 'authenticated' ? (
                   <div className="bg-neutral text-neutral-content rounded-full w-10 h-10 flex items-center justify-center border-2 border-primary/20 shadow-inner">
                     <span className="text-xs font-bold uppercase">
                       {session.user?.email ? session.user.email.substring(0, 2) : 'US'}
                     </span>
                   </div>
-                </label>
-                <ul tabIndex={0} className="mt-3 z-[50] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-56 border border-base-300">
-                  <li className="px-4 py-3 text-xs font-semibold text-base-content/60 truncate">
-                    {session.user?.email}
-                  </li>
-                  <div className="divider my-0"></div>
-                  <li>
-                    <button onClick={() => signOut()} className="text-red-500 hover:text-red-600 font-medium py-2">
-                      Sign Out
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            ) : (
-              <button onClick={() => signIn('authentik')} className="btn btn-primary btn-sm px-4 normal-case shadow-md text-primary-content hover:scale-105 transition-all">
-                Sign In
-              </button>
-            )}
+                ) : (
+                  <div className="bg-neutral text-neutral-content rounded-full w-10 h-10 flex items-center justify-center border border-base-300 shadow-inner">
+                    <UserIcon className="h-5 w-5 text-neutral-content" />
+                  </div>
+                )}
+              </label>
+              
+              <ul tabIndex={0} className="mt-3 z-[50] p-2.5 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-64 border border-base-300">
+                {status === 'authenticated' ? (
+                  <>
+                    <li className="px-4 py-3 text-xs font-semibold text-base-content/60 truncate">
+                      {session.user?.email}
+                    </li>
+                    <div className="divider my-0.5"></div>
+                    
+                    {/* Settings Link */}
+                    <li>
+                      <Link href="/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-base-content hover:bg-base-200 font-semibold rounded-lg">
+                        <Cog6ToothIcon className="h-4.5 w-4.5 text-base-content/75" />
+                        Settings
+                      </Link>
+                    </li>
+                  </>
+                ) : null}
+
+                {/* Terminal / Logs Button */}
+                <li>
+                  <button 
+                    onClick={() => setOpenLogs(true)} 
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-base-content hover:bg-base-200 font-semibold rounded-lg w-full text-left"
+                  >
+                    <CommandLineIcon className="h-4.5 w-4.5 text-base-content/75" />
+                    Terminal / Logs
+                  </button>
+                </li>
+
+                {/* Language Selector */}
+                <div className="px-4 py-2 border-t border-b border-base-200 my-1 bg-base-200/30 rounded-lg">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className="text-xs font-bold uppercase text-base-content/65">Language</span>
+                    <div className="join border border-base-300 shadow-sm">
+                      {(['en', 'it'] as const).map((l) => (
+                        <button 
+                          key={l} 
+                          className={clsx(
+                            'btn btn-xs join-item font-semibold px-3 py-1', 
+                            lang === l ? 'btn-primary text-primary-content' : 'bg-base-100 hover:bg-base-200'
+                          )} 
+                          onClick={() => setLang(l)}
+                        >
+                          {l.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {status === 'authenticated' ? (
+                  <>
+                    <div className="divider my-0.5"></div>
+                    <li>
+                      <button 
+                        onClick={() => signOut()} 
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 font-semibold py-2 px-4 flex items-center gap-2.5 rounded-lg w-full text-left"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4.5 h-4.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+                        </svg>
+                        Sign Out
+                      </button>
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <div className="divider my-0.5"></div>
+                    <li>
+                      <button 
+                        onClick={() => signIn('authentik')} 
+                        className="text-primary hover:bg-primary/5 font-semibold py-2 px-4 flex items-center gap-2.5 rounded-lg w-full text-left"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4.5 h-4.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                        </svg>
+                        Sign In
+                      </button>
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

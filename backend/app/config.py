@@ -20,7 +20,8 @@ class Settings(BaseSettings):
 
     # Ollama — ESTERNO al cluster Docker
     ollama_base_url: str = "http://localhost:11434"
-    ollama_default_model: str = "gemma4"
+    ollama_default_model: str = "gemma3:270m"
+    ollama_api_key: str = ""
 
     # Sicurezza
     secret_key: str = "cambia_questa_chiave_in_produzione"

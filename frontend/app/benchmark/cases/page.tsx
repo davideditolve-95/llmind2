@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 import { benchmarkApi, casesApi, chatApi, patientsApi, type DSM5CaseSummary, type Patient } from '@/lib/api';
-import { ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon, PlayIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  PlayIcon,
+  MagnifyingGlassIcon,
+  CircleStackIcon,
+  BeakerIcon,
+} from '@heroicons/react/24/outline';
 
 export default function CasesPage() {
   const { status } = useSession();
@@ -86,71 +94,168 @@ export default function CasesPage() {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedCases(cases.map((c) => c.id));
+    } else {
+      setSelectedCases([]);
+    }
+  };
+
+  const isAllSelected = cases.length > 0 && selectedCases.length === cases.length;
+
   return (
     <div className="app-page space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="app-title">Clinical cases</h1>
-          <p className="app-subtitle mt-2">Review extracted DSM-5-TR cases and launch controlled benchmark batches.</p>
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-base-300 pb-5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <CircleStackIcon className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Clinical Case Registry</h1>
+          </div>
+          <p className="app-subtitle">Review extracted DSM-5-TR cases, edit validations, and launch benchmark evaluation batches.</p>
         </div>
-        <Link href="/benchmark" className="btn btn-outline">Benchmark history</Link>
+        <div className="flex flex-wrap gap-2 lg:self-end">
+          <Link href="/benchmark" className="btn btn-outline gap-1.5">
+            <BeakerIcon className="h-4 w-4" />
+            Benchmark Dashboard
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-        <section className="card bg-base-100 shadow-sm">
-          <div className="card-body">
-            <div className="flex flex-col gap-3 md:flex-row">
-              <input className="input input-bordered flex-1" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search cases" />
-              <label className="label cursor-pointer justify-start gap-3">
-                <input type="checkbox" className="checkbox checkbox-primary" checked={reviewedOnly} onChange={(e) => setReviewedOnly(e.target.checked)} />
-                <span className="label-text">Reviewed only</span>
-              </label>
+      {/* Main Two-Column Grid */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+        
+        {/* Cases List Section (Left Column) */}
+        <section className="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+          <div className="card-body p-6">
+            
+            {/* Filter Bar */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-base-200">
+              <div className="relative flex-1 max-w-md">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                  <MagnifyingGlassIcon className="w-4 h-4 text-base-content/50" />
+                </span>
+                <input 
+                  className="input input-bordered w-full pl-10 focus:input-primary focus:outline-none text-sm font-medium" 
+                  value={search} 
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+                  placeholder="Search cases by title or content..." 
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="label cursor-pointer justify-start gap-2 px-3 py-1.5 bg-base-200/50 rounded-lg border border-base-300 hover:bg-base-200 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    className="checkbox checkbox-primary checkbox-sm" 
+                    checked={reviewedOnly} 
+                    onChange={(e) => setReviewedOnly(e.target.checked)} 
+                  />
+                  <span className="label-text font-semibold text-xs text-base-content/85 select-none">Reviewed only</span>
+                </label>
+                
+                <button className="btn btn-square btn-outline btn-sm border-base-300 text-base-content hover:bg-base-200" onClick={load} disabled={loading}>
+                  <ArrowPathIcon className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
+                </button>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              {error && (
-                <div className="alert alert-error mb-4 flex items-center gap-2">
-                  <ExclamationTriangleIcon className="h-5 w-5 shrink-0" />
-                  <span>{error}</span>
-                  <button className="btn btn-sm btn-ghost ml-auto" onClick={() => signIn('keycloak', { callbackUrl: '/benchmark/cases' })}>
-                    Accedi
-                  </button>
-                </div>
-              )}
-              <table className="table table-zebra">
-                <thead><tr><th></th><th>Case</th><th>Status</th><th>Runs</th><th></th></tr></thead>
+            {/* Error Notification */}
+            {error && (
+              <div className="alert alert-error mb-4 flex items-center gap-3">
+                <ExclamationTriangleIcon className="h-5 w-5 shrink-0 text-error-content" />
+                <span className="text-sm font-medium">{error}</span>
+                <button className="btn btn-sm btn-ghost ml-auto text-xs" onClick={() => signIn('keycloak', { callbackUrl: '/benchmark/cases' })}>
+                  Accedi
+                </button>
+              </div>
+            )}
+
+            {/* Table Area */}
+            <div className="overflow-x-auto min-h-[350px]">
+              <table className="table table-zebra table-md w-full">
+                <thead>
+                  <tr className="border-b border-base-300 text-base-content/70">
+                    <th className="w-10 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="checkbox checkbox-primary checkbox-sm" 
+                        checked={isAllSelected}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                      />
+                    </th>
+                    <th className="font-bold text-xs uppercase tracking-wider pl-2">Case Details</th>
+                    <th className="font-bold text-xs uppercase tracking-wider w-28 text-center">Status</th>
+                    <th className="font-bold text-xs uppercase tracking-wider w-24 text-center">Runs</th>
+                    <th className="font-bold text-xs uppercase tracking-wider w-48 text-right pr-4">Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} className="py-12 text-center"><span className="loading loading-spinner loading-lg" /></td></tr>
+                    <tr>
+                      <td colSpan={5} className="py-24 text-center">
+                        <span className="loading loading-spinner loading-lg text-primary" />
+                        <div className="text-xs text-base-content/50 mt-2 font-medium">Loading clinical cases...</div>
+                      </td>
+                    </tr>
                   ) : cases.length === 0 ? (
-                    <tr><td colSpan={5} className="py-12 text-center text-base-content/50">
-                      {error ? 'Errore nel caricamento.' : 'Nessun caso clinico trovato nel database.'}
-                    </td></tr>
+                    <tr>
+                      <td colSpan={5} className="py-24 text-center">
+                        <div className="text-base-content/60 font-semibold text-lg">No cases found</div>
+                        <div className="text-xs text-base-content/40 mt-1">Try adjusting your search query or review filter.</div>
+                      </td>
+                    </tr>
                   ) : cases.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <input type="checkbox" className="checkbox checkbox-primary" checked={selectedCases.includes(item.id)} onChange={() => {
-                          setSelectedCases((prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]);
-                        }} />
+                    <tr key={item.id} className="hover:bg-base-200/40 transition-colors">
+                      <td className="text-center align-middle">
+                        <input 
+                          type="checkbox" 
+                          className="checkbox checkbox-primary checkbox-sm" 
+                          checked={selectedCases.includes(item.id)} 
+                          onChange={() => {
+                            setSelectedCases((prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]);
+                          }} 
+                        />
                       </td>
-                      <td className="max-w-[12rem] md:max-w-[20rem] lg:max-w-[30rem] truncate">
-                        <div className="font-semibold truncate text-base-content" title={item.title}>{item.title}</div>
-                        <div className="text-xs text-base-content/60 truncate mt-0.5" title={item.anamnesis_preview}>{item.anamnesis_preview}</div>
+                      <td className="max-w-[20rem] align-middle pl-2">
+                        <Link 
+                          href={`/benchmark/cases/${item.id}`} 
+                          className="font-bold text-sm sm:text-base text-base-content hover:text-primary hover:underline transition-colors block truncate"
+                          title={item.title}
+                        >
+                          {item.title}
+                        </Link>
+                        <span className="text-xs text-base-content/60 font-medium block truncate mt-0.5" title={item.anamnesis_preview}>
+                          {item.anamnesis_preview || 'No clinical history preview.'}
+                        </span>
                       </td>
-                      <td>{item.is_reviewed ? <span className="badge badge-success">Reviewed</span> : <span className="badge badge-warning">Pending</span>}</td>
-                      <td>{item.run_count}</td>
-                      <td>
-                        <div className="flex gap-2">
-                          <Link className="btn btn-sm" href={`/benchmark/cases/${item.id}`}>Open</Link>
+                      <td className="align-middle text-center">
+                        {item.is_reviewed ? (
+                          <span className="badge badge-success text-success-content text-[11px] font-semibold py-1 px-2.5">Reviewed</span>
+                        ) : (
+                          <span className="badge badge-warning text-warning-content text-[11px] font-semibold py-1 px-2.5">Pending</span>
+                        )}
+                      </td>
+                      <td className="align-middle text-center">
+                        <span className="badge badge-ghost border-base-300 font-mono text-xs font-bold py-1 px-2">
+                          {item.run_count}
+                        </span>
+                      </td>
+                      <td className="align-middle text-right pr-4">
+                        <div className="flex gap-2 justify-end">
+                          <Link className="btn btn-xs btn-outline btn-neutral" href={`/benchmark/cases/${item.id}`}>
+                            Open
+                          </Link>
                           <button
-                            className="btn btn-sm btn-outline btn-accent"
+                            className="btn btn-xs btn-primary text-primary-content font-semibold"
                             onClick={() => convertToPatient(item.id)}
                             disabled={convertingMap[item.id]}
                           >
                             {convertingMap[item.id] ? (
-                              <span className="loading loading-spinner loading-xs" />
+                              <span className="loading loading-spinner loading-[10px]" />
                             ) : (
-                              'Convert to Patient'
+                              'Convert'
                             )}
                           </button>
                         </div>
@@ -160,38 +265,112 @@ export default function CasesPage() {
                 </tbody>
               </table>
             </div>
-            <div className="join self-end">
-              <button className="btn join-item" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</button>
-              <button className="btn join-item no-animation">Page {page} / {totalPages}</button>
-              <button className="btn join-item" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+
+            {/* Table Footer / Pagination */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-base-200">
+              <span className="text-xs text-base-content/60 font-semibold">
+                {selectedCases.length > 0 ? (
+                  <span className="text-primary font-bold">{selectedCases.length} case(s) selected</span>
+                ) : (
+                  `Showing ${cases.length} cases`
+                )}
+              </span>
+              
+              <div className="join border border-base-300 shadow-xs">
+                <button 
+                  className="btn btn-xs join-item bg-base-100 hover:bg-base-200 text-base-content" 
+                  disabled={page <= 1} 
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Prev
+                </button>
+                <button className="btn btn-xs join-item no-animation bg-base-50 text-base-content/80 font-semibold px-4">
+                  Page {page} of {totalPages}
+                </button>
+                <button 
+                  className="btn btn-xs join-item bg-base-100 hover:bg-base-200 text-base-content" 
+                  disabled={page >= totalPages} 
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
             </div>
+
           </div>
         </section>
 
-        <aside className="card h-fit bg-base-100 shadow-sm">
-          <div className="card-body">
-            <h2 className="card-title"><PlayIcon className="h-5 w-5" /> Run batch</h2>
-            <div className="text-sm text-base-content/60">{selectedCases.length} cases selected</div>
-            <div className="space-y-2">
-              {models.map((model) => (
-                <label key={model} className="label cursor-pointer justify-start gap-3 rounded-box bg-base-200 px-3">
-                  <input type="checkbox" className="checkbox checkbox-primary" checked={selectedModels.includes(model)} onChange={() => {
-                    setSelectedModels((prev) => prev.includes(model) ? prev.filter((m) => m !== model) : [...prev, model]);
-                  }} />
-                  <span className="label-text">{model}</span>
+        {/* Sidebar Controls (Right Column) */}
+        <aside className="space-y-6 lg:sticky lg:top-6 h-fit">
+          <div className="card bg-base-100 border border-base-300 shadow-sm">
+            <div className="card-body p-5">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-base-200">
+                <PlayIcon className="h-5 w-5 text-primary" />
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/75">Run Batch Evaluation</h2>
+              </div>
+              
+              <div className="text-xs font-semibold text-base-content/80 mb-3 bg-base-200/50 p-2.5 rounded border border-base-300/80">
+                {selectedCases.length} case(s) selected for benchmark
+              </div>
+              
+              <div className="form-control mb-4">
+                <span className="label-text mb-2.5 font-semibold text-base-content/85">Select Models to Evaluate</span>
+                <div className="space-y-2">
+                  {models.map((model) => (
+                    <label 
+                      key={model} 
+                      className="label cursor-pointer justify-start gap-3 rounded-lg bg-base-200/50 border border-base-300/80 px-3 py-2 hover:bg-base-200 transition-colors"
+                    >
+                      <input 
+                        type="checkbox" 
+                        className="checkbox checkbox-primary checkbox-xs" 
+                        checked={selectedModels.includes(model)} 
+                        onChange={() => {
+                          setSelectedModels((prev) => prev.includes(model) ? prev.filter((m) => m !== model) : [...prev, model]);
+                        }} 
+                      />
+                      <span className="label-text text-base-content/90 font-medium text-xs truncate" title={model}>{model}</span>
+                    </label>
+                  ))}
+                  {models.length === 0 && (
+                    <div className="text-[11px] text-base-content/50 italic py-2">No LLM models online.</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-control bg-base-200/50 p-3 rounded-lg border border-base-300/80 mb-4">
+                <label className="label cursor-pointer justify-between p-0">
+                  <span className="label-text font-semibold text-xs text-base-content/95 select-none">Include Discussion Context</span>
+                  <input 
+                    type="checkbox" 
+                    className="toggle toggle-primary toggle-xs" 
+                    checked={includeDiscussion} 
+                    onChange={(e) => setIncludeDiscussion(e.target.checked)} 
+                  />
                 </label>
-              ))}
+                <div className="text-[10px] text-base-content/60 mt-1.5 leading-normal">
+                  Inject the clinical discussion text into the LLM context along with the patient history.
+                </div>
+              </div>
+
+              <button 
+                className="btn btn-primary w-full shadow-md text-primary-content font-bold mt-2" 
+                disabled={running || !selectedCases.length || !selectedModels.length} 
+                onClick={runBenchmark}
+              >
+                {running ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : (
+                  <>
+                    <CheckCircleIcon className="h-4 w-4 mr-1" />
+                    Start Evaluation Batch
+                  </>
+                )}
+              </button>
             </div>
-            <label className="label cursor-pointer justify-start gap-3">
-              <input type="checkbox" className="toggle toggle-primary" checked={includeDiscussion} onChange={(e) => setIncludeDiscussion(e.target.checked)} />
-              <span className="label-text">Include discussion</span>
-            </label>
-            <button className="btn btn-primary" disabled={running || !selectedCases.length || !selectedModels.length} onClick={runBenchmark}>
-              {running ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <CheckCircleIcon className="h-4 w-4" />}
-              Start benchmark
-            </button>
           </div>
         </aside>
+
       </div>
 
       {/* Success Modal */}
@@ -219,3 +398,4 @@ export default function CasesPage() {
     </div>
   );
 }
+

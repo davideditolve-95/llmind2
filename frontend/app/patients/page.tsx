@@ -187,7 +187,7 @@ export default function PatientsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="card-title text-lg font-bold text-base-content">{patient.name}</h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-base-content/60">
+                    <div className="flex items-center gap-2 mt-1 text-xs text-base-content/75 font-semibold">
                       {patient.age !== null && <span>Age: {patient.age}</span>}
                       {patient.age !== null && patient.gender && <span>•</span>}
                       {patient.gender && <span className="capitalize">{patient.gender}</span>}
@@ -202,27 +202,27 @@ export default function PatientsPage() {
 
                 {patient.behaviors && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/40">Symptoms & Behaviors</h4>
-                    <p className="text-sm line-clamp-2 text-base-content/80">{patient.behaviors}</p>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-base-content/65">Symptoms & Behaviors</h4>
+                    <p className="text-sm line-clamp-2 text-base-content font-medium">{patient.behaviors}</p>
                   </div>
                 )}
 
                 {patient.specific_traits && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/40">Personality Traits</h4>
-                    <p className="text-sm line-clamp-2 text-base-content/80">{patient.specific_traits}</p>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-base-content/65">Personality Traits</h4>
+                    <p className="text-sm line-clamp-2 text-base-content font-medium">{patient.specific_traits}</p>
                   </div>
                 )}
 
                 {patient.clinical_history && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-base-content/40">Clinical History</h4>
-                    <p className="text-sm line-clamp-2 text-base-content/80">{patient.clinical_history}</p>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-base-content/65">Clinical History</h4>
+                    <p className="text-sm line-clamp-2 text-base-content font-medium">{patient.clinical_history}</p>
                   </div>
                 )}
               </div>
 
-              <div className="border-t border-base-200 p-3 bg-base-50/50 flex gap-2 justify-end rounded-b-box">
+              <div className="border-t border-base-200 p-3 bg-base-200/40 flex gap-2 justify-end rounded-b-box">
                 <button
                   className="btn btn-ghost btn-sm text-error btn-square"
                   onClick={() => setPatientToDelete(patient)}

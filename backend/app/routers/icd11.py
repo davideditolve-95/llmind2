@@ -7,7 +7,7 @@ import math
 from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import or_, func
 
 from ..database import get_db
@@ -116,6 +116,10 @@ async def get_icd11_node(
     # Calcola il numero di figli
     children_count = db.query(ICD11Category).filter(ICD11Category.parent_id == node_id).count()
 
+    # Cerca analogia DSM-5
+    from ..models.dsm5 import DSM5Category
+    dsm5_cat = db.query(DSM5Category).filter(DSM5Category.icd11_code == node.code).first() if node.code else None
+
     return ICD11TableRow(
         id=str(node.id),
         code=node.code,
@@ -132,6 +136,8 @@ async def get_icd11_node(
         level=node.level,
         has_children=node.has_children,
         children_count=children_count,
+        dsm5_analogy_code=dsm5_cat.code if dsm5_cat else None,
+        dsm5_analogy_title=dsm5_cat.title if dsm5_cat else None,
     )
 
 
@@ -171,6 +177,29 @@ async def search_icd11(
     ]
 
 
+@router.get("/chapters", response_model=list[ICD11SearchResult])
+async def get_icd11_chapters(db: Session = Depends(get_db)):
+    """
+    Restituisce tutti i capitoli ICD-11 (livello 0).
+    """
+    chapters = (
+        db.query(ICD11Category)
+        .filter(ICD11Category.level == 0)
+        .order_by(ICD11Category.code)
+        .all()
+    )
+    return [
+        ICD11SearchResult(
+            id=str(c.id),
+            code=c.code,
+            title=c.title_en,
+            description=c.description,
+            level=c.level,
+        )
+        for c in chapters
+    ]
+
+
 @router.get("/codes", response_model=PaginatedICD11Response)
 async def get_icd11_codes(
     page: int = Query(default=1, ge=1),
@@ -179,12 +208,18 @@ async def get_icd11_codes(
     level: Optional[int] = Query(default=None, ge=0),
     parent_id: Optional[UUID] = Query(default=None),
     search_type: str = Query(default="standard", description="standard, symptoms, all"),
+    chapter_id: Optional[UUID] = Query(default=None),
+    has_criteria: Optional[bool] = Query(default=None),
+    has_inclusions: Optional[bool] = Query(default=None),
+    has_exclusions: Optional[bool] = Query(default=None),
+    has_differential: Optional[bool] = Query(default=None),
+    has_italian: Optional[bool] = Query(default=None),
     db: Session = Depends(get_db),
 ):
     """
     Restituisce un elenco paginato di codici ICD-11.
     Utilizzato dalla vista tabulare (/tabular).
-    Supporta filtraggio per testo, livello gerarchico e genitore (drill-down).
+    Supporta filtraggio per testo, livello gerarchico, genitore e filtri avanzati.
     """
     query = db.query(ICD11Category)
 
@@ -222,6 +257,55 @@ async def get_icd11_codes(
         else:  # standard
             query = query.filter(or_(*standard_filters))
 
+    # Filtro avanzato per capitolo (e tutti i suoi discendenti ricorsivamente)
+    if chapter_id:
+        descendant_cte = (
+            db.query(ICD11Category.id)
+            .filter(ICD11Category.id == chapter_id)
+            .cte(name="descendants", recursive=True)
+        )
+        descendant_alias = descendant_cte.alias()
+        category_alias = aliased(ICD11Category)
+        descendant_cte = descendant_cte.union_all(
+            db.query(category_alias.id)
+            .filter(category_alias.parent_id == descendant_alias.c.id)
+        )
+        query = query.filter(ICD11Category.id.in_(db.query(descendant_cte.c.id)))
+
+    # Filtro avanzato per caratteristiche cliniche
+    if has_criteria is not None:
+        if has_criteria:
+            query = query.filter(ICD11Category.diagnostic_criteria.isnot(None), ICD11Category.diagnostic_criteria != "")
+        else:
+            query = query.filter(or_(ICD11Category.diagnostic_criteria.is_(None), ICD11Category.diagnostic_criteria == ""))
+
+    if has_inclusions is not None:
+        from sqlalchemy import cast, String
+        if has_inclusions:
+            query = query.filter(ICD11Category.inclusions.isnot(None), cast(ICD11Category.inclusions, String) != "[]")
+        else:
+            query = query.filter(or_(ICD11Category.inclusions.is_(None), cast(ICD11Category.inclusions, String) == "[]"))
+
+    if has_exclusions is not None:
+        from sqlalchemy import cast, String
+        if has_exclusions:
+            query = query.filter(ICD11Category.exclusions.isnot(None), cast(ICD11Category.exclusions, String) != "[]")
+        else:
+            query = query.filter(or_(ICD11Category.exclusions.is_(None), cast(ICD11Category.exclusions, String) == "[]"))
+
+    if has_differential is not None:
+        from sqlalchemy import cast, String
+        if has_differential:
+            query = query.filter(ICD11Category.differential_diagnoses.isnot(None), cast(ICD11Category.differential_diagnoses, String) != "[]")
+        else:
+            query = query.filter(or_(ICD11Category.differential_diagnoses.is_(None), cast(ICD11Category.differential_diagnoses, String) == "[]"))
+
+    if has_italian is not None:
+        if has_italian:
+            query = query.filter(ICD11Category.title_it.isnot(None), ICD11Category.title_it != "")
+        else:
+            query = query.filter(or_(ICD11Category.title_it.is_(None), ICD11Category.title_it == ""))
+
     # Conta il totale per la paginazione
     total = query.count()
     total_pages = math.ceil(total / page_size)
@@ -244,6 +328,16 @@ async def get_icd11_codes(
     )
     counts_map = {str(parent_id): count for parent_id, count in child_counts}
 
+    # Recupera le analogie DSM-5 per gli elementi della pagina corrente in una sola query
+    from ..models.dsm5 import DSM5Category
+    page_codes = [item.code for item in items if item.code]
+    dsm5_mappings = (
+        db.query(DSM5Category.icd11_code, DSM5Category.code, DSM5Category.title)
+        .filter(DSM5Category.icd11_code.in_(page_codes))
+        .all()
+    )
+    dsm5_map = {icd_code: (dsm_code, dsm_title) for icd_code, dsm_code, dsm_title in dsm5_mappings}
+
     return PaginatedICD11Response(
         items=[
             ICD11TableRow(
@@ -262,6 +356,8 @@ async def get_icd11_codes(
                 level=item.level,
                 has_children=item.has_children,
                 children_count=counts_map.get(str(item.id), 0),
+                dsm5_analogy_code=dsm5_map.get(item.code)[0] if item.code and item.code in dsm5_map else None,
+                dsm5_analogy_title=dsm5_map.get(item.code)[1] if item.code and item.code in dsm5_map else None,
             )
             for item in items
         ],

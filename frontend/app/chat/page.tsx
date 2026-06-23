@@ -213,7 +213,7 @@ export default function ChatPage() {
         key={session.id}
         className={clsx(
           'group relative mb-1.5 rounded-box p-2 transition-all duration-200 border border-transparent',
-          isActive ? 'bg-base-200 border-base-300/40 text-base-content font-medium' : 'hover:bg-base-200/50 hover:text-base-content/90'
+          isActive ? 'bg-primary/10 border-primary/20 text-primary font-semibold' : 'hover:bg-base-200/60 text-base-content/85 font-medium'
         )}
       >
         {renaming === session.id ? (
@@ -345,13 +345,13 @@ export default function ChatPage() {
           {sessions.length === 0 ? (
             <div className="alert text-sm">No saved sessions yet.</div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-6 text-sm text-base-content/50">No matches found.</div>
+            <div className="text-center py-6 text-sm text-base-content font-semibold">No matches found.</div>
           ) : (
             <div className="space-y-4">
               {/* Pinned Sessions */}
               {pinnedSessions.length > 0 && (
                 <div className="space-y-1">
-                  <div className="px-2 mb-2 text-xs font-semibold uppercase tracking-wider text-base-content/40 flex items-center gap-1.5">
+                  <div className="px-2 mb-2 text-xs font-bold uppercase tracking-wider text-base-content/65 flex items-center gap-1.5">
                     <PinIcon filled={true} className="h-3 w-3 text-primary" />
                     <span>Pinned</span>
                   </div>
@@ -362,7 +362,7 @@ export default function ChatPage() {
               {/* Recent Sessions */}
               <div className="space-y-1">
                 {pinnedSessions.length > 0 ? (
-                  <div className="px-2 pt-2 mb-2 border-t border-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/40">
+                  <div className="px-2 pt-2 mb-2 border-t border-base-200/50 text-xs font-bold uppercase tracking-wider text-base-content/65">
                     Recent Conversations
                   </div>
                 ) : null}
@@ -469,15 +469,15 @@ export default function ChatPage() {
 
         <div className="border-t border-base-300 bg-base-100 p-4">
           {activePatientId && (
-            <div className="mx-auto max-w-4xl px-4 py-1.5 mb-2.5 rounded-lg bg-accent/15 text-accent-content text-xs font-semibold flex items-center justify-between border border-accent/25 shadow-sm">
+            <div className="mx-auto max-w-4xl px-4 py-2 mb-2.5 rounded-lg bg-emerald-50 text-emerald-950 text-xs font-semibold flex items-center justify-between border border-emerald-200 shadow-sm">
               <span className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
                 </span>
-                Active Patient Context: <strong className="underline">{patients.find(p => p.id === activePatientId)?.name}</strong>
+                Active Patient Context: <strong className="underline text-emerald-900">{patients.find(p => p.id === activePatientId)?.name}</strong>
               </span>
-              <button className="btn btn-ghost btn-xs text-xs px-1 h-auto min-h-0 text-accent-content/75 hover:text-accent-content" onClick={() => handlePatientChange('none')}>Clear Context</button>
+              <button className="btn btn-ghost btn-xs text-xs px-1.5 h-auto min-h-0 text-emerald-800 hover:text-emerald-950 font-bold" onClick={() => handlePatientChange('none')}>Clear Context</button>
             </div>
           )}
           <div className="mx-auto flex max-w-4xl gap-2">

@@ -55,7 +55,7 @@ def test_test_inference(client, mock_ollama_in_router):
 def test_sessions_crud(client, db):
     # Create session
     session_id = uuid4()
-    session = ChatSession(id=session_id, title="Test Session", mode="icd11", is_active=True)
+    session = ChatSession(id=session_id, title="Test Session", mode="icd11", is_active=True, user_email="test@example.com")
     db.add(session)
     db.commit()
 

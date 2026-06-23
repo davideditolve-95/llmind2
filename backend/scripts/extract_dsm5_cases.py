@@ -127,6 +127,62 @@ def find_section_boundary(text: str, markers: list[str]) -> int:
                 best_pos = match.start()
     return best_pos
 
+def clean_headers_and_reflow(text: str, section_type: str) -> str:
+    if not text:
+        return ""
+    
+    # 1. Clean the text and replace windows newlines
+    text = text.strip().replace("\r\n", "\n")
+    
+    # 2. Strip leading section prefixes using start-of-text regexes
+    if section_type == "anamnesis":
+        pattern = r"^\s*(?:Introduction|History and Mental Status|Psychiatric History|History of Present Illness|Clinical Presentation|Chief Complaint|Presenting Complaints|Patient History|Background|Case Description|History)\b\s*[:\-–\s]*"
+    elif section_type == "discussion":
+        pattern = r"^\s*(?:Discussion|Discusion|Clinical Discussion|Diagnostic Discussion|Commentary|Analysis)\b\s*[:\-–\s]*"
+    elif section_type == "diagnosis":
+        pattern = r"^\s*(?:Diagnosis|Diagnoses|DSM-5 Diagnosis|DSM-5-TR Diagnosis|ICD-11 Diagnosis|Final Diagnosis|Diagnostic Conclusion)\b\s*[:\-–\s]*"
+    else:
+        pattern = None
+        
+    if pattern:
+        # Loop to remove multiple leading prefixes if they are repeated (e.g. "Discusion\nDiscussion")
+        old_text = ""
+        while old_text != text:
+            old_text = text
+            text = re.sub(pattern, "", text, flags=re.IGNORECASE | re.MULTILINE).strip()
+            
+    # 3. Reflow text
+    paragraphs = re.split(r'\n\s*\n', text)
+    reflowed_paragraphs = []
+    
+    for para in paragraphs:
+        para_lines = para.split("\n")
+        reflowed_lines = []
+        for line in para_lines:
+            line_stripped = line.strip()
+            if not line_stripped:
+                continue
+            
+            # Keep line breaks for bullet lists
+            if re.match(r'^[\u2022\u25cf\u25cb\u25aa\u25ab\-*+•]\s+', line_stripped) or re.match(r'^\d+\.\s+', line_stripped):
+                reflowed_lines.append(("\n" if reflowed_lines else "") + line_stripped)
+            else:
+                reflowed_lines.append(line_stripped)
+        
+        para_text = ""
+        for rl in reflowed_lines:
+            if rl.startswith("\n"):
+                para_text += rl
+            else:
+                if para_text and not para_text.endswith("\n") and not para_text.endswith(" "):
+                    para_text += " " + rl
+                else:
+                    para_text += rl
+        
+        reflowed_paragraphs.append(para_text.strip())
+        
+    return "\n\n".join(reflowed_paragraphs)
+
 
 def split_case_into_sections(case_text: str) -> dict:
     """
@@ -194,6 +250,19 @@ def split_case_into_sections(case_text: str) -> dict:
     for key in ["anamnesis", "discussion", "gold_standard_diagnosis"]:
         result[key] = clean_section_text(result[key])
         result[key] = de_stutter(result[key])
+
+    # Rimuovi la riga redundante "Case X" dall'inizio dell'anamnesi
+    if result["anamnesis"]:
+        lines = result["anamnesis"].strip().split("\n")
+        if lines:
+            first_line = lines[0].strip()
+            if re.match(r"^(?:Case|CASE|case)\s+(\d+(?:\.\d+)*)\s*$", first_line):
+                result["anamnesis"] = "\n".join(lines[1:]).strip()
+
+    # Rimuovi i titoli di capitolo redundanti e reflow del testo (line-wrapping non voluto)
+    result["anamnesis"] = clean_headers_and_reflow(result["anamnesis"], "anamnesis")
+    result["discussion"] = clean_headers_and_reflow(result["discussion"], "discussion")
+    result["gold_standard_diagnosis"] = clean_headers_and_reflow(result["gold_standard_diagnosis"], "diagnosis")
 
     # Rimuovi "Suggested Readings" e tutto ciò che segue dalla diagnosi
     diag = result["gold_standard_diagnosis"]

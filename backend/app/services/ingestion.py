@@ -84,9 +84,12 @@ class IngestionService:
             # 3. Embedding & Salvataggio in Chroma
             vector_path = os.path.join(self.datastores_base_path, str(datastore_id))
             
+            headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
+
             embeddings = OllamaEmbeddings(
                 model=model_name,
-                base_url=settings.ollama_base_url
+                base_url=settings.ollama_base_url,
+                headers=headers
             )
 
             logger.info(f"Inizializzazione Chroma in {vector_path} con model {model_name}...")
@@ -96,14 +99,33 @@ class IngestionService:
                 persist_directory=vector_path
             )
 
+            # Parse nodes count if it is a generated scoped file
+            icd11_nodes_count = None
+            for file_path in file_paths:
+                if "icd11_chapter_6_scope.txt" in file_path:
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            for _ in range(10):  # Check first 10 lines
+                                line = f.readline()
+                                if line.startswith("Nodes:"):
+                                    icd11_nodes_count = int(line.split(":")[1].strip())
+                                    break
+                    except Exception as e:
+                        logger.warning(f"Failed to parse nodes count: {e}")
+
             # 4. Aggiornamento stato DB
             datastore.status = "ready"
             datastore.vector_path = vector_path
-            datastore.metadata_info = {
+            
+            metadata = {
                 "chunks": len(splits),
                 "source_files_count": len(file_paths),
                 "total_size_bytes": total_size
             }
+            if icd11_nodes_count is not None:
+                metadata["icd11_nodes_count"] = icd11_nodes_count
+                
+            datastore.metadata_info = metadata
             db.commit()
             logger.info(f"Datastore {datastore.name} pronto con {len(file_paths)} sorgenti.")
 

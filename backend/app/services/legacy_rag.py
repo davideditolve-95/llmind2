@@ -46,10 +46,13 @@ class LegacyRAGService:
         logger.info(f"Inizializzazione Legacy RAG con model {self.model_name}...")
         
         try:
+            headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
+
             # Configura gli embeddings (stessi parametri della v1)
             embeddings = OllamaEmbeddings(
                 model=self.model_name,
-                base_url=settings.ollama_base_url
+                base_url=settings.ollama_base_url,
+                headers=headers
             )
 
             # Carica il vectorstore
@@ -66,7 +69,8 @@ class LegacyRAGService:
             llm = Ollama(
                 model=self.model_name,
                 base_url=settings.ollama_base_url,
-                temperature=0.7
+                temperature=0.7,
+                headers=headers
             )
 
             # Recuperatore

@@ -91,8 +91,7 @@ export default function DatastoresPage() {
 
   const create = async (event: FormEvent) => {
     event.preventDefault();
-    const selectedPreset = presets.find((p) => p.id === preset);
-    if (selectedPreset?.supports_icd_scope && icdScope === 'sections' && selectedSections.length === 0) {
+    if (icdScope === 'sections' && selectedSections.length === 0) {
       setError('Select at least one ICD-11 chapter 6 section, or use the full chapter.');
       return;
     }
@@ -102,7 +101,7 @@ export default function DatastoresPage() {
     const form = new FormData();
     form.append('name', name);
     form.append('model_name', model);
-    form.append('preset_id', preset);
+    form.append('preset_id', 'icd11_standard');
     form.append('icd_scope', icdScope);
     form.append('icd_section_ids', selectedSections.join(','));
     
@@ -121,9 +120,6 @@ export default function DatastoresPage() {
       setCreating(false);
     }
   };
-
-  const activePreset = presets.find((p) => p.id === preset);
-  const showIcdScope = Boolean(activePreset?.supports_icd_scope);
 
   const toggleSection = (id: string) => {
     setSelectedSections((current) =>
@@ -208,79 +204,69 @@ export default function DatastoresPage() {
           <h3 className="text-lg font-semibold">Create datastore</h3>
           <form className="mt-4 space-y-4" onSubmit={create}>
             <input className="input input-bordered w-full" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-            <select className="select select-bordered w-full" required value={preset} onChange={(e) => setPreset(e.target.value)}>
-              {presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            {activePreset?.description && (
-              <p className="text-sm text-base-content/60">{activePreset.description}</p>
-            )}
-
-            {showIcdScope && (
-              <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
-                <div className="mb-3">
-                  <div className="font-semibold">ICD-11 chapter 6 scope</div>
-                  <p className="text-sm text-base-content/60">
-                    Choose whether this datastore should include the full mental, behavioural and neurodevelopmental chapter or only selected direct sections.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
-                    <input
-                      type="radio"
-                      className="radio radio-primary mt-1"
-                      name="icd_scope"
-                      checked={icdScope === 'chapter_6'}
-                      onChange={() => setIcdScope('chapter_6')}
-                    />
-                    <span>
-                      <span className="block font-medium">Use all chapter 6</span>
-                      <span className="text-sm text-base-content/60">
-                        {icdChapter ? `${icdChapter.code || 'Chapter 6'} · ${icdChapter.title}` : 'Chapter 6 will be used when ICD-11 data is available.'}
-                      </span>
-                    </span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
-                    <input
-                      type="radio"
-                      className="radio radio-primary mt-1"
-                      name="icd_scope"
-                      checked={icdScope === 'sections'}
-                      onChange={() => setIcdScope('sections')}
-                    />
-                    <span>
-                      <span className="block font-medium">Use selected sections</span>
-                      <span className="text-sm text-base-content/60">Useful for smaller, cheaper and more focused vector stores.</span>
-                    </span>
-                  </label>
-                </div>
-
-                {icdScope === 'sections' && (
-                  <div className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-                    {icdSections.length === 0 ? (
-                      <div className="alert alert-warning text-sm">No chapter 6 sections available. Run the ICD-11 ETL first.</div>
-                    ) : (
-                      icdSections.map((section) => (
-                        <label key={section.id} className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary mt-1"
-                            checked={selectedSections.includes(section.id)}
-                            onChange={() => toggleSection(section.id)}
-                          />
-                          <span>
-                            <span className="block font-medium">{section.code || 'No code'} · {section.title}</span>
-                            <span className="text-sm text-base-content/60">{section.children_count} direct children</span>
-                          </span>
-                        </label>
-                      ))
-                    )}
-                  </div>
-                )}
+            
+            <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
+              <div className="mb-3">
+                <div className="font-semibold">ICD-11 chapter 6 scope</div>
+                <p className="text-sm text-base-content/60">
+                  Choose whether this datastore should include the full mental, behavioural and neurodevelopmental chapter or only selected direct sections.
+                </p>
               </div>
-            )}
-            <select className="select select-bordered w-full" required value={model} onChange={(e) => setModel(e.target.value)}>
-              {models.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
+                  <input
+                    type="radio"
+                    className="radio radio-primary mt-1"
+                    name="icd_scope"
+                    checked={icdScope === 'chapter_6'}
+                    onChange={() => setIcdScope('chapter_6')}
+                  />
+                  <span>
+                    <span className="block font-medium">Use all chapter 6</span>
+                    <span className="text-sm text-base-content/60">
+                      {icdChapter ? `${icdChapter.code || 'Chapter 6'} · ${icdChapter.title}` : 'Chapter 6 will be used when ICD-11 data is available.'}
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
+                  <input
+                    type="radio"
+                    className="radio radio-primary mt-1"
+                    name="icd_scope"
+                    checked={icdScope === 'sections'}
+                    onChange={() => setIcdScope('sections')}
+                  />
+                  <span>
+                    <span className="block font-medium">Use selected sections</span>
+                    <span className="text-sm text-base-content/60">Useful for smaller, cheaper and more focused vector stores.</span>
+                  </span>
+                </label>
+              </div>
+
+              {icdScope === 'sections' && (
+                <div className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
+                  {icdSections.length === 0 ? (
+                    <div className="alert alert-warning text-sm">No chapter 6 sections available. Run the ICD-11 ETL first.</div>
+                  ) : (
+                    icdSections.map((section) => (
+                      <label key={section.id} className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-primary mt-1"
+                          checked={selectedSections.includes(section.id)}
+                          onChange={() => toggleSection(section.id)}
+                        />
+                        <span>
+                          <span className="block font-medium">{section.code || 'No code'} · {section.title}</span>
+                          <span className="text-sm text-base-content/60">{section.children_count} direct children</span>
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="modal-action">
               <button type="button" className="btn" onClick={() => setOpen(false)}>Cancel</button>
               <button className="btn btn-primary" disabled={creating}>

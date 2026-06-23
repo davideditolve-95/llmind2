@@ -81,6 +81,8 @@ class ICD11TableRow(BaseModel):
     level: int
     has_children: bool
     children_count: int = 0
+    dsm5_analogy_code: Optional[str] = None
+    dsm5_analogy_title: Optional[str] = None
 
     class Config:
         from_attributes = True
