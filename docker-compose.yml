@@ -78,7 +78,7 @@ services:
       # Volume per caricare il PDF del DSM-5-TR
       - ./backend/data:/app/data
     ports:
-      - "8000:8000"
+      - "6001:8000"
     depends_on:
       icd11-api:
         condition: service_started
