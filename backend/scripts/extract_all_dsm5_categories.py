@@ -177,10 +177,24 @@ def search_icd11_mapping(title: str, exact_lookup: dict[str, str], searchable_ti
     return None
 
 def extract_and_seed_all():
-    pdf_path = "data/dsm5.pdf"
-    if not Path(pdf_path).exists():
-        logger.error(f"File PDF non trovato in: {pdf_path}")
+    # Cerca il file PDF da riga di comando o usa il default
+    pdf_path = None
+    if len(sys.argv) > 1:
+        pdf_path = sys.argv[1]
+    
+    if not pdf_path or not Path(pdf_path).exists():
+        # Fallback a percorsi standard
+        candidates = ["data/dsm5.pdf", "data/dsm5tr.pdf", "backend/data/dsm5.pdf", "backend/data/dsm5tr.pdf"]
+        for candidate in candidates:
+            if Path(candidate).exists():
+                pdf_path = candidate
+                break
+                
+    if not pdf_path or not Path(pdf_path).exists():
+        logger.error("File PDF non trovato. Specifica il percorso come argomento o posiziona dsm5.pdf in data/")
         return
+        
+    logger.info(f"Utilizzo file PDF per l'estrazione: {pdf_path}")
         
     db: Session = SessionLocal()
     try:

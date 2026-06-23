@@ -32,6 +32,7 @@ fi
 
 echo "🚀 Esecuzione script di seeding..."
 docker compose exec backend python scripts/seed_dsm5.py
+docker compose exec backend python scripts/extract_all_dsm5_categories.py
 
 echo ""
 echo "✅ Seeding DSM-5 completato!"

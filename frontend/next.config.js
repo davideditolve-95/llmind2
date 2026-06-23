@@ -1,3 +1,10 @@
+// Pulisci le variabili d'ambiente vuote per evitare crash durante la build (es. TypeError: Invalid URL)
+['NEXTAUTH_URL', 'NEXT_PUBLIC_API_URL', 'KEYCLOAK_ISSUER'].forEach((varName) => {
+  if (process.env[varName] === '') {
+    delete process.env[varName];
+  }
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Modalità standalone per il build Docker ottimizzato
