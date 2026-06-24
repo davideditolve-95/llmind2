@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { icd11Api, dsm5Api, type IcdTableRow, type PaginatedResponse, type DSM5CategoryCompare } from '@/lib/api';
+import { icd11Api, dsm5Api, drugsApi, type IcdTableRow, type PaginatedResponse, type DSM5CategoryCompare, type AIFADrug } from '@/lib/api';
 import MarkdownContent from '@/components/ui/MarkdownContent';
 import {
   ChevronLeftIcon,
@@ -14,6 +14,7 @@ import {
   MinusCircleIcon,
   ArrowsRightLeftIcon,
   DocumentTextIcon,
+  BeakerIcon,
 } from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
@@ -429,6 +430,19 @@ function CodeModal({ row, onClose }: { row: IcdTableRow; onClose: () => void }) 
   const [comparisonData, setComparisonData] = useState<DSM5CategoryCompare | null>(null);
   const [loadingComparison, setLoadingComparison] = useState(false);
   const [comparisonError, setComparisonError] = useState<string | null>(null);
+  
+  const [associatedDrugs, setAssociatedDrugs] = useState<AIFADrug[]>([]);
+  const [loadingDrugs, setLoadingDrugs] = useState(false);
+
+  useEffect(() => {
+    if (row.code) {
+      setLoadingDrugs(true);
+      drugsApi.getByDisorder(row.code)
+        .then(setAssociatedDrugs)
+        .catch((err) => console.error("Error loading associated drugs:", err))
+        .finally(() => setLoadingDrugs(false));
+    }
+  }, [row.code]);
 
   const handleCompare = async () => {
     if (!row.code) return;
@@ -452,6 +466,11 @@ function CodeModal({ row, onClose }: { row: IcdTableRow; onClose: () => void }) 
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="badge badge-primary font-bold text-primary-content">{row.code || `Level ${row.level}`}</span>
+              {row.icd10_code && (
+                <span className="badge border border-emerald-300 text-emerald-700 bg-emerald-50/50 font-mono font-bold px-2 py-0.5 rounded">
+                  ICD-10 Code: {row.icd10_code}
+                </span>
+              )}
               {row.dsm5_analogy_code && (
                 <span className="badge border border-purple-300 text-purple-700 bg-purple-50/50 font-mono font-bold px-2 py-0.5 rounded">
                   DSM-5 Analogy: {row.dsm5_analogy_code}
@@ -502,6 +521,53 @@ function CodeModal({ row, onClose }: { row: IcdTableRow; onClose: () => void }) 
             <TagList title="Index terms" values={row.index_terms} type="neutral" />
             <TagList title="Differential diagnoses" values={row.differential_diagnoses} type="info" />
           </div>
+
+          {/* Associated Drugs Section */}
+          <section className="mt-6 border-t border-base-200 pt-5">
+            <h3 className="font-bold text-base-content text-lg mb-3 flex items-center gap-2">
+              <BeakerIcon className="h-5 w-5 text-primary" />
+              <span>Medicinali AIFA Associati (Evidenze MEDI-C)</span>
+            </h3>
+            {loadingDrugs ? (
+              <div className="flex items-center gap-2 text-sm text-base-content/60">
+                <span className="loading loading-spinner loading-sm" />
+                <span>Ricerca medicinali associati...</span>
+              </div>
+            ) : associatedDrugs.length > 0 ? (
+              <div className="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+                <table className="table table-zebra table-sm w-full">
+                  <thead>
+                    <tr className="bg-base-200 text-base-content font-bold">
+                      <th>Principio Attivo</th>
+                      <th>Nome Commerciale</th>
+                      <th>Produttore</th>
+                      <th>Confezione</th>
+                      <th>Prezzo</th>
+                      <th>Classe</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {associatedDrugs.map((drug) => (
+                      <tr key={drug.id} className="hover">
+                        <td className="font-bold text-primary">{drug.active_ingredient}</td>
+                        <td className="font-semibold text-base-content">{drug.commercial_name}</td>
+                        <td className="text-xs">{drug.manufacturer || '-'}</td>
+                        <td className="text-xs">{drug.packaging || '-'}</td>
+                        <td className="font-mono text-xs">{drug.price ? `${drug.price.toFixed(2)} €` : '-'}</td>
+                        <td>
+                          <span className="badge badge-sm badge-outline font-bold">
+                            {drug.category_class || 'N.D.'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-base-content/50 italic">Nessun farmaco AIFA associato trovato per questo disturbo.</p>
+            )}
+          </section>
         </div>
       </div>
       

@@ -20,6 +20,7 @@ export interface IcdNode {
 export interface IcdTableRow {
   id: string;
   code: string | null;
+  icd10_code?: string | null;
   title_en: string;
   title_it: string | null;
   description: string | null;
@@ -682,3 +683,52 @@ export interface SystemLog {
 export const systemApi = {
   getLogs: () => fetchApi<{ logs: SystemLog[] }>('/api/system/logs'),
 };
+
+// ─── AIFA Drugs ────────────────────────────────────────────────────────────
+
+export interface AIFADrug {
+  id: string;
+  active_ingredient: string;
+  atc_code: string | null;
+  aic_code: string;
+  commercial_name: string;
+  packaging: string | null;
+  manufacturer: string | null;
+  price: number | null;
+  category_class: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const drugsApi = {
+  list: (params: {
+    page?: number;
+    page_size?: number;
+    search?: string;
+    active_ingredient?: string;
+    manufacturer?: string;
+    atc_code?: string;
+    category_class?: string;
+    min_price?: number;
+    max_price?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    if (params.search) query.set('search', params.search);
+    if (params.active_ingredient) query.set('active_ingredient', params.active_ingredient);
+    if (params.manufacturer) query.set('manufacturer', params.manufacturer);
+    if (params.atc_code) query.set('atc_code', params.atc_code);
+    if (params.category_class) query.set('category_class', params.category_class);
+    if (params.min_price !== undefined) query.set('min_price', String(params.min_price));
+    if (params.max_price !== undefined) query.set('max_price', String(params.max_price));
+    return fetchApi<PaginatedResponse<AIFADrug>>(`/api/drugs?${query}`);
+  },
+
+  getByDisorder: (icd11Code: string) =>
+    fetchApi<AIFADrug[]>(`/api/drugs/by-disorder/${encodeURIComponent(icd11Code)}`),
+
+  get: (id: string) =>
+    fetchApi<AIFADrug>(`/api/drugs/${id}`),
+};
+

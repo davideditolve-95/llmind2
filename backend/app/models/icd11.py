@@ -23,6 +23,9 @@ class ICD11Category(Base):
     # Codice ICD-11 (es. "6A00" per Disturbo da deficit di attenzione)
     code = Column(String(20), index=True, nullable=True)
 
+    # Codice ICD-10 corrispondente (es. "F90.0") per mapping nosologici
+    icd10_code = Column(String(20), index=True, nullable=True)
+
     # Titolo in inglese (lingua principale)
     title_en = Column(Text, nullable=False)
 

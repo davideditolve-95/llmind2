@@ -9,6 +9,7 @@ __pycache__/
 *.pyd
 .db
 backend/data/*.pdf
+backend/data/cache/
 files/
 scratch/
 .ipynb_checkpoints/

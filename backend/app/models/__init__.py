@@ -6,4 +6,6 @@ from .chat import ChatMessage, ChatSession
 from .patient import Patient
 from .datastore import Datastore
 from .dsm5 import DSM5Category
+from .drugs import AIFADrug, DrugIndicationMapping
+
 

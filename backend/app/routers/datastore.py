@@ -78,6 +78,11 @@ PRESETS = {
         "name": "DSM-5-TR Clinical Reference",
         "description": "Specialized archive of DSM-5-TR clinical case studies and discussions.",
         "files": ["DSM-5-TR_Clinical_Cases.txt"]
+    },
+    "aifa_drugs": {
+        "name": "AIFA Italian Medicines & Indications",
+        "description": "Comprehensive reference of Italian medicines, active ingredients, and indications mapped to ICD-10.",
+        "files": ["aifa_drugs_indications.txt"]
     }
 }
 

@@ -29,6 +29,7 @@ const nav = [
     items: [
       { href: '/tabular', label: 'ICD-11 Explorer', icon: Squares2X2Icon },
       { href: '/tabular/dsm5', label: 'DSM-5 Explorer', icon: Squares2X2Icon },
+      { href: '/drugs', label: 'AIFA Medicines', icon: BeakerIcon },
     ],
   },
   {

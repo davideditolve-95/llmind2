@@ -42,6 +42,18 @@
         "../docs/11-benchmark-protocol.md",
         "../docs/13-data-governance.md"
       ]
+    },
+    {
+      "id": "aifa-medicines",
+      "display_name": "AIFA Italian Medicines & Indications",
+      "description": "Comprehensive reference of Italian medicines, active ingredients, prices, classes, and MEDI-C clinical indications.",
+      "gcs_prefix": "clinical-corpora/aifa-medicines",
+      "local_files": [
+        "source-pdfs/AIFA_Italian_Medicines.pdf"
+      ],
+      "source_files": [
+        "../backend/data/original_docs/aifa_drugs_indications.txt"
+      ]
     }
   ]
 }

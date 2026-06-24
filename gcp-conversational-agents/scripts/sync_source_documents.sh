@@ -215,7 +215,138 @@ doc.build(story)
 print(out)
 PY
 
+echo "Rendering AIFA Italian Medicines & Indications PDF from backend text source..."
+"${PYTHON_BIN}" - <<'PY' "${REPO_DIR}" "${SOURCE_DIR}"
+from pathlib import Path
+import re
+import sys
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+
+repo = Path(sys.argv[1])
+source_dir = Path(sys.argv[2])
+out = source_dir / "AIFA_Italian_Medicines.pdf"
+txt_path = repo / "backend" / "data" / "original_docs" / "aifa_drugs_indications.txt"
+
+styles = getSampleStyleSheet()
+styles.add(ParagraphStyle(
+    name="DrugBody",
+    parent=styles["BodyText"],
+    fontName="Helvetica",
+    fontSize=8.0,
+    leading=10.0,
+    spaceAfter=4,
+))
+styles.add(ParagraphStyle(
+    name="DrugTitle",
+    parent=styles["Heading2"],
+    fontName="Helvetica-Bold",
+    fontSize=12,
+    leading=14,
+    textColor=colors.HexColor("#b91c1c"), # Red color for active ingredient
+    spaceBefore=8,
+    spaceAfter=6,
+))
+styles.add(ParagraphStyle(
+    name="SectionTitle",
+    parent=styles["Heading3"],
+    fontName="Helvetica-Bold",
+    fontSize=9.5,
+    leading=11,
+    textColor=colors.HexColor("#475569"),
+    spaceBefore=5,
+    spaceAfter=3,
+))
+
+def clean(text: str) -> str:
+    text = text.replace("\x00", " ").replace("", "-")
+    text = re.sub(r"\s+", " ", text).strip()
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+doc = SimpleDocTemplate(
+    str(out),
+    pagesize=A4,
+    rightMargin=1.35 * cm,
+    leftMargin=1.35 * cm,
+    topMargin=1.25 * cm,
+    bottomMargin=1.25 * cm,
+    title="AIFA Italian Medicines & Indications - LLMind2 Extracted Research Corpus",
+)
+
+story = [
+    Paragraph("AIFA Italian Medicines &amp; Indications", styles["Title"]),
+    Paragraph(
+        "Generated from local AIFA registry and MEDI-C databases for datastore ingestion. "
+        "WARNING: This document is for research purposes only and has no clinical validity.",
+        styles["DrugBody"],
+    ),
+    Spacer(1, 0.3 * cm),
+]
+
+if txt_path.exists():
+    content = txt_path.read_text(encoding="utf-8", errors="replace")
+    # Split into active ingredient sections using the double equals separator or active ingredient header
+    sections = content.split("## PRINCIPIO ATTIVO:")
+    
+    # Write the header introduction (first section before first ## PRINCIPIO ATTIVO)
+    if sections[0].strip():
+        story.append(Paragraph(clean(sections[0].strip()), styles["DrugBody"]))
+        story.append(Spacer(1, 0.2 * cm))
+        
+    # Limit to 100 sections to keep the document generation fast and stable
+    for sec in sections[1:101]:
+        sec = sec.strip()
+        if not sec:
+            continue
+            
+        # The first line of the section is the active ingredient name
+        lines = sec.splitlines()
+        ingredient_name = lines[0].strip()
+        story.append(Paragraph(f"PRINCIPIO ATTIVO: {ingredient_name}", styles["DrugTitle"]))
+        
+        body_lines = []
+        for line in lines[1:]:
+            line = line.strip()
+            if not line or line.startswith("==="):
+                if body_lines:
+                    story.append(Paragraph("<br/>".join(body_lines), styles["DrugBody"]))
+                    body_lines = []
+                continue
+                
+            clean_line = clean(line)
+            # Add bullet points styling or headings
+            if clean_line.startswith("-"):
+                if body_lines:
+                    story.append(Paragraph("<br/>".join(body_lines), styles["DrugBody"]))
+                    body_lines = []
+                story.append(Paragraph(f"<b>{clean_line[1:].strip()}</b>", styles["SectionTitle"]))
+            elif clean_line.startswith("*"):
+                body_lines.append(f"• {clean_line[1:].strip()}")
+            else:
+                body_lines.append(clean_line)
+                
+        if body_lines:
+            story.append(Paragraph("<br/>".join(body_lines), styles["DrugBody"]))
+            
+        story.append(Spacer(1, 0.2 * cm))
+else:
+    raise SystemExit("No AIFA source found in backend/data/original_docs/aifa_drugs_indications.txt")
+
+doc.build(story)
+print(out)
+PY
+
 echo "Source documents ready:"
 ls -lh "${SOURCE_DIR}"/ICD-11-CDDR.pdf \
   "${SOURCE_DIR}"/DSM-5-TR_Clinical_Cases.pdf \
-  "${SOURCE_DIR}"/LLMind2_Research_Protocol.pdf
+  "${SOURCE_DIR}"/LLMind2_Research_Protocol.pdf \
+  "${SOURCE_DIR}"/AIFA_Italian_Medicines.pdf
+

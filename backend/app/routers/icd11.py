@@ -123,6 +123,7 @@ async def get_icd11_node(
     return ICD11TableRow(
         id=str(node.id),
         code=node.code,
+        icd10_code=node.icd10_code,
         title_en=node.title_en,
         title_it=node.title_it,
         description=node.description,
@@ -343,6 +344,7 @@ async def get_icd11_codes(
             ICD11TableRow(
                 id=str(item.id),
                 code=item.code,
+                icd10_code=item.icd10_code,
                 title_en=item.title_en,
                 title_it=item.title_it,
                 description=item.description,

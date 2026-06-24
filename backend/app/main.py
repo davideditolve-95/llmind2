@@ -18,7 +18,9 @@ from .routers import system as router_system
 from .routers import gcp_agents as router_gcp_agents
 from .routers import patient as router_patient
 from .routers import dsm5 as router_dsm5
+from .routers import drugs as router_drugs
 from .config import get_settings
+
 
 # Importa tutti i modelli per assicurarsi che vengano registrati prima di create_all
 from .models import icd11 as icd11_model  # noqa: F401
@@ -27,6 +29,8 @@ from .models import chat as chat_model  # noqa: F401
 from .models import datastore as datastore_model  # noqa: F401
 from .models import patient as patient_model  # noqa: F401
 from .models import dsm5 as dsm5_model  # noqa: F401
+from .models import drugs as drugs_model  # noqa: F401
+
 
 settings = get_settings()
 
@@ -212,7 +216,37 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Errore sincronizzazione schema DSM-5: {e}", exc_info=True)
 
+    # ─── Allineamento automatico codici ICD-10 in icd11_categories ───────────
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        if "icd11_categories" in tables:
+            icd11_columns = [c["name"] for c in inspector.get_columns("icd11_categories")]
+            if "icd10_code" not in icd11_columns:
+                logger.info("Aggiunta colonna icd10_code a icd11_categories...")
+                with engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE icd11_categories ADD COLUMN icd10_code VARCHAR"))
+                    conn.commit()
+
+        if "icd11_categories" in tables and "dsm5_categories" in tables:
+            logger.info("Inizio allineamento automatico icd10_code in icd11_categories...")
+            with engine.connect() as conn:
+                res = conn.execute(text("""
+                    UPDATE icd11_categories i
+                    SET icd10_code = d.icd10_code
+                    FROM dsm5_categories d
+                    WHERE i.code = d.icd11_code 
+                      AND (i.icd10_code IS NULL OR i.icd10_code = '')
+                      AND d.icd10_code IS NOT NULL 
+                      AND d.icd10_code != ''
+                """))
+                conn.commit()
+                logger.info(f"Allineamento completato: {res.rowcount} codici ICD-10 associati alle categorie ICD-11.")
+    except Exception as e:
+        logger.error(f"Errore durante l'allineamento dei codici ICD-10: {e}", exc_info=True)
+
     logger.info("Inizializzazione schema database completata.")
+
 
 
 # ─── Registrazione dei router ──────────────────────────────────────────────
@@ -229,6 +263,8 @@ app.include_router(router_system.router, dependencies=[Depends(verify_token)])
 app.include_router(router_gcp_agents.router, dependencies=[Depends(verify_token)])
 app.include_router(router_patient.router, dependencies=[Depends(verify_token)])
 app.include_router(router_dsm5.router, dependencies=[Depends(verify_token)])
+app.include_router(router_drugs.router, dependencies=[Depends(verify_token)])
+
 
 
 # ─── Endpoint di utilità ───────────────────────────────────────────────────

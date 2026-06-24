@@ -68,7 +68,9 @@ class ICD11TableRow(BaseModel):
     """Riga del data grid tabulare."""
     id: str
     code: Optional[str] = None
+    icd10_code: Optional[str] = None
     title_en: str
+
     title_it: Optional[str] = None
     description: Optional[str] = None
     inclusions: Optional[List[str]] = None
