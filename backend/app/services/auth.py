@@ -8,7 +8,7 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 # Cache per le chiavi JWKS
 _jwks_cache = None
@@ -54,11 +54,24 @@ async def get_jwks():
     return None
 
 
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+async def verify_token(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
     """
     Verifica il token JWT ricevuto nell'header Authorization Bearer.
     Valida la firma tramite JWKS Keycloak, la scadenza e l'issuer.
     """
+    if credentials is None:
+        if settings.environment != "production":
+            logger.warning("Autenticazione disabilitata in ambiente locale development.")
+            return {
+                "sub": "local-development-user",
+                "preferred_username": "local-dev",
+                "email": "local-dev@llmind.local",
+            }
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authenticated",
+        )
+
     token = credentials.credentials
     jwks = await get_jwks()
 

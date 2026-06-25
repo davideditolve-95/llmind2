@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # Sicurezza
     secret_key: str = "cambia_questa_chiave_in_produzione"
     environment: str = "development"
+    cors_allowed_origins: str = "http://localhost:3000,http://frontend:3000"
+    cors_allowed_origin_regex: str = r"https://.*\.sslip\.io"
 
     # Embedding model locale
     embedding_model: str = "all-MiniLM-L6-v2"
