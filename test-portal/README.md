@@ -16,7 +16,7 @@ Il **LLMind2 Visual Test Console** è un portale client-side leggero e autonomo 
 
 ## Come Avviarlo
 
-Poiché il portale risiede interamente in un file statico `index.html` ed effettua chiamate API esterne (`localhost:8000`), per evitare problemi di restrizione origin o CORS dei file locali, è consigliato servirlo tramite un semplice server HTTP locale:
+Poiché il portale risiede interamente in un file statico `index.html` ed effettua chiamate API esterne (`localhost:10000`), per evitare problemi di restrizione origin o CORS dei file locali, è consigliato servirlo tramite un semplice server HTTP locale:
 
 ### Opzione 1: Utilizzando Python (Consigliato)
 Esegui questo comando dal terminale nella directory principale del progetto:

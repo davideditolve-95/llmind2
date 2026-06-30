@@ -8,7 +8,7 @@ export interface AppConfig {
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  apiUrl: 'http://localhost:8000', // Modificabile in base a host (es. 10.0.2.2 per emulatore Android)
+  apiUrl: 'http://10.0.2.2:10000', // Android emulator -> host Mac; web/iOS can use http://localhost:10000
   keycloakIssuer: 'https://keycloak-pw9ut4s1h3aodstrsw1gd84o.89.168.29.98.sslip.io/realms/llmind2',
   clientId: 'llmind2',
   clientSecret: 'IgYSMXAOPppB7T743zvdX2WExC3AQq92',

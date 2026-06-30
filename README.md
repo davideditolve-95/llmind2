@@ -53,8 +53,8 @@ Passi essenziali:
 Endpoint locali attesi:
 
 - frontend: `http://localhost:3000`
-- backend: `http://localhost:8000`
-- docs FastAPI: `http://localhost:8000/docs`
+- backend: `http://localhost:10000`
+- docs FastAPI: `http://localhost:10000/docs`
 
 ### Variabili d'ambiente chiave
 
@@ -158,8 +158,8 @@ Essential steps:
 Expected local endpoints:
 
 - frontend: `http://localhost:3000`
-- backend: `http://localhost:8000`
-- FastAPI docs: `http://localhost:8000/docs`
+- backend: `http://localhost:10000`
+- FastAPI docs: `http://localhost:10000/docs`
 
 ### Key environment variables
 

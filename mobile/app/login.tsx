@@ -213,12 +213,12 @@ export default function LoginScreen() {
                   style={[styles.input, { borderColor: colors.border, color: colors.text }]}
                   value={apiUrl}
                   onChangeText={setApiUrl}
-                  placeholder="Es. http://localhost:8000"
+                  placeholder="Es. http://localhost:10000"
                   placeholderTextColor={colors.tabIconDefault}
                   autoCapitalize="none"
                 />
                 <Text style={[styles.tipText, { color: colors.tabIconDefault }]}>
-                  * Su Android Emulator usare http://10.0.2.2:8000
+                  * Su Android Emulator usare http://10.0.2.2:10000
                 </Text>
               </View>
 

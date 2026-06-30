@@ -3,7 +3,7 @@
  * Tutte le chiamate HTTP sono centralizzate qui per facilitare la manutenzione.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000';
 
 // ─── Tipi ──────────────────────────────────────────────────────────────────
 
@@ -731,4 +731,3 @@ export const drugsApi = {
   get: (id: string) =>
     fetchApi<AIFADrug>(`/api/drugs/${id}`),
 };
-

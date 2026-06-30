@@ -1,0 +1,256 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning, shapes.geometric, arrows.meta}
+\usepackage{hyperref}
+
+\geometry{margin=2.6cm}
+\setlist{noitemsep,topsep=2pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Proposta di Progetto di Ricerca - Davide Ditolve},
+    pdfpagemode=FullScreen,
+}
+
+\begin{document}
+
+% ------------------------------------------------------------------------------
+% 1) FRONTESPIZIO
+% ------------------------------------------------------------------------------
+\section{Frontespizio}
+
+\begin{center}
+    \includegraphics[width=0.45\textwidth]{logo_ecampus.png}\\[0.4cm]
+    {\large \textsc{Università Telematica eCampus}}\\[0.1cm]
+    {\small Corso di Dottorato in Scienze Applicate a Benessere e Sostenibilità (XLII Ciclo)}\\[0.6cm]
+    
+    {\large \textbf{PROPOSTA DI PROGETTO DI RICERCA}}\\[0.3cm]
+    {\Large \textbf{Epistemologia della Diagnosi, Alleanza Terapeutica e Governance dell'Intelligenza Artificiale in Psicopatologia: Un Progetto Interdisciplinare per la Sostenibilità delle Cure e il Benessere del Paziente}}\\[0.8cm]
+\end{center}
+
+\noindent
+\textbf{Candidato:} Davide Ditolve \hfill \textbf{Linea di Ricerca:} Linea 4\\
+\textbf{Supervisore Proposto:} Prof. Riccardo Pecori (IINF-05/A)\\[0.4cm]
+\textbf{Referenti Proff. della Linea di Ricerca:}\\
+{\small Bocchio Chiavetto L. (BIOS-10/A); Cavallo M. (PSIC-04/B); De Giorgio A. (PSIC-01/A); Di Fronso S. (MEDF-01/A); Di Lernia D (PSIC-01/A); Ieraci A. (BIOS-10/A); Iuliano E. (MEDF-01/A); Lombardi E. (PSIC-02/A); Marchetti B. (IIND-05/A); Miraglia F. (BIOS-06/A); Nimbi FM. (PSIC-08/B); Pedroli E. (PSIC-01/C); Picerno P. (IBIO-01/A); Tradigo G. (IINF-05/A); Vecchio F. (BIOS-06/A); Verdini F (IBIO-01/A).}
+
+\subsection*{Abstract}
+L'introduzione dell'Intelligenza Artificiale (IA) nella salute mentale offre opportunità per migliorare la precisione diagnostica, ma solleva interrogativi sul benessere dei pazienti e sulla sostenibilità delle cure. Questo progetto propone una linea di ricerca interdisciplinare volta a indagare l'impatto clinico, epistemologico e relazionale dell'IA in psicopatologia. Fondandosi sulla cornice dell'``epistemologia della simulazione'' (Vidotto, Ditolve \& Panzeri, 2026) --- che analizza malfunzionamento, metacognizione, memoria ed etica nei modelli linguistici ---, si prevede la progettazione e valutazione clinica di uno strumento digitale clinician-facing di supporto decisionale. Il progetto analizzerà: (1) l'efficacia del supporto digitale nel migliorare l'accuratezza diagnostica e nel ridurre gli errori; (2) la dimensione relazionale dell'IA, esplorando l'uso dei chatbot nei pazienti attraverso un protocollo di ``anamnesi digitale'' per tutelare il benessere e l'alleanza terapeutica; (3) la sostenibilità delle cure e la definizione di linee guida di governance.
+
+\vspace{0.4cm}
+\noindent \textbf{Parole chiave:} Benessere Psicofisico; Sostenibilità delle Cure; Epistemologia della Diagnosi; Relazione Terapeutica; Anamnesi Digitale; Governance.
+
+\newpage
+
+% ------------------------------------------------------------------------------
+% 2) INTRODUZIONE TEORICA
+% ------------------------------------------------------------------------------
+\section{Introduzione Teorica}
+
+La promozione del benessere di persone con patologie croniche o disabilitanti, fisiche o mentali, richiede modelli di intervento personalizzati e sostenibili. In questo contesto, l'e-health e i sistemi di supporto alle decisioni cliniche offrono soluzioni promettenti per facilitare l'inquadramento diagnostico. Tuttavia, l'integrazione di queste tecnologie in ambito psicopatologico presenta peculiarità cliniche ed etiche che impediscono una loro trasposizione acritica da altre discipline mediche (Cremaschi \& Pierotti, 2026).
+
+A differenza della medicina generale, dove la diagnosi è supportata da parametri biochimici o strumentali, la psicopatologia si fonda su un oggetto clinico soggettivo, narrativo, temporale e relazionale (Jaspers, 1963; Stanghellini \& Fuchs, 2013). La sofferenza mentale si esprime attraverso il racconto del paziente e la dinamica che si instaura nel setting clinico (Parnas et al., 2013; Kendler, 2016). L'uso di assistenti digitali basati sull'IA per supportare il ragionamento clinico introduce tre sfide per il benessere dei pazienti e per la sostenibilità dei servizi di cura:
+
+\begin{enumerate}[label=\alph*)]
+    \item \textbf{L'impatto sul ragionamento diagnostico ed epistemologico:} I sistemi di IA generativi sono soggetti ad allucinazioni o a fenomeni di accondiscendenza verso le ipotesi dell'utente (\textit{sycophancy}; Sharma et al., 2023), rischiando di semplificare la complessità del paziente. Come evidenziato nell'analisi critica condotta da \textbf{Vidotto, Ditolve e Panzeri (2026)}, i modelli linguistici sono ``attori epistemici'' che simulano comprensione e memoria senza disporre di reale comprensione semantica o di ``impegno cognitivo'' (\textit{cognitive commitment}). In questa cornice, definita \textbf{``epistemologia della simulazione''} (Vidotto, Ditolve \& Panzeri, 2026), l'uso clinico dell'IA presenta rischi severi qualora il professionista attribuisca al sistema una capacità metacognitiva o un'intenzionalità antropomorfica che esso non possiede. Per salvaguardare il benessere del paziente, la diagnosi deve rimanere un processo umano, collaborativo e interpretativo (Therapeutic Assessment; Finn, 2007).
+    
+    Questo progetto si inserisce in una linea di ricerca già avviata sul tema dell'assistenza digitale alla diagnostica, che ha visto lo sviluppo di prototipi preliminari (come il sistema sperimentale \textit{LLMind}) per verificare la fattibilità dell'uso di interfacce digitali per la consultazione della nosografia ufficiale (Cremaschi et al., 2025). Lo sviluppo di questi sistemi si collega alle applicazioni del Machine Learning in ambito medico-diagnostico e alla necessità di progettare architetture computazionali sicure ed efficienti (Pecori, 2018). In particolare, l'adozione di modelli di intelligenza artificiale pervasiva e a risorse limitate (\textit{pervasive and resource-constrained AI}; Pecori, 2023) risulta di fondamentale importanza per consentire l'esecuzione locale e protetta degli algoritmi di supporto direttamente nelle strutture sanitarie, senza dipendere da server cloud esterni, garantendo la sicurezza dei dati sensibili.
+    
+    \item \textbf{La dimensione relazionale e l'IA come ``terzo nella stanza'':} I pazienti utilizzano sempre più spesso chatbot commerciali come diari o surrogati terapeutici. L'IA assume così il ruolo di ``nuovo oggetto relazionale e transizionale'' (Cremaschi \& Pierotti, 2026). Questa interazione privata può generare dinamiche di dipendenza, isolamento o amplificazione di contenuti disfunzionali (Dohnány et al., 2026), e influenza direttamente l'alleanza terapeutica quando il paziente porta in terapia interpretazioni algoritmiche pre-costituite. Diventa quindi prioritario definire e validare protocolli clinici di ``anamnesi digitale'' per integrare questo vissuto tecnologico nella relazione di cura.
+    
+    \item \textbf{La sostenibilità dei servizi e la qualità delle cure:} La sostenibilità delle cure è legata all'efficacia clinica e all'efficienza dei percorsi. Errori diagnostici o trattamenti non appropriati compromtono il benessere del paziente e rendono il sistema sanitario insostenibile dal punto di vista economico e sociale. L'introduzione di strumenti digitali rivolti al clinico (\textit{clinician-facing}) deve mirare a elevare la qualità delle cure, riducendo la probabilità di errori clinici e favorendo la definizione precoce di percorsi terapeutici personalizzati.
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+% 3) OBIETTIVI E IPOTESI DI RICERCA
+% ------------------------------------------------------------------------------
+\section{Obiettivi e Ipotesi di Ricerca}
+
+\subsection{La Centralità del Benessere del Paziente}
+Nel contesto di questa ricerca, il benessere psicofisico e la sicurezza del paziente sono collocati al centro del disegno sperimentale e della riflessione teorica:
+\begin{itemize}
+    \item \textbf{Miglioramento dell'accuratezza e riduzione dell'errore clinico:} Il benessere del paziente dipende dal ricevere una diagnosi corretta. Poiché l'IA opera per simulazione probabilistica e non per reale comprensione clinica (Vidotto, Ditolve \& Panzeri, 2026), il rischio di errori diagnostici è elevato. Il progetto affronta questo problema testando come l'assistente clinico possa aiutare il professionista a non omettere criteri diagnostici cruciali o esclusioni fondamentali, garantendo che il percorso terapeutico sia appropriato ed efficace.
+    \item \textbf{Tutela della soggettività contro la ``meccanizzazione'' diagnostica:} Il progetto protegge il paziente dal rischio di una fredda ``categorizzazione algoritmica''. Mantenendo lo strumento strettamente \textit{clinician-facing}, l'atto diagnostico rimane un processo fenomenologico e intersoggettivo guidato dal clinico umano. Questo garantisce che la tecnologia serva a valorizzare, e non a sostituire, la comprensione della sofferenza psichica.
+    \item \textbf{Integrazione clinica delle esperienze digitali (Digital Anamnesis):} Molti pazienti utilizzano i chatbot como rifugio relazionale o per autodiagnosi, sperimentando ansia da ``cybercondria'' o un indebolimento della fiducia nei servizi sanitari. Validare un protocollo di \textit{Digital Anamnesis} significa accogliere questo vissuto tecnologico nello spazio sicuro della terapia, aiutando il paziente a elaborare la propria relazione con l'IA e prevenendo derive di dipendenza o isolamento.
+\end{itemize}
+
+\subsection{Obiettivi Specifici}
+\begin{enumerate}
+    \item \textbf{Valutazione del ragionamento clinico assistito:} Verificare se l'uso di un assistente digitale clinico clinician-facing --- progettato per integrare le tassonomie ufficiali (ICD-11 e DSM-5-TR) --- supporti efficacemente il clinico nella formulazione delle diagnosi differenziali e riduca i bias di conferma rispetto alla pratica tradizionale.
+    \item \textbf{Studio della dimensione relazionale (Digital Anamnesis):} Mappare l'utilizzo spontaneo dei chatbot da parte dei pazienti e validare un protocollo strutturato di ``anamnesi digitale'' volto a esplorare l'influenza di queste tecnologie sull'alleanza terapeutica e sul benessere del soggetto.
+    \item \textbf{Valutazione dell'efficacia clinica e riduzione dell'errore:} Misurare l'impatto dello strumento digitale sulla qualità complessiva della formulazione del caso clinico, stimando in quale misura l'uso dell'assistente riduca gli errori di omissione nosografica e migliori l'appropriatezza delle raccomandazioni terapeutiche.
+    \item \textbf{Definizione di linee guida di Governance Clinica:} Elaborare raccomandazioni operative e criteri di valutazione del rischio per l'adozione etica e sicura di sistemi basati sull'IA nei servizi di salute mentale, in conformità con i requisiti del Regolamento Europeo (EU AI Act).
+\end{enumerate}
+
+\subsection{Ipotesi di Ricerca}
+\begin{itemize}
+    \item \textbf{H1 (Decision Support ed Epistemologia):} L'utilizzo dello strumento di supporto decisionale aumenta l'accuratezza nell'identificazione dei criteri diagnostici e dei fattori di esclusione nosografica, riducendo gli errori di omissione rispetto alla consultazione manuale dei testi.
+    \item \textbf{H2 (Relazione e Benessere):} L'integrazione della \textit{digital anamnesis} nella fase di assessment consente di identificare stili di interazione disfunzionali con l'IA, associati a livelli significativamente più bassi di alleanza terapeutica e a una maggiore gravità dei sintomi.
+    \item \textbf{H3 (Sostenibilità e Qualità delle Cure):} L'adozione dello strumento clinician-facing riduce la variabilità diagnostica inter-operatore e aumenta l'appropriatezza delle indicazioni terapeutiche pianificate, migliorando la sostenibilità clinica del percorso di cura.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+% 4) METODOLOGIA
+% ------------------------------------------------------------------------------
+\section{Metodologia}
+
+Il progetto adotta un disegno di ricerca interdisciplinare a metodi misti (\textit{mixed-methods}), strutturato in tre fasi sinergiche (Studio Sperimentale sul Supporto Decisionale, Studio Osservazionale Clinico sulla Relazione, Ricerca-Azione sulla Qualità delle Cure).
+
+\subsection{Tipologia di Studio e Disegno Sperimentale}
+\begin{itemize}
+    \item \textbf{Valutazione del Supporto Decisionale (Fase 1):} Studio sperimentale controllato con disegno \textit{within-subjects} (cross-over). I professionisti partecipanti valuteranno casi clinici complessi in due condizioni: (a) con il supporto dello strumento clinician-facing; (b) con la metodologia tradizionale di consultazione dei manuali.
+    \item \textbf{Studio Clinico sulla Relazione (Fase 2):} Studio osservazionale e correlazionale condotto su pazienti. Durante la fase di accoglienza, verrà somministrato il protocollo di \textit{Digital Anamnesis}, correlando le modalità di utilizzo dell'IA con l'alleanza terapeutica e il benessere psicofisico.
+    \item \textbf{Qualità delle Cure e Sostenibilità (Fase 3):} Disegno di ricerca-azione attraverso focus group e interviste con gli operatori sanitari per analizzare l'impatto dello strumento sulla riduzione dell'errore diagnostico e sull'appropriatezza delle scelte terapeutiche.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.0cm and 1.2cm,
+        box/.style={draw, rectangle, rounded corners, minimum width=3.2cm, minimum height=0.9cm, align=center, fill=blue!5, draw=blue!40, thick, font=\footnotesize},
+        oval/.style={draw, ellipse, minimum width=3.2cm, minimum height=0.9cm, align=center, fill=orange!5, draw=orange!40, thick, font=\footnotesize},
+        database/.style={draw, cylinder, shape border rotate=90, minimum width=2.2cm, minimum height=1.0cm, align=center, fill=green!5, draw=green!40, thick, font=\footnotesize},
+        arrow/.style={-{Latex[scale=0.8]}, thick, draw=gray!80}
+    ]
+        % Nodes
+        \node (patient) [box] {Paziente\\(Esperienza Digitale)};
+        \node (chatbot) [oval, right=of patient] {Chatbot Commerciale\\(Interazione Spontanea)};
+        \node (anamnesis) [box, below=of patient] {Digital Anamnesis\\(Setting Clinico)};
+        \node (clinician) [box, below=of anamnesis] {Clinico Umano\\(Valutazione Clinica)};
+        \node (support) [box, right=of clinician] {Assistente Locale\\(Supporto Clinico RAG)};
+        \node (kb) [database, right=of support] {Tassonomie Ufficiali\\(ICD-11 / DSM-5-TR)};
+        \node (treatment) [box, below=of clinician] {Trattamento\\Personalizzato};
+
+        % Arrows
+        \draw [arrow] (patient) -- node[anchor=south, font=\tiny] {Uso} (chatbot);
+        \draw [arrow] (chatbot) |- node[anchor=west, pos=0.7, font=\tiny] {Analisi} (anamnesis);
+        \draw [arrow] (patient) -- (anamnesis);
+        \draw [arrow] (anamnesis) -- (clinician);
+        \draw [arrow] (clinician) -- (treatment);
+        \draw [arrow] (support) -- node[anchor=south, font=\tiny] {Suggerimenti} (clinician);
+        \draw [arrow] (kb) -- node[anchor=south, font=\tiny] {Integrazione} (support);
+        \draw [arrow, <->] (clinician) -- node[anchor=south, font=\tiny] {Interazione} (support);
+    \end{tikzpicture}
+    \caption{Workflow Clinico-Tecnologico e Disegno dell'Intervento}
+    \label{fig:workflow}
+\end{figure}
+
+\subsection{Variabili dello Studio}
+\begin{itemize}
+    \item \textbf{Variabili Indipendenti:}
+    \begin{itemize}
+        \item \textit{Condizione di Supporto:} Uso dello strumento digitale clinician-facing vs Consultazione tradizionale dei manuali.
+        \item \textit{Profilo d'Uso dell'IA del Paziente:} Uso disfunzionale/compulsivo vs Uso informativo/moderato vs Non utilizzo (rilevato tramite Digital Anamnesis).
+    \end{itemize}
+    \item \textbf{Variabili Dipendenti:}
+    \begin{itemize}
+        \item \textit{Accuratezza diagnostica:} percentuale di corrispondenza con la diagnosi gold standard.
+        \item \textit{Tasso di errore diagnostico:} frequenza di omissioni di criteri nosografici o diagnosi differenziali mancate.
+        \item \textit{Carico di lavoro mentale del clinico:} punteggio sulla scala NASA-TLX.
+        \item \textit{Qualità dell'alleanza terapeutica:} punteggio sulla scala Working Alliance Inventory (WAI).
+        \item \textit{Benessere psicofisico del paziente:} punteggio sulla scala Outcome Questionnaire-45 (OQ-45).
+    \end{itemize}
+\end{itemize}
+
+\subsection{Selezione del Campione e Criteri di Inclusione/Esclusione (Feasibility)}
+\begin{itemize}
+    \item \textbf{Campione dei Professionisti (Clinici):} Reclutamento tramite campionamento di convenienza in collaborazione con i Centri Clinici Universitari e con Scuole di Specializzazione in Psicoterapia partner. Verrà coinvolto un gruppo di professionisti della salute mentale (psicologi clinici, psicoterapeuti e psichiatri) di \textbf{numerosità scientificamente significativa} per garantire una potenza statistica adeguata alle analisi a misure ripetute (\textit{within-subjects}).
+    \begin{itemize}
+        \item \textit{Inclusione:} Iscrizione all'Albo professionale (Psicologi Sez. A o Medici specialisti in Psichiatria/Psicoterapia); attiva pratica clinica/assessment (almeno 10 ore settimanali); firma del consenso informato.
+        \item \textit{Esclusione:} Mancata familiarità minima con interfacce digitali; coinvolgimento diretto nello sviluppo dello strumento.
+    \end{itemize}
+    
+    \item \textbf{Campione dei Pazienti:} L'arruolamento avverrà presso i servizi clinici partner, previa approvazione del Comitato Etico. Verrà selezionato un campione di pazienti di \textbf{numerosità scientificamente significativa} per assicurare un adeguato potere statistico nelle analisi di correlazione e di regressione lineare.
+    \begin{itemize}
+        \item \textit{Inclusione:} Età 18-65 anni; in carico presso il servizio clinico; uso spontaneo dichiarato di chatbot per la salute negli ultimi 6 mesi; firma del consenso informato.
+        \item \textit{Esclusione:} Deficit cognitivi gravi o disturbi neurologici; disturbi dello spettro psicotico in fase acuta; ideazione suicidaria attiva o rischio autolesivo imminente.
+    \end{itemize}
+    
+    \item \textbf{Materiali (Vignette Cliniche):} Verrà impiegato un set di vignette cliniche standardizzate e validate, tratte da manuali ufficiali (es. \textit{DSM-5-TR Casebook}), in \textbf{quantità scientificamente significativa} da consentire una copertura bilanciata e statisticamente rilevante delle diverse macro-aree nosografiche, escludendo dati reali nella fase di confronto per ragioni etiche.
+\end{itemize}
+
+\subsection{Strumenti di Raccolta Dati}
+\begin{itemize}
+    \item \textbf{Valutazione Clinica (Fase 1):} Punteggi di accuratezza diagnostica; scala \textit{NASA-TLX} per il carico mentale; scala \textit{SUS} (System Usability Scale) per l'usabilità dello strumento.
+    \item \textbf{Valutazione Relazionale (Fase 2):} Intervista strutturata di \textit{Digital Anamnesis} (Cremaschi \& Pierotti, 2026); scala \textit{WAI} compilata da paziente (WAI-C) e terapeuta (WAI-T); scale cliniche standardizzate (\textit{BDI-II} per la depressione, \textit{BAI} per l'ansia, \textit{OQ-45} per il benessere generale).
+    \item \textbf{Qualità delle Cure (Fase 3):} Griglia di valutazione dell'appropriatezza clinica del trattamento (compilata da giudici indipendenti in modalità blind); scheda di tracciamento degli errori diagnostici di omissione.
+\end{itemize}
+
+\subsection{Analisi dei Dati}
+\begin{itemize}
+    \item \textbf{Analisi Quantitativa:} Test t per campioni accoppiati (o equivalente non parametrico di Wilcoxon) per confrontare accuratezza, tasso di errore e carico mentale (Fase 1). Analisi di correlazione e modelli di regressione lineare per verificare l'impatto del profilo d'uso dell'IA (Fase 2) sull'alleanza terapeutica e sul benessere generale del paziente.
+    \item \textbf{Analisi Qualitativa:} Analisi tematica delle trascrizioni dei focus group con i clinici per mappare i fattori organizzativi e le aree cliniche di maggiore utilità dello strumento.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+% 5) RISULTATI ATTESI
+% ------------------------------------------------------------------------------
+\section{Risultati Attesi}
+
+La ricerca mira a produrre risultati concreti per la clinica e la gestione dei servizi:
+\begin{enumerate}
+    \item \textbf{Evidenze sull'efficacia del supporto decisionale:} Dimostrazione empirica di come uno strumento clinician-facing possa supportare la precisione diagnostica, ridurre gli errori sistemici e migliorare la qualità delle cure.
+    \item \textbf{Validazione della Digital Anamnesis:} Rilascio di una scheda di anamnesi digitale validata, utilizzabile dai clinici per comprendere l'impatto dell'uso di chatbot commerciali sul benessere del paziente.
+    \item \textbf{Modello di Governance e Sostenibilità delle Cure:} Definizione di linee guida e matrici di rischio per l'adozione sicura dell'IA nei servizi sanitari, promuovendo percorsi terapeutici più efficaci, coerenti ed economicamente sostenibili.
+    \item \textbf{Selettività e riduzione dell'errore clinico:} Stima quantitativa del decremento degli errori diagnostici (omissioni, mancate differenziali) grazie all'uso dello strumento.
+    \item \textbf{Diffusione scientifica:} Pubblicazione di almeno 3 articoli in riviste scientifiche indicizzate (es. \textit{JMIR}, \textit{Frontiers}) e presentazioni a congressi nazionali e internazionali.
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+% 6) INNOVATIVITÀ DEL PROGETTO
+% ------------------------------------------------------------------------------
+\section{Innovatività del Progetto}
+
+L'innovatività di questa proposta si esprime nel superamento dell'approccio strettamente tecnologico che caratterizza l'IA medica, proponendo un cambio di paradigma strutturato su quattro pilastri:
+
+\subsection{Innovazione Epistemologica: L'Epistemologia della Simulazione}
+La ricerca sul Machine Learning applicato alla psicologia tende a considerare l'IA come una scatola nera da ottimizzare per massimizzare la precisione predittiva. Questo progetto introduce un'importante innovazione teorica fondandosi sull'\textbf{``epistemologia della simulazione''} sviluppata nel lavoro di \textbf{Vidotto, Ditolve e Panzeri (2026)}. Riconoscere che l'IA simula l'attività cognitiva senza disporre di reale comprensione semantica ridefinisce il ruolo dello strumento: esso non viene progettato per mimare o sostituire la mente del clinico, ma per fungere da ``specchio cognitivo'' e organizzatore nosografico. Questo approccio protegge l'atto diagnostico fenomenologico (Jaspers, 1963) e garantisce che la responsabilità etica e clinica rimanga interamente centrata sul professionista umano.
+
+\subsection{Innovazione Clinico-Relazionale: La Digital Anamnesis}
+Mentre la letteratura clinica spesso ignora o patologizza l'uso spontaneo dell'IA da parte dei pazienti, questo progetto propone e valida un protocollo formale di \textbf{Digital Anamnesis} nel setting clinico. Trattando l'IA conversazionale come un ``nuovo oggetto relazionale e transizionale'' (Cremaschi \& Pierotti, 2026), la ricerca apre una linea nello studio dell'alleanza terapeutica nell'era digitale, fornendo ai terapeuti le competenze per intercettare dinamiche di cybercondria, isolamento o dipendenza tecnologica prima che queste compromettano il percorso di cura e il benessere globale del paziente.
+
+\subsection{Innovazione Tecnologica e di Sicurezza: AI Locale e a Risorse Limitate}
+La maggior parte delle applicazioni di e-health in salute mentale si affida ad API commerciali in cloud (es. OpenAI, Google Cloud), sollevando criticità sul piano della privacy dei dati sanitari e della conformità al Regolamento Europeo sull'IA (EU AI Act). Questo progetto si distingue per l'adozione di un modello di \textbf{intelligenza artificiale pervasiva e a risorse limitate} (\textit{pervasive and resource-constrained AI}; Pecori, 2023). Sperimentare un'architettura in grado di eseguire modelli di supporto decisionale localmente all'interno delle strutture sanitarie, senza esportazione di dati all'esterno, rappresenta un'innovazione tecnologica fondamentale per garantire la sostenibilità giuridica ed etica dei servizi.
+
+\subsection{Sinergia Interdisciplinare per la Sostenibilità Clinica}
+Il progetto è un punto di convergenza reale tra la \textbf{psicologia clinica e la psicometria} (PSIC-08/PSIC-01/C, necessarie per valutare l'alleanza, la sintomatologia e strutturare i casi) e l'\textbf{ingegneria informatica} (IINF-05/A, per lo sviluppo dell'assistente locale). Questa sinergia permette di ridefinire il concetto di ``sostenibilità'' nei servizi di e-health: la sostenibilità non è intesa come semplice risparmio di tempo amministrativo, ma come \textbf{sostenibilità della qualità delle cure}. Ridurre l'errore diagnostico iniziale significa prevenire fallimenti terapeutici e trattamenti non appropriati, abbattendo i costi sociali ed economici della cronicizzazione delle patologie mentali.
+
+% ------------------------------------------------------------------------------
+% 7) BIBLIOGRAFIA ESSENZIALE
+% ------------------------------------------------------------------------------
+\section{Bibliografia Essenziale}
+
+\begin{enumerate}[label={[\arabic*]}]
+    \item Abràmoff, M. D., Lavin, P. T., \& Folk, J. C. (2018). Pivotal trial of an autonomous AI-based diagnostic system for detection of diabetic retinopathy in primary care offices. \textit{npj Digital Medicine}, 1(1), 39.
+    \item Bordin, E. S. (1979). The generalizability of the psychoanalytic concept of the working alliance. \textit{Psychotherapy: Theory, Research \& Practice}, 16(3), 252.
+    \item Cremaschi, M., \& Pierotti, A. P. (2026). Intelligenza artificiale in psicopatologia: epistemologia clinica, relazione terapeutica e governance. \textit{Frontiers in Digital Health} (under review).
+    \item Cremaschi, M., Ditolve, D., et al. (2025). Decoding clinical reasoning: a local Retrieval-Augmented Generation approach on ICD-11 for mental health support. \textit{LLMind1 Pilot Study} (preprint).
+    \item Dohnány, S., Kurth-Nelson, Z., et al. (2026). Technological folie à deux: Feedback loops between AI chatbots and mental illness. \textit{Nature Mental Health}, doi:10.48550/arXiv.2507.19218.
+    \item Finn, S. E. (2007). \textit{In Our Clients' Shoes: Theory and Techniques of Therapeutic Assessment}. Lawrence Erlbaum Associates.
+    \item Flückiger, C., Del Re, A. C., \& Horvath, A. O. (2018). The alliance in adult psychotherapy: A meta-analytic synthesis. \textit{Psychotherapy}, 55(4), 316-340.
+    \item Jaspers, K. (1963). \textit{General Psychopathology}. University of Chicago Press.
+    \item Kendler, K. S. (2016). The nature of psychiatric disorders. \textit{World Psychiatry}, 15(1), 5-12.
+    \item Parnas, J., Sass, L. A., \& Zahavi, D. (2013). Rediscovering psychopathology: The epistemology and phenomenology of the psychiatric object. \textit{Schizophrenia Bulletin}, 39(2), 270-277.
+    \item Pecori, R. (2018). A Virtual Learning Architecture Enhanced by Fog Computing and Big Data Streams. \textit{Future Internet}, 10(12), 120.
+    \item Pecori, R. (2023). Pervasive and Resource-Constrained Artificial Intelligence in Healthcare: Applications in E-Health and Clinical Decision Support. \textit{Proceedings of the PeRConAI Workshop}.
+    \item Ribeiro, A. H., et al. (2020). Automatic diagnosis of the 12-lead ECG using a deep neural network. \textit{Nature Communications}, 11(1), 1760.
+    \item Sander, L. W. (2008). \textit{Living Systems, Evolving Consciousness, and the Emerging Person}. Analytic Press.
+    \item Sharma, M., et al. (2023). Towards understanding sycophancy in language models. \textit{arXiv preprint arXiv:2310.13548}.
+    \item Stanghellini, G., \& Fuchs, T. (eds.) (2013). \textit{One Century of Karl Jaspers' General Psychopathology}. Oxford University Press.
+    \item \textbf{Vidotto, G., Ditolve, D., \& Panzeri, A. (2026). Una riflessione critica sui Large Language Models in psicologia clinica: Malfunzionamento, metacognizione, memoria ed etica. \textit{PCC}, 2026(2).}
+    \item World Health Organization. (2024). \textit{Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models}. WHO Guidelines.
+\end{enumerate}
+
+\end{document}

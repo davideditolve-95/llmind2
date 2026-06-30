@@ -90,7 +90,7 @@ start_services() {
     wait_for_backend
     echo -e "\n${BOLD}🔗 Link utili:${NC}"
     echo -e "   - Frontend (Next.js): ${CYAN}http://localhost:3000${NC}"
-    echo -e "   - Backend API (FastAPI Docs): ${CYAN}http://localhost:8000/docs${NC}"
+    echo -e "   - Backend API (FastAPI Docs): ${CYAN}http://localhost:10000/docs${NC}"
   else
     echo -e "${RED}❌ Errore durante l'avvio dei servizi.${NC}"
   fi
