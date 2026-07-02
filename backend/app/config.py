@@ -10,8 +10,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     """Impostazioni dell'applicazione caricate da variabili d'ambiente."""
 
-    # Database PostgreSQL
-    database_url: str = "postgresql://llmind_user:llmind_pass_dev@db:5432/llmind_db"
+    # Database. Production/staging deployments must inject DATABASE_URL.
+    database_url: str = "sqlite:///./llmind_dev.db"
 
     # ICD-11 API container offline
     icd11_api_url: str = "http://icd11-api"
@@ -24,10 +24,11 @@ class Settings(BaseSettings):
     ollama_api_key: str = ""
 
     # Sicurezza
-    secret_key: str = "cambia_questa_chiave_in_produzione"
+    secret_key: str = ""
     environment: str = "development"
     cors_allowed_origins: str = "http://localhost:3000,http://frontend:3000"
     cors_allowed_origin_regex: str = r"https://.*\.sslip\.io"
+    auth_verify_ssl: bool = True
 
     # Embedding model locale
     embedding_model: str = "all-MiniLM-L6-v2"

@@ -76,7 +76,7 @@ const agents: AgentGuide[] = [
     ],
     inputs: ['clinical concept', 'candidate label', 'duration', 'functional impairment', 'exclusions already checked'],
     outputs: ['candidate categories', 'supporting features', 'features against', 'required exclusions', 'coding confidence'],
-    datastores: ['BigQuery icd11_categories', 'BigQuery agent_corpus_chunks', 'ICD-11 CDDR datastore'],
+    datastores: ['BigQuery icd11_categories', 'BigQuery agent_corpus_chunks', 'GCP ICD-11 CDDR datastore'],
     handoff: 'Se emergono ipotesi concorrenti, passa al Differential Diagnosis Supervisor.',
   },
   {
@@ -159,7 +159,7 @@ const readiness = [
   'Corpus statico caricato in BigQuery',
   'Dialogflow agent creato',
   'Playbook caricati',
-  'Agent Search datastore importati',
+  'GCP Agent Search datastores imported',
   'Backend proxy configurato con project/location/agent id',
 ];
 
@@ -248,7 +248,8 @@ export default function GcpAgentsPage() {
         <div className="hero-content w-full justify-between gap-8 py-8">
           <div className="max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="badge badge-info">GCP Conversational Agents</span>
+              <span className="badge badge-info">Experimental agents</span>
+              <span className="badge badge-outline">GCP Conversational Agents</span>
               <span className="badge badge-outline">Guide + live proxy</span>
               <span className={clsx('badge', status?.configured ? 'badge-success' : 'badge-warning')}>
                 {status?.configured ? 'Configured' : 'Waiting for deploy'}
@@ -256,10 +257,10 @@ export default function GcpAgentsPage() {
             </div>
             <div className="flex items-center gap-3">
               <CloudIcon className="h-9 w-9 text-info" />
-              <h1 className="app-title">GCP Agents Console</h1>
+              <h1 className="app-title">Experimental Agents Console</h1>
             </div>
             <p className="app-subtitle mt-3">
-              A navigational layer that explains each GCP agent, what it does, when to use it, and how to call the deployed Dialogflow CX runtime when credentials are configured.
+              A secondary research layer for specialist agents. It explains each GCP agent, when to use it, and how to call the deployed Dialogflow CX runtime when credentials are configured.
             </p>
           </div>
           <div className="hidden rounded-box bg-info/10 p-4 text-sm lg:block">
@@ -354,7 +355,7 @@ export default function GcpAgentsPage() {
               </div>
 
               <div className="rounded-box bg-base-200 p-4">
-                <h3 className="mb-3 font-semibold">Knowledge sources</h3>
+                <h3 className="mb-3 font-semibold">GCP datastore sources</h3>
                 <div className="space-y-2">
                   {active.datastores.map((item) => (
                     <div key={item} className="flex items-center gap-2 text-sm">

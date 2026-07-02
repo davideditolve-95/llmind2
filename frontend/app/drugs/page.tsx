@@ -97,17 +97,18 @@ function DrugsContent() {
 
   return (
     <div className="app-page space-y-6">
-      {/* Disclaimer Medico Cubitale Obbligatorio */}
-      <div className="alert alert-error bg-rose-100 border-2 border-red-600 text-red-900 rounded-box p-5 shadow-md flex flex-col md:flex-row items-start gap-4">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-red-800 shrink-0 w-8 h-8 md:w-10 md:h-10 mt-0.5" strokeWidth={2.5}>
+      <div className="alert border border-warning/50 bg-warning/10 text-base-content rounded-box p-5 shadow-sm flex flex-col md:flex-row items-start gap-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-warning shrink-0 w-8 h-8 md:w-10 md:h-10 mt-0.5" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <div className="flex-1 space-y-1">
-          <h3 className="font-extrabold text-lg uppercase tracking-tight text-red-950">
-            ⚠️ ATTENZIONE - DISCLAIMER MEDICO OBBLIGATORIO
+          <h3 className="font-extrabold text-lg tracking-tight">
+            Experimental medication knowledge
           </h3>
-          <p className="text-sm font-black uppercase leading-relaxed tracking-wide">
-            QUESTO SOFTWARE È UN STRUMENTO DI RICERCA SCIENTIFICA E NON UN DISPOSITIVO MEDICO. LE INFORMAZIONI E LE PRESCRIZIONI PROPOSTE NON HANNO ALCUNA VALIDITÀ CLINICA O MEDICA NÈ POSSONO ESSERE RITENUTE ACCURATE, SICURE O COMPLETE. CONSULTARE SEMPRE UN MEDICO O UN PROFESSIONISTA SANITARIO QUALIFICATO PRIMA DI ASSUMERE QUALSIASI MEDICINALE.
+          <p className="text-sm font-semibold leading-relaxed">
+            This section is a research-oriented AIFA knowledge browser for future specialist agents. It is not a
+            medical device, does not produce valid prescriptions, and must not be used for clinical decisions.
+            Medication choices require qualified medical review.
           </p>
         </div>
       </div>
@@ -116,10 +117,10 @@ function DrugsContent() {
         <div>
           <div className="flex items-center gap-2">
             <BeakerIcon className="h-7 w-7 text-primary" />
-            <h1 className="app-title">Database Medicinali AIFA</h1>
+            <h1 className="app-title">AIFA Drug Knowledge</h1>
           </div>
           <p className="app-subtitle mt-2">
-            Ricerca e naviga nel registro ufficiale dei farmaci autorizzati in Italia (Equivalenti, Classe A e Classe H).
+            Browse authorized Italian medication records as a controlled knowledge source for experimental prescription-oriented agents.
           </p>
         </div>
         <div className="join shadow-sm">

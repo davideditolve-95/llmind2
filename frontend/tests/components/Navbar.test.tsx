@@ -28,9 +28,9 @@ describe('Navbar Component', () => {
 
     render(<Navbar />)
 
-    // Unauthenticated should only see Home and not secure links like Chat, Settings
+    // Unauthenticated should only see Home and not secure links like Clinical Chat, Settings
     expect(screen.getAllByText('Home')[0]).toBeInTheDocument()
-    expect(screen.queryByText('Chat')).not.toBeInTheDocument()
+    expect(screen.queryByText('Clinical Chat')).not.toBeInTheDocument()
     expect(screen.queryByText('Settings')).not.toBeInTheDocument()
   })
 
@@ -43,11 +43,14 @@ describe('Navbar Component', () => {
     render(<Navbar />)
 
     expect(screen.getAllByText('Home')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Chat')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Clinical Chat')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Settings')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Benchmarks')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Knowledge')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Benchmark Lab')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Clinical Knowledge')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Local Vector Stores')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Experimental')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Legacy')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Legacy RAG Console')[0]).toBeInTheDocument()
   })
 
   test('renders user actions and allows sign out', () => {

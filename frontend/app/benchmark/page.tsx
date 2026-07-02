@@ -2,11 +2,13 @@
 
 import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { benchmarkApi, type BenchmarkKPIs, type BenchmarkRun } from '@/lib/api';
 import MarkdownContent from '@/components/ui/MarkdownContent';
 import { ArrowPathIcon, BeakerIcon, StarIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 export default function BenchmarkPage() {
+  const { data: session } = useSession();
   const [kpis, setKpis] = useState<BenchmarkKPIs | null>(null);
   const [runs, setRuns] = useState<BenchmarkRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,8 @@ export default function BenchmarkPage() {
   }, []);
 
   const addRating = async (runId: string, rating: number) => {
-    await benchmarkApi.addEvaluation(runId, { evaluator_name: 'Researcher', rating });
+    const evaluator = session?.user?.email || session?.user?.name || 'Anonymous specialist';
+    await benchmarkApi.addEvaluation(runId, { evaluator_name: evaluator, rating });
     load();
   };
 
@@ -43,10 +46,12 @@ export default function BenchmarkPage() {
             <BeakerIcon className="h-7 w-7 text-primary" />
             <h1 className="app-title">Benchmark Lab</h1>
           </div>
-          <p className="app-subtitle mt-2">Inspect model runs, automatic scores, latency, and human ratings.</p>
+          <p className="app-subtitle mt-2">
+            Inspect multi-model runs on DSM-5 Clinical Cases, separating the LLM under test from the runtime that hosts it and from LLMind2 as the evaluation platform.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/benchmark/cases" className="btn btn-primary">Run new benchmark</Link>
+          <Link href="/benchmark/cases" className="btn btn-primary">Run DSM-5 benchmark</Link>
           <button className="btn btn-outline" onClick={load} disabled={loading}>
             <ArrowPathIcon className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
             Refresh
@@ -59,6 +64,21 @@ export default function BenchmarkPage() {
         <div className="stat"><div className="stat-title">Runs</div><div className="stat-value">{kpis?.total_runs ?? '-'}</div></div>
         <div className="stat"><div className="stat-title">Reviewed</div><div className="stat-value">{kpis?.reviewed_cases ?? '-'}</div></div>
         <div className="stat"><div className="stat-title">Models</div><div className="stat-value">{kpis?.models_tested?.length ?? '-'}</div></div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Platform</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">LLMind2 stores cases, prompts, outputs, metrics, and human review evidence.</p>
+        </div>
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Runtime / provider</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Ollama, OpenAI, GCP, or another runtime hosts the model and should be reported separately.</p>
+        </div>
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">LLM under test</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Gemma, Llama, Mistral, or any configured model is evaluated as one experimental variable.</p>
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
@@ -96,13 +116,14 @@ export default function BenchmarkPage() {
                   <th>Accuracy</th>
                   <th>F1</th>
                   <th>Latency</th>
-                  <th>Rating</th>
+                  <th>Mean rating</th>
+                  <th>Your vote</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="py-12 text-center"><span className="loading loading-spinner loading-lg" /></td></tr>
+                  <tr><td colSpan={10} className="py-12 text-center"><span className="loading loading-spinner loading-lg" /></td></tr>
                 ) : runs.length ? runs.map((run) => (
                   <Fragment key={run.id}>
                     <tr key={run.id}>
@@ -117,9 +138,20 @@ export default function BenchmarkPage() {
                       <td>{formatPercent(run.f1_score)}</td>
                       <td>{run.latency_ms ? `${run.latency_ms} ms` : '-'}</td>
                       <td>
+                        <div className="font-semibold">{formatRunRating(run)}</div>
+                        <div className="text-xs text-base-content/55">{run.evaluations.length} vote{run.evaluations.length === 1 ? '' : 's'}</div>
+                      </td>
+                      <td>
                         <div className="rating rating-sm">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <input key={star} type="radio" name={`rating-${run.id}`} className="mask mask-star-2 bg-warning" onClick={() => addRating(run.id, star)} />
+                            <input
+                              key={star}
+                              type="radio"
+                              name={`rating-${run.id}`}
+                              className="mask mask-star-2 bg-warning"
+                              aria-label={`Rate ${star} out of 5`}
+                              onClick={() => addRating(run.id, star)}
+                            />
                           ))}
                         </div>
                       </td>
@@ -132,7 +164,7 @@ export default function BenchmarkPage() {
                     </tr>
                     {expanded === run.id && (
                       <tr>
-                        <td colSpan={9}>
+                        <td colSpan={10}>
                           <div className="grid gap-4 lg:grid-cols-2">
                             <div className="rounded-box bg-base-200 p-4">
                               <h3 className="mb-2 font-semibold">Prompt</h3>
@@ -154,7 +186,7 @@ export default function BenchmarkPage() {
                     )}
                   </Fragment>
                 )) : (
-                  <tr><td colSpan={9} className="py-12 text-center text-base-content font-semibold">No benchmark runs yet.</td></tr>
+                  <tr><td colSpan={10} className="py-12 text-center text-base-content font-semibold">No benchmark runs yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -186,4 +218,10 @@ function formatScore(value: number | null | undefined) {
 
 function formatPercent(value: number | null | undefined) {
   return value === null || value === undefined ? '-' : `${Math.round(value * 100)}%`;
+}
+
+function formatRunRating(run: BenchmarkRun) {
+  if (!run.evaluations.length) return '-';
+  const avg = run.evaluations.reduce((sum, evaluation) => sum + evaluation.rating, 0) / run.evaluations.length;
+  return `${avg.toFixed(2)} / 5`;
 }

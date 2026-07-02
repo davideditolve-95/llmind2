@@ -482,13 +482,23 @@ async def add_manual_evaluation(
     if not run:
         raise HTTPException(status_code=404, detail="Benchmark run non trovato")
 
-    new_eval = ManualEvaluation(
-        run_id=run.id,
-        evaluator_name=evaluation.evaluator_name,
-        rating=evaluation.rating,
-        notes=evaluation.notes,
-    )
-    db.add(new_eval)
+    new_eval = db.query(ManualEvaluation).filter(
+        ManualEvaluation.run_id == run.id,
+        ManualEvaluation.evaluator_name == evaluation.evaluator_name,
+    ).first()
+
+    if new_eval:
+        new_eval.rating = evaluation.rating
+        new_eval.notes = evaluation.notes
+    else:
+        new_eval = ManualEvaluation(
+            run_id=run.id,
+            evaluator_name=evaluation.evaluator_name,
+            rating=evaluation.rating,
+            notes=evaluation.notes,
+        )
+        db.add(new_eval)
+
     db.commit()
     db.refresh(new_eval)
 
@@ -845,119 +855,4 @@ async def export_benchmark_data(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=benchmark_results_{datetime.now().strftime('%Y%m%d')}.csv"}
-    )
-    
-    # Raggruppa i run per case_id
-    runs_by_case = {}
-    for run in runs:
-        if run.case_id not in runs_by_case:
-            runs_by_case[run.case_id] = {}
-        runs_by_case[run.case_id][run.model_name] = run
-        
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    
-    # Costruisci l'intestazione dinamica
-    headers = [
-        "Case ID", "Case Number", "Case Title", 
-        "Original Anamnesis", "Discussion", "Gold Standard Diagnosis"
-    ]
-    
-    for model in models:
-        headers.extend([
-            f"[{model}] System Prompt",
-            f"[{model}] User Prompt",
-            f"[{model}] LLM Output",
-            f"[{model}] Similarity Score",
-            f"[{model}] Latency (ms)",
-            f"[{model}] Status"
-        ])
-        for eval_name in evaluator_names:
-            headers.append(f"[{model}] {eval_name} Rating")
-            
-    writer.writerow(headers)
-    
-    # Accumulatori per le medie finali spaziano per modello
-    # ignores failed runs
-    stats = {model: {
-        "similarity_sum": 0, "similarity_count": 0,
-        "latency_sum": 0, "latency_count": 0,
-        "evals": {e: {"sum": 0, "count": 0} for e in evaluator_names}
-    } for model in models}
-    
-    # Per ogni caso aggregato, scrivi la riga
-    for case_id, model_runs in runs_by_case.items():
-        case = db.query(DSM5Case).filter(DSM5Case.id == case_id).first()
-        if not case:
-            continue
-            
-        row = [
-            str(case.id),
-            case.case_number or "",
-            case.title or "",
-            case.anamnesis or "",
-            case.discussion or "",
-            case.gold_standard_diagnosis or ""
-        ]
-        
-        for model in models:
-            run = model_runs.get(model)
-            if run:
-                row.extend([
-                    run.system_prompt_used or "",
-                    run.prompt_used or "",
-                    run.llm_response or "",
-                    run.similarity_score if run.similarity_score is not None else "",
-                    run.latency_ms if run.latency_ms is not None else "",
-                    run.status
-                ])
-                
-                # Calcola medie ignorando i falliti
-                if run.status == "completed":
-                    if run.similarity_score is not None:
-                        stats[model]["similarity_sum"] += run.similarity_score
-                        stats[model]["similarity_count"] += 1
-                    if run.latency_ms is not None:
-                        stats[model]["latency_sum"] += run.latency_ms
-                        stats[model]["latency_count"] += 1
-                
-                # Valutazioni manuali
-                run_evals = {e.evaluator_name: e.rating for e in run.evaluations}
-                for eval_name in evaluator_names:
-                    rating = run_evals.get(eval_name, "")
-                    row.append(rating)
-                    if rating != "" and run.status == "completed":
-                        stats[model]["evals"][eval_name]["sum"] += rating
-                        stats[model]["evals"][eval_name]["count"] += 1
-            else:
-                # Nessun run per questo modello su questo caso
-                row.extend(["", "", "", "", "", ""])
-                for _ in evaluator_names:
-                    row.append("")
-                    
-        writer.writerow(row)
-        
-    # -- Riga delle medie --
-    avg_row = ["AVERAGE", "", "", "", "", ""]
-    for model in models:
-        s_count = stats[model]["similarity_count"]
-        s_avg = (stats[model]["similarity_sum"] / s_count) if s_count > 0 else ""
-        
-        l_count = stats[model]["latency_count"]
-        l_avg = (stats[model]["latency_sum"] / l_count) if l_count > 0 else ""
-        
-        avg_row.extend(["", "", "", s_avg, l_avg, ""])
-        
-        for eval_name in evaluator_names:
-            e_count = stats[model]["evals"][eval_name]["count"]
-            e_avg = (stats[model]["evals"][eval_name]["sum"] / e_count) if e_count > 0 else ""
-            avg_row.append(e_avg)
-            
-    writer.writerow(avg_row)
-        
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=benchmark_results.csv"}
     )

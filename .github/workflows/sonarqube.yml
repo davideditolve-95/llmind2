@@ -1,0 +1,76 @@
+name: SonarQube
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  sonarqube:
+    name: SonarQube analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Frontend tests with coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt pytest pytest-cov
+
+      - name: Backend tests with coverage
+        working-directory: backend
+        env:
+          ENVIRONMENT: development
+          DATABASE_URL: sqlite:///./sonar-ci.db
+          SECRET_KEY: sonar-ci-secret
+          ICD11_API_URL: http://localhost:8082
+          OLLAMA_BASE_URL: http://localhost:11434
+        run: pytest --cov=app --cov-report=xml:coverage.xml
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000' }}
+        with:
+          args: >
+            -Dproject.settings=sonar/sonar-project.properties
+
+      - name: SonarQube quality gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000' }}

@@ -1,57 +1,67 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+YELLOW='\033[0;33m'
+NC='\033[0m'
 
-echo -e "${BLUE}=== 1/3 Running Backend Tests & Generating Coverage ===${NC}"
-# Run pytest in the backend container
-docker compose exec backend pytest
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SONAR_HOST_URL="${SONAR_HOST_URL:-http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000}"
+RUN_TESTS="${RUN_TESTS:-true}"
 
-# Copy the coverage report XML from the container to the host
-docker cp llmind_backend:/app/coverage.xml backend/coverage.xml
-# Align file paths for SonarQube scanner
-python3 -c "
-with open('backend/coverage.xml', 'r') as f:
-    content = f.read()
-content = content.replace('<source>/app/app</source>', '<source>backend/app</source>')
-with open('backend/coverage.xml', 'w') as f:
-    f.write(content)
-"
-echo -e "${GREEN}✓ Backend coverage.xml ready and paths aligned.${NC}\n"
+cd "$PROJECT_ROOT"
 
-echo -e "${BLUE}=== 2/3 Running Frontend Tests & Generating Coverage ===${NC}"
-# Run Jest coverage in the frontend directory on host
-cd frontend
-npm run test:coverage
-cd ..
-echo -e "${GREEN}✓ Frontend lcov.info ready.${NC}\n"
-
-echo -e "${BLUE}=== 3/3 Launching SonarQube Scanner CLI ===${NC}"
-echo "Requesting analysis token from SonarQube API..."
-TOKEN_RESPONSE=$(curl -s -u admin:admin -X POST "http://localhost:9000/api/user_tokens/generate?name=llmind2-token-$(date +%s)" || echo "")
-SONAR_TOKEN=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
-
-if [ -z "$SONAR_TOKEN" ]; then
-  echo -e "${RED}Warning: Failed to generate token via API, trying default fallback...${NC}"
-  SONAR_TOKEN="squ_d2654433c208df049de1d31e03d1b95fcb6918e5"
+if [ -z "${SONAR_TOKEN:-}" ]; then
+  echo -e "${RED}Missing SONAR_TOKEN.${NC}"
+  echo "Create a SonarQube user token and export it before running:"
+  echo "  export SONAR_TOKEN=..."
+  echo "Optional:"
+  echo "  export SONAR_HOST_URL=$SONAR_HOST_URL"
+  exit 1
 fi
 
-# Run SonarScanner via Docker container
-# Use host.docker.internal to access localhost:9000 on macOS
+echo -e "${BLUE}=== SonarQube analysis for LLMind2 ===${NC}"
+echo "Host: $SONAR_HOST_URL"
+
+if [ "$RUN_TESTS" = "true" ]; then
+  echo -e "${BLUE}=== 1/3 Backend tests and coverage ===${NC}"
+  if docker compose ps --services --filter status=running 2>/dev/null | grep -q '^backend$'; then
+    docker compose exec -T backend pytest --cov=app --cov-report=xml:/app/coverage.xml
+    docker cp llmind_backend:/app/coverage.xml backend/coverage.xml
+    python3 - <<'PY'
+from pathlib import Path
+path = Path("backend/coverage.xml")
+if path.exists():
+    content = path.read_text()
+    content = content.replace("<source>/app/app</source>", "<source>backend/app</source>")
+    content = content.replace("<source>/app</source>", "<source>backend</source>")
+    path.write_text(content)
+PY
+    echo -e "${GREEN}Backend coverage ready.${NC}"
+  else
+    echo -e "${YELLOW}Backend container is not running; skipping backend coverage.${NC}"
+  fi
+
+  echo -e "${BLUE}=== 2/3 Frontend tests and coverage ===${NC}"
+  if [ -d frontend/node_modules ]; then
+    (cd frontend && npm run test:coverage)
+    echo -e "${GREEN}Frontend coverage ready.${NC}"
+  else
+    echo -e "${YELLOW}frontend/node_modules not found; skipping frontend coverage.${NC}"
+  fi
+else
+  echo -e "${YELLOW}RUN_TESTS=false: skipping test/coverage generation.${NC}"
+fi
+
+echo -e "${BLUE}=== 3/3 SonarScanner ===${NC}"
 docker run --rm \
-  --add-host=host.docker.internal:host-gateway \
-  -v "$(pwd):/usr/src" \
+  -v "$PROJECT_ROOT:/usr/src" \
   sonarsource/sonar-scanner-cli \
   -Dproject.settings=sonar/sonar-project.properties \
-  -Dsonar.host.url=http://host.docker.internal:9000 \
-  -Dsonar.token="$SONAR_TOKEN" || {
-    echo -e "${RED}Scanner execution failed. Please check if SonarQube is running at http://localhost:9000 and the analysis token is valid.${NC}"
-    exit 1
-  }
+  -Dsonar.host.url="$SONAR_HOST_URL" \
+  -Dsonar.token="$SONAR_TOKEN"
 
-echo -e "${GREEN}=== Analysis Finished! ===${NC}"
-echo -e "Check results at: http://localhost:9000"
+echo -e "${GREEN}=== Analysis submitted successfully ===${NC}"
+echo "Open: $SONAR_HOST_URL/dashboard?id=llmind2"

@@ -111,17 +111,38 @@ export default function CasesPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <CircleStackIcon className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Clinical Case Registry</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">DSM-5 Clinical Cases</h1>
           </div>
-          <p className="app-subtitle">Review extracted DSM-5-TR cases, edit validations, and launch benchmark evaluation batches.</p>
+          <p className="app-subtitle">
+            Curate the reproducible DSM-5 Clinical Cases dataset, convert selected cases into patients, and launch benchmark batches.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 lg:self-end">
+          <Link href="/patients" className="btn btn-outline gap-1.5">
+            <CircleStackIcon className="h-4 w-4" />
+            Patients
+          </Link>
           <Link href="/benchmark" className="btn btn-outline gap-1.5">
             <BeakerIcon className="h-4 w-4" />
-            Benchmark Dashboard
+            Benchmark Lab
           </Link>
         </div>
       </div>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Dataset role</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">These cases act as the stable benchmark corpus, separate from user-owned patient records.</p>
+        </div>
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Patient import</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Use Convert to create a patient profile from a case when you need interactive clinical reasoning.</p>
+        </div>
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Benchmark input</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Select reviewed cases and models to produce comparable model-evaluation runs.</p>
+        </div>
+      </section>
 
       {/* Main Two-Column Grid */}
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
@@ -185,7 +206,7 @@ export default function CasesPage() {
                         onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                     </th>
-                    <th className="font-bold text-xs uppercase tracking-wider pl-2">Case Details</th>
+                    <th className="font-bold text-xs uppercase tracking-wider pl-2">DSM-5 Case Details</th>
                     <th className="font-bold text-xs uppercase tracking-wider w-28 text-center">Status</th>
                     <th className="font-bold text-xs uppercase tracking-wider w-24 text-center">Runs</th>
                     <th className="font-bold text-xs uppercase tracking-wider w-48 text-right pr-4">Actions</th>
@@ -202,7 +223,7 @@ export default function CasesPage() {
                   ) : cases.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-24 text-center">
-                        <div className="text-base-content/60 font-semibold text-lg">No cases found</div>
+                  <div className="text-base-content/60 font-semibold text-lg">No DSM-5 Clinical Cases found</div>
                         <div className="text-xs text-base-content/40 mt-1">Try adjusting your search query or review filter.</div>
                       </td>
                     </tr>
@@ -255,7 +276,7 @@ export default function CasesPage() {
                             {convertingMap[item.id] ? (
                               <span className="loading loading-spinner loading-[10px]" />
                             ) : (
-                              'Convert'
+                            'Import as patient'
                             )}
                           </button>
                         </div>
@@ -398,4 +419,3 @@ export default function CasesPage() {
     </div>
   );
 }
-

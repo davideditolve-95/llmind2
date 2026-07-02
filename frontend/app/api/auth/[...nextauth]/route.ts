@@ -86,7 +86,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   debug: process.env.NEXTAUTH_DEBUG === "true",
-  secret: process.env.NEXTAUTH_SECRET || "genera_una_chiave_segreta_valida_per_sessioni",
+  secret: process.env.NEXTAUTH_SECRET || process.env.SECRET_KEY,
 };
 
 const handler = NextAuth(authOptions);

@@ -1,46 +1,41 @@
 'use client';
 
-import { FormEvent, useEffect, useState, useCallback } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { chatApi, datastoreApi, type Datastore, type IcdScopeOption, type KnowledgePreset } from '@/lib/api';
+import { chatApi, datastoreApi, type Datastore, type IcdScopeOption } from '@/lib/api';
 import { ArrowPathIcon, CircleStackIcon, PlusIcon, TrashIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function DatastoresPage() {
   const [datastores, setDatastores] = useState<Datastore[]>([]);
   const [models, setModels] = useState<string[]>([]);
-  const [presets, setPresets] = useState<KnowledgePreset[]>([]);
   const [icdSections, setIcdSections] = useState<IcdScopeOption[]>([]);
   const [icdChapter, setIcdChapter] = useState<IcdScopeOption | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [model, setModel] = useState('');
-  const [preset, setPreset] = useState('');
   const [icdScope, setIcdScope] = useState<'chapter_6' | 'sections'>('chapter_6');
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [secondsTicker, setSecondsTicker] = useState(0);
+  const [, setSecondsTicker] = useState(0);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [ds, modelRes, presetRes, scopeRes] = await Promise.all([
+      const [ds, modelRes, scopeRes] = await Promise.all([
         datastoreApi.list(),
         chatApi.getModels(),
-        datastoreApi.getPresets(),
         datastoreApi.getIcdScopeOptions(),
       ]);
       setDatastores(ds);
       setModels(modelRes.models);
-      setPresets(presetRes);
       setIcdChapter(scopeRes.chapter);
       setIcdSections(scopeRes.sections);
       setModel((current) => current || modelRes.default_model || modelRes.models[0] || '');
-      setPreset((current) => current || presetRes[0]?.id || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load datastore configuration.');
+      setError(err instanceof Error ? err.message : 'Unable to load vector-store configuration.');
     } finally {
       setLoading(false);
     }
@@ -91,31 +86,45 @@ export default function DatastoresPage() {
 
   const create = async (event: FormEvent) => {
     event.preventDefault();
+    if (!model) {
+      setError('Select the model to use for this local vector store.');
+      return;
+    }
     if (icdScope === 'sections' && selectedSections.length === 0) {
-      setError('Select at least one ICD-11 chapter 6 section, or use the full chapter.');
+      setError('Select at least one ICD-11 Chapter 6 section, or use the full chapter.');
       return;
     }
 
     setCreating(true);
     setError(null);
-    const form = new FormData();
-    form.append('name', name);
-    form.append('model_name', model);
-    form.append('preset_id', 'icd11_standard');
-    form.append('icd_scope', icdScope);
-    form.append('icd_section_ids', selectedSections.join(','));
-    
-    // Close modal immediately so the user can see the "processing" state
-    setOpen(false);
-
     try {
+      const duplicate = findMatchingVectorStore(datastores, model, icdScope, selectedSections);
+      if (duplicate) {
+        const shouldOverwrite = confirm(
+          `A local vector store with the same model and ICD-11 scope already exists:\n\n"${duplicate.name}"\n\nDo you want to overwrite it?`
+        );
+        if (!shouldOverwrite) {
+          return;
+        }
+        await datastoreApi.delete(duplicate.id);
+      }
+
+      const form = new FormData();
+      form.append('name', name);
+      form.append('model_name', model);
+      form.append('preset_id', 'icd11_standard');
+      form.append('icd_scope', icdScope);
+      form.append('icd_section_ids', selectedSections.join(','));
+
+      // Close modal immediately so the user can see the "processing" state
+      setOpen(false);
       await datastoreApi.create(form);
       setName('');
       setIcdScope('chapter_6');
       setSelectedSections([]);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create datastore.');
+      setError(err instanceof Error ? err.message : 'Unable to create the vector store.');
     } finally {
       setCreating(false);
     }
@@ -133,13 +142,15 @@ export default function DatastoresPage() {
         <div>
           <div className="flex items-center gap-2">
             <CircleStackIcon className="h-7 w-7 text-primary" />
-            <h1 className="app-title">Datastores</h1>
+            <h1 className="app-title">Local Vector Stores</h1>
           </div>
-          <p className="app-subtitle mt-2">Create preset-based vector stores and query them from the custom explorer.</p>
+          <p className="app-subtitle mt-2">
+            Build offline Chroma vector stores from ICD-11 Chapter 6. Use the full chapter for broad experiments, or selected sections for smaller and cheaper local runs.
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => setOpen(true)}>
           <PlusIcon className="h-4 w-4" />
-          New datastore
+          New vector store
         </button>
       </div>
 
@@ -154,7 +165,7 @@ export default function DatastoresPage() {
       ) : datastores.length === 0 ? (
         <div className="hero rounded-box bg-base-100 shadow-sm">
           <div className="hero-content text-center">
-            <div><h2 className="text-2xl font-semibold">No datastores yet</h2><p className="mt-2 text-base-content/60">Create a library from one of the clinical presets.</p></div>
+            <div><h2 className="text-2xl font-semibold">No local vector stores yet</h2><p className="mt-2 text-base-content/60">Create a focused ICD-11 Chapter 6 vector store to support offline retrieval experiments.</p></div>
           </div>
         </div>
       ) : (
@@ -189,7 +200,7 @@ export default function DatastoresPage() {
                 {ds.error_message && <div className="alert alert-error text-sm">{ds.error_message}</div>}
                 <div className="card-actions justify-end">
                   {ds.status === 'ready' && <Link href={`/explorer?ds=${ds.id}`} className="btn btn-primary btn-sm">Open</Link>}
-                  <button className="btn btn-error btn-outline btn-sm" onClick={() => confirm('Delete datastore?') && datastoreApi.delete(ds.id).then(load)}>
+                  <button className="btn btn-error btn-outline btn-sm" onClick={() => confirm('Delete local vector store?') && datastoreApi.delete(ds.id).then(load)}>
                     <TrashIcon className="h-4 w-4" />
                   </button>
                 </div>
@@ -201,15 +212,32 @@ export default function DatastoresPage() {
 
       <dialog className={`modal ${open ? 'modal-open' : ''}`}>
         <div className="modal-box">
-          <h3 className="text-lg font-semibold">Create datastore</h3>
+          <h3 className="text-lg font-semibold">Create local vector store</h3>
           <form className="mt-4 space-y-4" onSubmit={create}>
             <input className="input input-bordered w-full" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+            <label className="form-control w-full">
+              <span className="label-text mb-2 font-semibold">Model</span>
+              <select
+                className="select select-bordered w-full"
+                required
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+              >
+                <option value="" disabled>Select a model</option>
+                {models.map((modelName) => (
+                  <option key={modelName} value={modelName}>{modelName}</option>
+                ))}
+              </select>
+              <span className="label-text-alt mt-1 text-base-content/60">
+                The selected model is part of the vector-store configuration. Same model + same ICD-11 scope counts as an existing configuration.
+              </span>
+            </label>
             
             <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
               <div className="mb-3">
                 <div className="font-semibold">ICD-11 chapter 6 scope</div>
                 <p className="text-sm text-base-content/60">
-                  Choose whether this datastore should include the full mental, behavioural and neurodevelopmental chapter or only selected direct sections.
+                  Choose whether this local vector store should include the full mental, behavioural and neurodevelopmental chapter or only selected direct sections.
                 </p>
               </div>
               <div className="space-y-2">
@@ -222,7 +250,7 @@ export default function DatastoresPage() {
                     onChange={() => setIcdScope('chapter_6')}
                   />
                   <span>
-                    <span className="block font-medium">Use all chapter 6</span>
+                    <span className="block font-medium">Use all ICD-11 Chapter 6</span>
                     <span className="text-sm text-base-content/60">
                       {icdChapter ? `${icdChapter.code || 'Chapter 6'} · ${icdChapter.title}` : 'Chapter 6 will be used when ICD-11 data is available.'}
                     </span>
@@ -280,4 +308,34 @@ export default function DatastoresPage() {
       </dialog>
     </div>
   );
+}
+
+function buildVectorStoreConfigKey(model: string, icdScope: 'chapter_6' | 'sections', selectedSections: string[]) {
+  const sortedSections = [...selectedSections].sort();
+  return `icd11_standard:${model}:${icdScope}:${sortedSections.join(',')}`;
+}
+
+function findMatchingVectorStore(
+  datastores: Datastore[],
+  model: string,
+  icdScope: 'chapter_6' | 'sections',
+  selectedSections: string[],
+) {
+  const configKey = buildVectorStoreConfigKey(model, icdScope, selectedSections);
+  const sortedSections = [...selectedSections].sort();
+
+  return datastores.find((store) => {
+    if (store.metadata_info?.config_key === configKey) return true;
+    if (store.model_name !== model) return false;
+    if (store.metadata_info?.preset_id && store.metadata_info.preset_id !== 'icd11_standard') return false;
+    if (store.metadata_info?.icd_scope && store.metadata_info.icd_scope !== icdScope) return false;
+
+    if (Array.isArray(store.metadata_info?.icd_section_ids)) {
+      const existingSections = [...store.metadata_info.icd_section_ids].sort();
+      return existingSections.join(',') === sortedSections.join(',');
+    }
+
+    const description = store.description || '';
+    return description.includes(`(${icdScope})`);
+  });
 }

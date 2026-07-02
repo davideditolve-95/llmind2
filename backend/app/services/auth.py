@@ -2,7 +2,7 @@ import logging
 import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
+from jose import jwt
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,14 @@ security = HTTPBearer(auto_error=False)
 
 # Cache per le chiavi JWKS
 _jwks_cache = None
+
+
+def _local_development_identity() -> dict:
+    return {
+        "sub": "local-development-user",
+        "preferred_username": "local-dev",
+        "email": "local-dev@llmind.local",
+    }
 
 
 def _get_jwks_url() -> str:
@@ -40,7 +48,7 @@ async def get_jwks():
         return None
 
     try:
-        async with httpx.AsyncClient(verify=False) as client:
+        async with httpx.AsyncClient(verify=settings.auth_verify_ssl) as client:
             response = await client.get(jwks_url, timeout=10.0)
             if response.status_code == 200:
                 _jwks_cache = response.json()
@@ -54,109 +62,99 @@ async def get_jwks():
     return None
 
 
+def _handle_missing_credentials() -> dict:
+    if settings.environment != "production":
+        logger.warning("Autenticazione disabilitata in ambiente locale development.")
+        return _local_development_identity()
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not authenticated",
+    )
+
+
+def _handle_missing_jwks() -> dict:
+    if settings.environment == "production":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Servizio di autenticazione non disponibile (JWKS mancante)"
+        )
+    logger.warning("JWKS non disponibile in locale: uso identità di sviluppo controllata.")
+    return _local_development_identity()
+
+
+def _get_token_kid(token: str) -> str:
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+    if not kid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token non valido (kid mancante)"
+        )
+    return kid
+
+
+def _invalidate_jwks_cache() -> None:
+    global _jwks_cache
+    _jwks_cache = None
+
+
+def _find_rsa_key(jwks: dict, kid: str) -> dict:
+    for key in jwks.get("keys", []):
+        if key.get("kid") == kid:
+            return {
+                "kty": key.get("kty"),
+                "kid": key.get("kid"),
+                "use": key.get("use"),
+                "n": key.get("n"),
+                "e": key.get("e"),
+            }
+
+    logger.warning("Chiave pubblica non trovata per kid=%s — JWKS potrebbe essere scaduto. Invalido cache.", kid)
+    _invalidate_jwks_cache()
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Chiave pubblica non trovata per la firma del token (kid non corrisponde)"
+    )
+
+
+def _validate_issuer(payload: dict) -> None:
+    token_iss = payload.get("iss", "").rstrip("/")
+    expected_iss = settings.keycloak_issuer.rstrip("/")
+    if token_iss != expected_iss:
+        logger.warning(f"Issuer non valido: atteso={expected_iss}, ricevuto={token_iss}")
+        raise jwt.JWTClaimsError(f"Invalid issuer: expected {expected_iss}, got {token_iss}")
+
+
+def _decode_validated_token(token: str, rsa_key: dict) -> dict:
+    # Keycloak emette tokens con audience = client_id oppure "account"; l'issuer resta validato manualmente.
+    payload = jwt.decode(
+        token,
+        rsa_key,
+        algorithms=["RS256"],
+        options={"verify_aud": False},
+    )
+    _validate_issuer(payload)
+    return payload
+
+
 async def verify_token(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
     """
     Verifica il token JWT ricevuto nell'header Authorization Bearer.
     Valida la firma tramite JWKS Keycloak, la scadenza e l'issuer.
     """
     if credentials is None:
-        if settings.environment != "production":
-            logger.warning("Autenticazione disabilitata in ambiente locale development.")
-            return {
-                "sub": "local-development-user",
-                "preferred_username": "local-dev",
-                "email": "local-dev@llmind.local",
-            }
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authenticated",
-        )
+        return _handle_missing_credentials()
 
     token = credentials.credentials
     jwks = await get_jwks()
 
     if not jwks:
-        # Se il JWKS non è configurato o non è raggiungibile
-        if settings.environment == "production":
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Servizio di autenticazione non disponibile (JWKS mancante)"
-            )
-        else:
-            # Sviluppo locale semplificato: decodifica senza validazione firma
-            logger.warning("Verifica firma disabilitata in locale (JWKS non raggiungibile o non configurato).")
-            try:
-                payload = jwt.get_unverified_claims(token)
-                return payload
-            except JWTError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_418_IM_A_TEAPOT,
-                    detail=f"Token non decodificabile: {str(e)}"
-                )
+        return _handle_missing_jwks()
 
     try:
-        import time
-        try:
-            unverified_claims = jwt.get_unverified_claims(token)
-            logger.info(
-                f"DEBUG TOKEN: exp={unverified_claims.get('exp')}, "
-                f"iat={unverified_claims.get('iat')}, "
-                f"iss={unverified_claims.get('iss')}, "
-                f"now={time.time()}"
-            )
-        except Exception as e:
-            logger.error(f"Errore recupero unverified claims per debug: {e}")
-
-        # Ottieni l'header del JWT per trovare la chiave corretta (kid)
-        unverified_header = jwt.get_unverified_header(token)
-        kid = unverified_header.get("kid")
-        if not kid:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token non valido (kid mancante)"
-            )
-
-        # Trova la chiave pubblica corrispondente nel JWKS
-        rsa_key = {}
-        for key in jwks.get("keys", []):
-            if key.get("kid") == kid:
-                rsa_key = {
-                    "kty": key.get("kty"),
-                    "kid": key.get("kid"),
-                    "use": key.get("use"),
-                    "n":   key.get("n"),
-                    "e":   key.get("e"),
-                }
-                break
-
-        if not rsa_key:
-            # JWKS potrebbe essere scaduto in cache — invalida e riprova al prossimo request
-            logger.warning("Chiave pubblica non trovata per kid=%s — JWKS potrebbe essere scaduto. Invalido cache.", kid)
-            global _jwks_cache
-            _jwks_cache = None
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Chiave pubblica non trovata per la firma del token (kid non corrisponde)"
-            )
-
-        # Keycloak emette tokens con audience = client_id oppure "account"
-        # Decodifica senza validazione automatica audience per flessibilità
-        payload = jwt.decode(
-            token,
-            rsa_key,
-            algorithms=["RS256"],
-            options={"verify_aud": False},
-        )
-
-        # Validazione manuale dell'issuer (normalizza slash finale)
-        token_iss = payload.get("iss", "").rstrip("/")
-        expected_iss = settings.keycloak_issuer.rstrip("/")
-
-        if token_iss != expected_iss:
-            logger.warning(f"Issuer non valido: atteso={expected_iss}, ricevuto={token_iss}")
-            raise jwt.JWTClaimsError(f"Invalid issuer: expected {expected_iss}, got {token_iss}")
-
-        return payload
+        kid = _get_token_kid(token)
+        rsa_key = _find_rsa_key(jwks, kid)
+        return _decode_validated_token(token, rsa_key)
 
     except jwt.ExpiredSignatureError as e:
         logger.warning(f"Token scaduto: {e}")

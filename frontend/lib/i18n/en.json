@@ -74,7 +74,7 @@
     "differential_mode": "Differential Diagnosis Mode"
   },
   "benchmark": {
-    "title": "Research Benchmark Dashboard",
+    "title": "Benchmark Lab",
     "subtitle": "Multi-model LLM performance evaluation on DSM-5-TR clinical cases",
     "kpi_total_runs": "Total Runs",
     "kpi_total_cases": "Clinical Cases",

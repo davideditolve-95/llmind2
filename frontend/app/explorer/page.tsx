@@ -61,8 +61,8 @@ function ExplorerContent() {
   return (
     <div className="grid h-[calc(100vh-4.75rem)] grid-cols-1 overflow-hidden lg:grid-cols-[20rem_1fr]">
       <aside className="border-r border-base-300 bg-base-100 p-4">
-        <h1 className="text-lg font-semibold">Custom Explorer</h1>
-        <p className="mt-1 text-sm text-base-content/60">Query a ready datastore.</p>
+        <h1 className="text-lg font-semibold">Legacy Vector Explorer</h1>
+        <p className="mt-1 text-sm text-base-content/60">Query a ready local vector store.</p>
         <select className="select select-bordered mt-4 w-full" value={selectedId} onChange={(e) => { setSelectedId(e.target.value); setMessages([]); }}>
           {datastores.map((ds) => <option key={ds.id} value={ds.id}>{ds.name}</option>)}
         </select>
@@ -81,7 +81,7 @@ function ExplorerContent() {
                 <div className="hero-content text-center">
                   <div>
                     <CircleStackIcon className="mx-auto h-12 w-12 text-primary" />
-                    <h2 className="mt-4 text-2xl font-semibold">{selected ? selected.name : 'No datastore selected'}</h2>
+                    <h2 className="mt-4 text-2xl font-semibold">{selected ? selected.name : 'No vector store selected'}</h2>
                     <p className="mt-2 text-base-content/60">Ask a question against the selected vector store.</p>
                   </div>
                 </div>
@@ -100,7 +100,7 @@ function ExplorerContent() {
         </div>
         <div className="border-t border-base-300 bg-base-100 p-4">
           <div className="mx-auto flex max-w-4xl gap-2">
-            <input className="input input-bordered flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} placeholder="Ask the datastore..." disabled={!selectedId || loading} />
+            <input className="input input-bordered flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} placeholder="Ask the vector store..." disabled={!selectedId || loading} />
             <button className="btn btn-primary" onClick={ask} disabled={!input.trim() || !selectedId || loading}>
               {loading ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : <PaperAirplaneIcon className="h-5 w-5" />}
             </button>

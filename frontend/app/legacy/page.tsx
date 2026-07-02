@@ -209,7 +209,7 @@ export default function LegacyPage() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => event.key === 'Enter' && ask()}
-                placeholder="Ask the legacy datastore..."
+                placeholder="Ask the legacy vector store..."
                 disabled={loading}
               />
               <button className="btn btn-primary" onClick={ask} disabled={!input.trim() || loading}>

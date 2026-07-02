@@ -64,7 +64,7 @@ export default function CaseDetailsPage() {
         <div className="space-y-2">
           <button className="btn btn-ghost btn-xs -ml-2 mb-1 gap-1 text-base-content/70 hover:text-base-content" onClick={() => router.back()}>
             <ArrowLeftIcon className="h-3.5 w-3.5" />
-            Back to Case Registry
+            Back to DSM-5 Clinical Cases
           </button>
           <div className="flex flex-wrap items-center gap-2">
             <span className="badge badge-neutral text-xs font-semibold px-2.5 py-1">CASE #{caseData.case_number || 'N/A'}</span>
@@ -84,7 +84,7 @@ export default function CaseDetailsPage() {
         
         <div className="flex flex-wrap gap-2 lg:self-end">
           <button className="btn btn-outline btn-primary" onClick={convertToPatient} disabled={converting}>
-            {converting ? <span className="loading loading-spinner loading-xs" /> : 'Convert to Patient'}
+            {converting ? <span className="loading loading-spinner loading-xs" /> : 'Import as Patient'}
           </button>
           <button className="btn btn-primary px-6" onClick={save} disabled={saving}>
             <CheckCircleIcon className="h-4 w-4 mr-1" />
@@ -250,7 +250,7 @@ export default function CaseDetailsPage() {
           <div className="modal-box bg-base-100 border border-base-300">
             <h3 className="font-bold text-lg text-success">Conversion Successful!</h3>
             <p className="py-4 text-base-content/80">
-              Clinical case successfully parsed! Patient profile created for <strong>{successPatient.name}</strong> (Age: {successPatient.age || 'N/A'}, Gender: {successPatient.gender || 'N/A'}).
+              DSM-5 Clinical Case successfully imported. Patient profile created for <strong>{successPatient.name}</strong> (Age: {successPatient.age || 'N/A'}, Gender: {successPatient.gender || 'N/A'}).
             </p>
             <div className="modal-action">
               <button className="btn btn-ghost" onClick={() => setSuccessPatient(null)}>Close</button>
@@ -269,4 +269,3 @@ export default function CaseDetailsPage() {
     </div>
   );
 }
-

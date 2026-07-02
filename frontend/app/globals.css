@@ -45,6 +45,18 @@
   @apply max-w-3xl text-sm leading-6 text-base-content/70;
 }
 
+.nav-summary {
+  list-style: none;
+}
+
+.nav-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-summary::after {
+  display: none !important;
+}
+
 .scroll-area {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--bc) / 0.25) transparent;

@@ -162,11 +162,17 @@ run_sonarqube_analysis() {
 # 8. Mostra metriche di copertura registrate in SonarQube
 show_sonarqube_metrics() {
   echo -e "${BLUE}📊 Richiesta delle metriche di copertura a SonarQube...${NC}"
-  RESPONSE=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=llmind2&metricKeys=coverage,lines_to_cover,uncovered_lines" || echo "")
+  SONAR_HOST_URL="${SONAR_HOST_URL:-http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000}"
+  if [ -z "${SONAR_TOKEN:-}" ]; then
+    echo -e "${YELLOW}⚠️  SONAR_TOKEN non configurato. Esporta un token SonarQube prima di leggere le metriche.${NC}"
+    press_any_key
+    return
+  fi
+  RESPONSE=$(curl -s -u "$SONAR_TOKEN:" "$SONAR_HOST_URL/api/measures/component?component=llmind2&metricKeys=coverage,lines_to_cover,uncovered_lines" || echo "")
   
   if [ -z "$RESPONSE" ] || echo "$RESPONSE" | grep -q "errors"; then
     echo -e "${YELLOW}⚠️  Impossibile contattare SonarQube o progetto 'llmind2' non ancora analizzato.${NC}"
-    echo -e "   Assicurati che SonarQube sia attivo su http://localhost:9000 e che sia stata eseguita almeno un'analisi."
+    echo -e "   Assicurati che SonarQube sia attivo su $SONAR_HOST_URL e che sia stata eseguita almeno un'analisi."
   else
     # Parsing sicuro via Python
     read -r COVERAGE LINES UNCOVERED <<< $(echo "$RESPONSE" | python3 -c "

@@ -1,8 +1,7 @@
 import pytest
-import httpx
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi import HTTPException, status
-from jose import jwt, JWTError
+from jose import jwt
 
 from app.config import get_settings
 from app.services import auth
@@ -126,3 +125,55 @@ async def test_verify_token_expired(mock_decode, mock_claims, mock_header, mock_
             await verify_token(credentials)
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Sessione scaduta" in exc_info.value.detail
+
+@pytest.mark.asyncio
+async def test_verify_token_without_credentials_uses_local_identity_in_development():
+    settings = get_settings()
+    with patch.object(settings, "environment", "development"):
+        payload = await verify_token(None)
+        assert payload["sub"] == "local-development-user"
+        assert payload["email"] == "local-dev@llmind.local"
+
+@pytest.mark.asyncio
+async def test_verify_token_without_credentials_fails_in_production():
+    settings = get_settings()
+    with patch.object(settings, "environment", "production"):
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_token(None)
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.asyncio
+@patch("app.services.auth.get_jwks")
+async def test_verify_token_missing_jwks_fails_in_production(mock_get_jwks):
+    settings = get_settings()
+    mock_get_jwks.return_value = None
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="mocked-jwt-token")
+
+    with patch.object(settings, "environment", "production"):
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_token(credentials)
+        assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+@pytest.mark.asyncio
+@patch("app.services.auth.get_jwks")
+async def test_verify_token_missing_jwks_uses_local_identity_in_development(mock_get_jwks):
+    settings = get_settings()
+    mock_get_jwks.return_value = None
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="mocked-jwt-token")
+
+    with patch.object(settings, "environment", "development"):
+        payload = await verify_token(credentials)
+        assert payload["sub"] == "local-development-user"
+
+@pytest.mark.asyncio
+@patch("app.services.auth.get_jwks")
+@patch("jose.jwt.get_unverified_header")
+async def test_verify_token_missing_kid_is_rejected(mock_header, mock_get_jwks):
+    mock_get_jwks.return_value = {"keys": [{"kid": "key-id-1", "kty": "RSA", "use": "sig"}]}
+    mock_header.return_value = {}
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="mocked-jwt-token")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await verify_token(credentials)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "kid mancante" in exc_info.value.detail

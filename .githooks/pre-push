@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${SKIP_SONAR_PRE_PUSH:-false}" = "true" ]; then
+  echo "SKIP_SONAR_PRE_PUSH=true: skipping SonarQube pre-push analysis."
+  exit 0
+fi
+
+if [ -z "${SONAR_TOKEN:-}" ]; then
+  cat <<'MSG'
+SonarQube pre-push analysis is enabled, but SONAR_TOKEN is missing.
+
+Create a SonarQube user token, then run:
+  export SONAR_TOKEN=...
+
+To bypass intentionally for an emergency push:
+  SKIP_SONAR_PRE_PUSH=true git push
+MSG
+  exit 1
+fi
+
+RUN_TESTS="${RUN_TESTS:-false}" sonar/run-analysis.sh

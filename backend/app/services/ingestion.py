@@ -3,8 +3,10 @@ Servizio per l'ingestion dinamica di documenti in ChromaDB.
 Supporta la creazione di datastore personalizzati con modelli Ollama specifici.
 """
 
+import asyncio
 import os
 import logging
+from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
 
@@ -20,6 +22,15 @@ from ..config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+def _parse_icd11_nodes_count(file_path: str) -> int | None:
+    """Extract the generated ICD-11 node count from the source header."""
+    for line in Path(file_path).read_text(encoding="utf-8").splitlines()[:10]:
+        if line.startswith("Nodes:"):
+            return int(line.split(":", 1)[1].strip())
+    return None
+
 
 class IngestionService:
     def __init__(self):
@@ -104,12 +115,7 @@ class IngestionService:
             for file_path in file_paths:
                 if "icd11_chapter_6_scope.txt" in file_path:
                     try:
-                        with open(file_path, "r", encoding="utf-8") as f:
-                            for _ in range(10):  # Check first 10 lines
-                                line = f.readline()
-                                if line.startswith("Nodes:"):
-                                    icd11_nodes_count = int(line.split(":")[1].strip())
-                                    break
+                        icd11_nodes_count = await asyncio.to_thread(_parse_icd11_nodes_count, file_path)
                     except Exception as e:
                         logger.warning(f"Failed to parse nodes count: {e}")
 
@@ -118,6 +124,7 @@ class IngestionService:
             datastore.vector_path = vector_path
             
             metadata = {
+                **(datastore.metadata_info or {}),
                 "chunks": len(splits),
                 "source_files_count": len(file_paths),
                 "total_size_bytes": total_size

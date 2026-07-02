@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 import { patientsApi, type Patient } from '@/lib/api';
 import {
   ArrowPathIcon,
+  CircleStackIcon,
   ChatBubbleLeftRightIcon,
   ExclamationTriangleIcon,
   PencilIcon,
@@ -137,14 +139,41 @@ export default function PatientsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="app-title">Patient Management</h1>
-          <p className="app-subtitle mt-2">Manage clinical patients profiles, edit characteristics, or start contextualized chats.</p>
+          <div className="mb-2 flex flex-wrap gap-2">
+            <span className="badge badge-primary">User-owned workspace</span>
+            <span className="badge badge-outline">Clinical reasoning inputs</span>
+          </div>
+          <h1 className="app-title">Patients</h1>
+          <p className="app-subtitle mt-2">
+            Manage patient profiles linked to your account, import DSM-5 Clinical Cases, and start contextualized model interactions.
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={openCreateModal}>
-          <PlusIcon className="h-4 w-4" />
-          Add Patient
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link className="btn btn-outline" href="/benchmark/cases">
+            <CircleStackIcon className="h-4 w-4" />
+            Import DSM-5 case
+          </Link>
+          <button className="btn btn-primary" onClick={openCreateModal}>
+            <PlusIcon className="h-4 w-4" />
+            Add Patient
+          </button>
+        </div>
       </div>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Private by design</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Patient profiles are operational records for the authenticated user, separate from benchmark datasets.</p>
+        </div>
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">DSM-5 import path</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Use DSM-5 Clinical Cases as structured starting points, then convert selected cases into patient profiles.</p>
+        </div>
+        <div className="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">Model interaction</div>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">Open a patient chat to compare reasoning while keeping patient context explicit.</p>
+        </div>
+      </section>
 
       {/* Search and error */}
       <div className="flex flex-col gap-3 md:flex-row">
@@ -176,7 +205,11 @@ export default function PatientsPage() {
           <div className="card-body py-16 text-center text-base-content/50">
             <UserIcon className="h-12 w-12 mx-auto text-base-content/30 mb-3" />
             <p className="text-lg font-medium">No patients found</p>
-            <p className="text-sm mt-1">Create a new patient manually or convert an existing clinical case.</p>
+            <p className="text-sm mt-1">Create a new patient manually or import one from DSM-5 Clinical Cases.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <button className="btn btn-primary btn-sm" onClick={openCreateModal}>Create patient</button>
+              <Link className="btn btn-outline btn-sm" href="/benchmark/cases">Import DSM-5 case</Link>
+            </div>
           </div>
         </div>
       ) : (

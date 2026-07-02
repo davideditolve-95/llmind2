@@ -39,8 +39,8 @@ describe('CasesPage Component', () => {
 
     render(<CasesPage />)
 
-    expect(screen.getByText('Clinical cases')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Search cases')).toBeInTheDocument()
+    expect(screen.getByText('DSM-5 Clinical Cases')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search cases by title or content...')).toBeInTheDocument()
   })
 
   test('displays loading spinner and then displays cases list', async () => {
@@ -89,7 +89,7 @@ describe('CasesPage Component', () => {
     render(<CasesPage />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Nessun caso clinico trovato nel database/i)).toBeInTheDocument()
+      expect(screen.getByText(/No DSM-5 Clinical Cases found/i)).toBeInTheDocument()
     })
   })
 

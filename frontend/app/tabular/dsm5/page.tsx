@@ -167,8 +167,8 @@ function Dsm5ExplorerContent() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Squares2X2Icon className="h-7 w-7 text-secondary" />
-            <h1 className="app-title text-purple-900 dark:text-purple-300">DSM-5 Explorer</h1>
+            <Squares2X2Icon className="h-7 w-7 text-primary" />
+            <h1 className="app-title">DSM-5 Explorer</h1>
           </div>
           <p className="app-subtitle mt-2">Browse the American Psychiatric Association (APA) DSM-5 diagnostic categories.</p>
         </div>
@@ -239,12 +239,12 @@ function Dsm5ExplorerContent() {
               className={`btn btn-sm btn-ghost gap-1.5 font-semibold text-base-content hover:bg-base-200 ${showAdvanced ? 'btn-active bg-base-200' : ''}`}
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.0} stroke="currentColor" className="w-4 h-4 text-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.0} stroke="currentColor" className="w-4 h-4 text-primary">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
               </svg>
               {showAdvanced ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
               {getActiveFiltersCount() > 0 && (
-                <span className="badge badge-secondary badge-sm ml-1 text-secondary-content">{getActiveFiltersCount()}</span>
+                <span className="badge badge-primary badge-sm ml-1 text-primary-content">{getActiveFiltersCount()}</span>
               )}
             </button>
 
@@ -320,14 +320,14 @@ function Dsm5ExplorerContent() {
                   const chapterRows = Object.values(familyGroups).flat();
                   return (
                   <Fragment key={chapter}>
-                    <tr className="bg-purple-50/70">
+                    <tr className="bg-primary/5">
                       <td colSpan={5} className="py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
-                            <div className="text-xs font-black uppercase tracking-[0.22em] text-purple-700">DSM-5 chapter</div>
+                            <div className="text-xs font-black uppercase tracking-[0.22em] text-primary">DSM-5 chapter</div>
                             <div className="font-bold text-base-content">{chapter}</div>
                           </div>
-                          <span className="badge border-purple-200 bg-white text-purple-700 font-bold">
+                          <span className="badge border-primary/20 bg-base-100 text-primary font-bold">
                             {chapterRows.length} categories on this page
                           </span>
                         </div>
@@ -348,7 +348,7 @@ function Dsm5ExplorerContent() {
                         {rows.map((row) => (
                       <tr key={row.id}>
                         <td className="align-middle">
-                          <span className="inline-flex min-w-24 justify-center rounded-xl border border-purple-300 bg-purple-50 px-3 py-2 font-mono text-sm font-black tabular-nums tracking-wide text-purple-800 shadow-sm">
+                          <span className="inline-flex min-w-24 justify-center rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 font-mono text-sm font-black tabular-nums tracking-wide text-primary shadow-sm">
                             {row.code}
                           </span>
                         </td>
@@ -357,7 +357,7 @@ function Dsm5ExplorerContent() {
                           {(row.variant_label || row.severity) && (
                             <div className="mt-1 flex flex-wrap gap-1.5">
                               {row.variant_label && (
-                                <span className="badge border border-purple-200 bg-purple-50 text-purple-700 badge-sm font-bold">
+                                <span className="badge border border-primary/20 bg-primary/5 text-primary badge-sm font-bold">
                                   {row.variant_label}
                                 </span>
                               )}
@@ -371,7 +371,7 @@ function Dsm5ExplorerContent() {
                           <div className="mt-2 sm:hidden">
                             <MappingGroup icd11Code={row.icd11_code} icd10Code={row.icd10_code} compact />
                             {hasAnyDsm5Content(row) && (
-                              <span className="badge border border-purple-200 bg-purple-50 text-purple-700 badge-xs font-bold mt-1.5">
+                              <span className="badge border border-primary/20 bg-primary/5 text-primary badge-xs font-bold mt-1.5">
                                 Content
                               </span>
                             )}
@@ -388,7 +388,7 @@ function Dsm5ExplorerContent() {
                             className="btn btn-sm btn-ghost sm:btn-active font-semibold text-base-content hover:bg-base-200 gap-1.5"
                             onClick={() => handleRowDetails(row)}
                           >
-                            <EyeIcon className="h-4 w-4 text-purple-700" />
+                            <EyeIcon className="h-4 w-4 text-primary" />
                             <span>Inspect</span>
                           </button>
                         </td>
@@ -428,7 +428,7 @@ function FilterCheckbox({ checked, label, onChange }: { checked: boolean; label:
       <label className="label cursor-pointer justify-start gap-2.5 py-1.5">
         <input
           type="checkbox"
-          className="checkbox checkbox-secondary checkbox-sm border-base-content/65 bg-base-100"
+          className="checkbox checkbox-primary checkbox-sm border-base-content/65 bg-base-100"
           checked={checked}
           onChange={(event) => onChange(event.target.checked)}
         />
@@ -494,7 +494,7 @@ function ContentBadges({ category, compact = false }: { category: DSM5Category; 
   return (
     <div className="flex flex-wrap justify-center gap-1">
       {visible.map((section) => (
-        <span key={section.key} className="badge border border-purple-200 bg-purple-50 text-purple-700 badge-sm font-bold">
+        <span key={section.key} className="badge border border-primary/20 bg-primary/5 text-primary badge-sm font-bold">
           {section.label}
         </span>
       ))}
@@ -521,10 +521,10 @@ function MappingGroup({ icd11Code, icd10Code, compact = false }: { icd11Code?: s
 function CodePair({ label, value, tone, compact = false }: { label: string; value: string; tone: 'icd10' | 'icd11'; compact?: boolean }) {
   const colors = tone === 'icd11'
     ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-    : 'border-purple-300 bg-purple-50 text-purple-800';
+    : 'border-primary/30 bg-primary/5 text-primary';
   const labelColors = tone === 'icd11'
     ? 'border-emerald-200 bg-emerald-100/80 text-emerald-900'
-    : 'border-purple-200 bg-purple-100/80 text-purple-900';
+    : 'border-primary/20 bg-primary/10 text-primary';
   const sizing = compact ? 'text-[0.68rem]' : 'text-xs';
   const labelPadding = compact ? 'px-1.5 py-1' : 'px-2 py-1.5';
   const valuePadding = compact ? 'px-2 py-1' : 'px-2.5 py-1.5';
@@ -564,7 +564,7 @@ function Dsm5DetailModal({ category, onClose }: { category: DSM5Category; onClos
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between flex-shrink-0">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="badge border border-purple-300 text-purple-700 bg-purple-50 font-mono font-bold px-2.5 py-0.5 rounded">
+              <span className="badge border border-primary/30 text-primary bg-primary/5 font-mono font-bold px-2.5 py-0.5 rounded">
                 DSM-5: {category.code}
               </span>
               {category.icd11_code && (
@@ -577,7 +577,7 @@ function Dsm5DetailModal({ category, onClose }: { category: DSM5Category; onClos
               <span>{category.title}</span>
               {category.icd11_code && (
                 <button 
-                  className={`btn btn-xs btn-outline btn-success font-bold gap-1 border-emerald-400 text-emerald-700 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white ${loadingComparison ? 'loading btn-disabled' : ''}`}
+                  className={`btn btn-xs btn-outline btn-primary font-bold gap-1 ${loadingComparison ? 'loading btn-disabled' : ''}`}
                   onClick={handleCompare}
                   disabled={loadingComparison}
                 >
@@ -606,7 +606,7 @@ function Dsm5DetailModal({ category, onClose }: { category: DSM5Category; onClos
           {category.icd10_code && (
             <section className="bg-base-200/40 border border-base-200 p-3 rounded-box flex items-center justify-between">
               <span className="text-sm font-bold text-base-content">Mapped ICD-10 Code</span>
-              <span className="badge border border-purple-300 text-purple-700 bg-purple-50 font-mono font-bold py-2.5 px-2 rounded">
+              <span className="badge border border-primary/30 text-primary bg-primary/5 font-mono font-bold py-2.5 px-2 rounded">
                 {category.icd10_code}
               </span>
             </section>
@@ -626,7 +626,7 @@ function Dsm5DetailModal({ category, onClose }: { category: DSM5Category; onClos
             </div>
           ) : (
             <div className="mt-2 flex flex-col items-center justify-center p-8 rounded-box border border-dashed border-base-300 bg-base-200/30">
-              <span className="loading loading-spinner loading-md text-purple-600 mb-2" />
+              <span className="loading loading-spinner loading-md text-primary mb-2" />
               <p className="text-sm text-base-content/60 font-semibold text-center">
                 DSM-5 sections not loaded yet. Dynamically extracting structured content from dsm5.pdf...
               </p>
@@ -657,7 +657,7 @@ function ComparisonModal({ data, onClose }: { data: DSM5CategoryCompare; onClose
             <h2 className="text-2xl font-bold text-base-content flex items-center gap-2">
               <span>Diagnostic Comparison</span>
               <span className="badge badge-outline border-emerald-500 text-emerald-600 font-mono text-xs px-2 py-0.5 rounded">ICD-11: {data.icd11?.code}</span>
-              <span className="badge badge-outline border-purple-500 text-purple-600 font-mono text-xs px-2 py-0.5 rounded">DSM-5: {data.dsm5.code}</span>
+              <span className="badge badge-outline border-primary text-primary font-mono text-xs px-2 py-0.5 rounded">DSM-5: {data.dsm5.code}</span>
             </h2>
             <p className="text-sm font-semibold text-base-content/75 mt-1">
               Side-by-side diagnostic criteria comparison for {data.dsm5.title}
@@ -703,32 +703,32 @@ function ComparisonModal({ data, onClose }: { data: DSM5CategoryCompare; onClose
           </div>
           
           {/* DSM-5 Column */}
-          <div className="card bg-purple-50/20 border border-purple-100 shadow-sm flex flex-col h-full rounded-box">
-            <div className="bg-purple-600/10 border-b border-purple-100 p-4 rounded-t-box flex items-center justify-between">
-              <h3 className="font-bold text-purple-800 text-lg flex items-center gap-2">
-                <span className="badge badge-sm bg-purple-600 text-white border-none py-2 px-2.5 font-bold font-mono rounded">DSM-5</span>
+          <div className="card bg-primary/5 border border-primary/10 shadow-sm flex flex-col h-full rounded-box">
+            <div className="bg-primary/10 border-b border-primary/10 p-4 rounded-t-box flex items-center justify-between">
+              <h3 className="font-bold text-primary text-lg flex items-center gap-2">
+                <span className="badge badge-sm badge-primary border-none py-2 px-2.5 font-bold font-mono rounded">DSM-5</span>
                 <span>{data.dsm5.title}</span>
               </h3>
-              <span className="font-mono text-xs font-bold text-purple-700 bg-purple-100/80 px-2 py-1 rounded">{data.dsm5.code}</span>
+              <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{data.dsm5.code}</span>
             </div>
             
             <div className="p-4 space-y-4 overflow-y-auto flex-grow max-h-[55vh]">
               <div>
-                <h4 className="text-xs font-bold text-purple-800 uppercase tracking-wider mb-1.5">Chapter</h4>
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1.5">Chapter</h4>
                 <p className="text-sm leading-6 text-base-content font-semibold">{data.dsm5.chapter}</p>
               </div>
 
               {data.dsm5.icd10_code && (
                 <div>
-                  <h4 className="text-xs font-bold text-purple-800 uppercase tracking-wider mb-1.5">Equivalent ICD-10 Code</h4>
-                  <span className="badge badge-outline border-purple-400 text-purple-700 font-mono text-xs font-bold px-2 py-1 rounded">{data.dsm5.icd10_code}</span>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1.5">Equivalent ICD-10 Code</h4>
+                  <span className="badge badge-outline border-primary text-primary font-mono text-xs font-bold px-2 py-1 rounded">{data.dsm5.icd10_code}</span>
                 </div>
               )}
               
               {dsm5Sections.length ? (
                 dsm5Sections.map((section) => (
                   <div key={section.key}>
-                    <h4 className="text-xs font-bold text-purple-800 uppercase tracking-wider mb-1.5">{section.label}</h4>
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1.5">{section.label}</h4>
                     <div className="rounded-box bg-base-100 p-4 border border-base-200 shadow-inner text-base-content font-medium">
                       <MarkdownContent content={(section.content || '').replace(/^!markdown\s*/m, '').trim()} />
                     </div>
