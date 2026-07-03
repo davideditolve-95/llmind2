@@ -89,6 +89,38 @@ PRESETS = {
 
 # ─── Endpoints ─────────────────────────────────────────────────────────────
 
+def get_icd11_chapter_6(db: Session) -> Optional[ICD11Category]:
+    """
+    Return the ICD-11 chapter used by the research vector stores.
+
+    Keep this lookup deterministic: a previous fuzzy match on "mental" also
+    matched "Developmental anomalies" because of the substring "developMENTAL".
+    """
+    chapter = (
+        db.query(ICD11Category)
+        .filter(ICD11Category.level == 0, ICD11Category.code == "06")
+        .first()
+    )
+    if chapter:
+        return chapter
+
+    chapter = (
+        db.query(ICD11Category)
+        .filter(ICD11Category.level == 0, ICD11Category.code == "6")
+        .first()
+    )
+    if chapter:
+        return chapter
+
+    return (
+        db.query(ICD11Category)
+        .filter(
+            ICD11Category.level == 0,
+            ICD11Category.title_en.ilike("Mental, behavioural%")
+        )
+        .first()
+    )
+
 @router.get("/presets", response_model=List[KnowledgePreset])
 async def list_presets():
     """
@@ -104,10 +136,7 @@ async def get_icd11_scope_options(db: Session = Depends(get_db)):
     Ritorna le opzioni di ambito ICD-11 (capitolo 6 e le sue sezioni).
     """
     try:
-        chapter = db.query(ICD11Category).filter(
-            ICD11Category.level == 0,
-            (ICD11Category.code == "06") | (ICD11Category.code == "6") | (ICD11Category.title_en.ilike("%mental%"))
-        ).first()
+        chapter = get_icd11_chapter_6(db)
         
         if not chapter:
             return {"chapter": None, "sections": []}
@@ -202,6 +231,7 @@ async def create_datastore(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
     model_name: str = Form(...),
+    embedding_model_name: Optional[str] = Form(None),
     preset_id: str = Form(...),
     description: Optional[str] = Form(None),
     icd_scope: Optional[str] = Form(None),
@@ -214,16 +244,25 @@ async def create_datastore(
     datastore_id = uuid.uuid4()
     section_ids: list[uuid.UUID] = []
     normalized_scope = icd_scope or "chapter_6"
+    normalized_embedding_model = (embedding_model_name or model_name).strip()
+    chapter_metadata = None
+    selected_section_labels: list[str] = []
     
     if preset_id == "icd11_standard" and icd_scope:
         # Recupera capitolo 6
-        chapter = db.query(ICD11Category).filter(
-            ICD11Category.level == 0,
-            (ICD11Category.code == "06") | (ICD11Category.code == "6") | (ICD11Category.title_en.ilike("%mental%"))
-        ).first()
+        chapter = get_icd11_chapter_6(db)
         
         if not chapter:
             raise HTTPException(status_code=400, detail="ICD-11 chapter 6 not found in database. Please run the ETL first.")
+
+        chapter_sections_count = db.query(ICD11Category).filter(
+            ICD11Category.parent_id == chapter.id
+        ).count()
+        chapter_metadata = {
+            "code": chapter.code or "06",
+            "title": chapter.title_it or chapter.title_en,
+            "children_count": chapter_sections_count,
+        }
             
         if icd_scope == "chapter_6":
             nodes = get_descendants(db, [chapter.id])
@@ -232,6 +271,11 @@ async def create_datastore(
                 section_ids = [uuid.UUID(x.strip()) for x in icd_section_ids.split(",") if x.strip()]
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid section IDs format")
+            selected_sections = db.query(ICD11Category).filter(ICD11Category.id.in_(section_ids)).all()
+            selected_section_labels = [
+                f"{section.code or 'No code'} - {section.title_it or section.title_en}"
+                for section in sorted(selected_sections, key=lambda item: item.code or "")
+            ]
             nodes = get_descendants(db, section_ids)
         else:
             nodes = get_descendants(db, [chapter.id])
@@ -294,8 +338,12 @@ async def create_datastore(
         metadata_info={
             "preset_id": preset_id,
             "icd_scope": normalized_scope,
+            "icd_chapter": chapter_metadata,
             "icd_section_ids": sorted(str(section_id) for section_id in section_ids),
-            "config_key": f"{preset_id}:{model_name}:{normalized_scope}:{','.join(sorted(str(section_id) for section_id in section_ids))}",
+            "icd_section_labels": selected_section_labels,
+            "embedding_model": normalized_embedding_model,
+            "chat_model": model_name,
+            "config_key": f"{preset_id}:{model_name}:{normalized_embedding_model}:{normalized_scope}:{','.join(sorted(str(section_id) for section_id in section_ids))}",
         }
     )
     db.add(new_datastore)
@@ -308,6 +356,7 @@ async def create_datastore(
         datastore_id=datastore_id,
         file_paths=file_paths,
         model_name=model_name,
+        embedding_model_name=normalized_embedding_model,
         db=SessionLocal()
     )
 
@@ -361,9 +410,11 @@ async def ask_datastore(
     try:
         headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
 
-        # Configurazione LangChain per questo specifico datastore
+        embedding_model = datastore.metadata_info.get("embedding_model") if datastore.metadata_info else None
+
+        # Chroma retrieval uses the same remote embedding model used at ingestion.
         embeddings = OllamaEmbeddings(
-            model=datastore.model_name,
+            model=embedding_model or datastore.model_name,
             base_url=settings.ollama_base_url,
             headers=headers
         )
@@ -393,8 +444,12 @@ async def ask_datastore(
             | StrOutputParser()
         )
 
-        answer = await qa_chain.ainvoke(request.query)
-        return {"answer": answer, "model": datastore.model_name}
+        answer = await asyncio.get_event_loop().run_in_executor(
+            None,
+            qa_chain.invoke,
+            request.query,
+        )
+        return {"answer": answer.replace("\n", " ").strip(), "model": datastore.model_name}
 
     except Exception as e:
         logger.error(f"Errore query RAG su datastore {datastore_id}: {e}")

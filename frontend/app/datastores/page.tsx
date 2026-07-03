@@ -14,6 +14,7 @@ export default function DatastoresPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [model, setModel] = useState('');
+  const [embeddingModelOverride, setEmbeddingModelOverride] = useState('');
   const [icdScope, setIcdScope] = useState<'chapter_6' | 'sections'>('chapter_6');
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -98,10 +99,11 @@ export default function DatastoresPage() {
     setCreating(true);
     setError(null);
     try {
-      const duplicate = findMatchingVectorStore(datastores, model, icdScope, selectedSections);
+      const embeddingModel = embeddingModelOverride.trim() || model;
+      const duplicate = findMatchingVectorStore(datastores, model, embeddingModel, icdScope, selectedSections);
       if (duplicate) {
         const shouldOverwrite = confirm(
-          `A local vector store with the same model and ICD-11 scope already exists:\n\n"${duplicate.name}"\n\nDo you want to overwrite it?`
+          `Esiste gia un local vector store con la stessa configurazione modello/embedding e lo stesso ambito ICD-11:\n\n"${duplicate.name}"\n\nVuoi sovrascriverlo?`
         );
         if (!shouldOverwrite) {
           return;
@@ -112,14 +114,16 @@ export default function DatastoresPage() {
       const form = new FormData();
       form.append('name', name);
       form.append('model_name', model);
+      form.append('embedding_model_name', embeddingModel);
       form.append('preset_id', 'icd11_standard');
       form.append('icd_scope', icdScope);
-      form.append('icd_section_ids', selectedSections.join(','));
+      form.append('icd_section_ids', icdScope === 'sections' ? selectedSections.join(',') : '');
 
       // Close modal immediately so the user can see the "processing" state
       setOpen(false);
       await datastoreApi.create(form);
       setName('');
+      setEmbeddingModelOverride('');
       setIcdScope('chapter_6');
       setSelectedSections([]);
       load();
@@ -192,11 +196,32 @@ export default function DatastoresPage() {
                 </div>
                 <div className="text-sm">
                   <div>Model: <span className="font-medium">{ds.model_name}</span></div>
+                  <div>Embedding: <span className="font-medium">{ds.metadata_info?.embedding_model || ds.model_name}</span></div>
+                  <div>Chapter: <span className="font-medium">{formatVectorStoreChapter(ds)}</span></div>
+                  <div>Scope: <span className="font-medium">{formatVectorStoreScope(ds)}</span></div>
                   <div>Chunks: <span className="font-medium">{ds.metadata_info?.chunks || 0}</span></div>
                   {ds.metadata_info?.icd11_nodes_count !== undefined && (
                     <div>ICD-11 nodes: <span className="font-medium">{ds.metadata_info.icd11_nodes_count}</span></div>
                   )}
                 </div>
+                {ds.status === 'processing' && (
+                  <div className="rounded-box border border-warning/20 bg-warning/5 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                      <span className="font-semibold uppercase tracking-wide text-warning">
+                        {formatProgressStage(ds)}
+                      </span>
+                      <span className="font-medium">{getProgressPercent(ds)}%</span>
+                    </div>
+                    <progress
+                      className="progress progress-warning h-2 w-full"
+                      value={getProgressPercent(ds)}
+                      max={100}
+                    />
+                    <p className="mt-2 text-xs text-base-content/70">
+                      {ds.metadata_info?.progress_message || 'Preparing the vector store.'}
+                    </p>
+                  </div>
+                )}
                 {ds.error_message && <div className="alert alert-error text-sm">{ds.error_message}</div>}
                 <div className="card-actions justify-end">
                   {ds.status === 'ready' && <Link href={`/explorer?ds=${ds.id}`} className="btn btn-primary btn-sm">Open</Link>}
@@ -211,8 +236,11 @@ export default function DatastoresPage() {
       )}
 
       <dialog className={`modal ${open ? 'modal-open' : ''}`}>
-        <div className="modal-box">
+        <div className="modal-box max-w-3xl">
           <h3 className="text-lg font-semibold">Create local vector store</h3>
+          <p className="mt-1 text-sm text-base-content/60">
+            A local vector store is an offline Chroma index built from a specific ICD-11 scope and embedding model.
+          </p>
           <form className="mt-4 space-y-4" onSubmit={create}>
             <input className="input input-bordered w-full" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
             <label className="form-control w-full">
@@ -229,16 +257,52 @@ export default function DatastoresPage() {
                 ))}
               </select>
               <span className="label-text-alt mt-1 text-base-content/60">
-                The selected model is part of the vector-store configuration. Same model + same ICD-11 scope counts as an existing configuration.
+                Used to generate the RAG answer. If no embedding override is provided, this same model is also passed to LangChain OllamaEmbeddings.
+              </span>
+            </label>
+            <label className="form-control w-full">
+              <span className="label-text mb-2 font-semibold">Embedding model override</span>
+              <input
+                className="input input-bordered w-full"
+                value={embeddingModelOverride}
+                onChange={(event) => setEmbeddingModelOverride(event.target.value)}
+                placeholder={`Leave empty to use ${model || 'the selected model'}`}
+              />
+              <span className="label-text-alt mt-1 text-base-content/60">
+                Optional. Use this only if in LLMind1 you manually changed the model used by OllamaEmbeddings while keeping the generation model selectable.
               </span>
             </label>
             
             <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
               <div className="mb-3">
-                <div className="font-semibold">ICD-11 chapter 6 scope</div>
+                <div className="font-semibold">ICD-11 source scope</div>
                 <p className="text-sm text-base-content/60">
-                  Choose whether this local vector store should include the full mental, behavioural and neurodevelopmental chapter or only selected direct sections.
+                  Choose the exact clinical taxonomy content that will be embedded into this local vector store.
                 </p>
+              </div>
+
+              <div className="mb-4 rounded-box border border-primary/20 bg-primary/5 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-primary">Available chapter</div>
+                    <div className="mt-1 text-base font-semibold">
+                      {icdChapter ? `${icdChapter.code || '06'} · ${icdChapter.title}` : 'ICD-11 Chapter 6'}
+                    </div>
+                    <p className="mt-1 text-sm text-base-content/70">
+                      This is the ICD-11 chapter for mental, behavioural and neurodevelopmental disorders. Selecting the full chapter embeds the chapter node, all direct sections, and their descendant diagnostic categories.
+                    </p>
+                  </div>
+                  <div className="stats stats-vertical shrink-0 bg-base-100 shadow-sm md:stats-horizontal">
+                    <div className="stat px-4 py-2">
+                      <div className="stat-title text-xs">Sections</div>
+                      <div className="stat-value text-xl">{icdSections.length || icdChapter?.children_count || 0}</div>
+                    </div>
+                    <div className="stat px-4 py-2">
+                      <div className="stat-title text-xs">Selected</div>
+                      <div className="stat-value text-xl">{icdScope === 'chapter_6' ? 'All' : selectedSections.length}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
@@ -250,9 +314,9 @@ export default function DatastoresPage() {
                     onChange={() => setIcdScope('chapter_6')}
                   />
                   <span>
-                    <span className="block font-medium">Use all ICD-11 Chapter 6</span>
+                    <span className="block font-medium">Use the full ICD-11 Chapter 6</span>
                     <span className="text-sm text-base-content/60">
-                      {icdChapter ? `${icdChapter.code || 'Chapter 6'} · ${icdChapter.title}` : 'Chapter 6 will be used when ICD-11 data is available.'}
+                      Embed the complete mental health chapter: chapter header, all direct sections, and all descendant diagnostic entities.
                     </span>
                   </span>
                 </label>
@@ -265,14 +329,19 @@ export default function DatastoresPage() {
                     onChange={() => setIcdScope('sections')}
                   />
                   <span>
-                    <span className="block font-medium">Use selected sections</span>
-                    <span className="text-sm text-base-content/60">Useful for smaller, cheaper and more focused vector stores.</span>
+                    <span className="block font-medium">Use selected Chapter 6 sections</span>
+                    <span className="text-sm text-base-content/60">Embed only the sections ticked below, including their descendant diagnostic entities.</span>
                   </span>
                 </label>
               </div>
 
               {icdScope === 'sections' && (
-                <div className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold">Chapter 6 sections</div>
+                    <div className="badge badge-primary badge-outline">{selectedSections.length} selected</div>
+                  </div>
+                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                   {icdSections.length === 0 ? (
                     <div className="alert alert-warning text-sm">No chapter 6 sections available. Run the ICD-11 ETL first.</div>
                   ) : (
@@ -291,6 +360,7 @@ export default function DatastoresPage() {
                       </label>
                     ))
                   )}
+                  </div>
                 </div>
               )}
             </div>
@@ -310,23 +380,30 @@ export default function DatastoresPage() {
   );
 }
 
-function buildVectorStoreConfigKey(model: string, icdScope: 'chapter_6' | 'sections', selectedSections: string[]) {
-  const sortedSections = [...selectedSections].sort();
-  return `icd11_standard:${model}:${icdScope}:${sortedSections.join(',')}`;
+function buildVectorStoreConfigKey(
+  model: string,
+  embeddingModel: string,
+  icdScope: 'chapter_6' | 'sections',
+  selectedSections: string[],
+) {
+  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort() : [];
+  return `icd11_standard:${model}:${embeddingModel}:${icdScope}:${sortedSections.join(',')}`;
 }
 
 function findMatchingVectorStore(
   datastores: Datastore[],
   model: string,
+  embeddingModel: string,
   icdScope: 'chapter_6' | 'sections',
   selectedSections: string[],
 ) {
-  const configKey = buildVectorStoreConfigKey(model, icdScope, selectedSections);
-  const sortedSections = [...selectedSections].sort();
+  const configKey = buildVectorStoreConfigKey(model, embeddingModel, icdScope, selectedSections);
+  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort() : [];
 
   return datastores.find((store) => {
     if (store.metadata_info?.config_key === configKey) return true;
     if (store.model_name !== model) return false;
+    if ((store.metadata_info?.embedding_model || store.model_name) !== embeddingModel) return false;
     if (store.metadata_info?.preset_id && store.metadata_info.preset_id !== 'icd11_standard') return false;
     if (store.metadata_info?.icd_scope && store.metadata_info.icd_scope !== icdScope) return false;
 
@@ -338,4 +415,41 @@ function findMatchingVectorStore(
     const description = store.description || '';
     return description.includes(`(${icdScope})`);
   });
+}
+
+function formatVectorStoreScope(store: Datastore) {
+  const scope = store.metadata_info?.icd_scope;
+  if (scope === 'sections') {
+    const count = Array.isArray(store.metadata_info?.icd_section_ids)
+      ? store.metadata_info.icd_section_ids.length
+      : 0;
+    return `${count} selected ICD-11 Chapter 6 section${count === 1 ? '' : 's'}`;
+  }
+  if (scope === 'chapter_6') return 'Full chapter with all descendant categories';
+  return 'Legacy preset';
+}
+
+function formatVectorStoreChapter(store: Datastore) {
+  const chapter = store.metadata_info?.icd_chapter;
+  if (chapter?.code && chapter?.title) {
+    return `${chapter.code} · ${chapter.title}`;
+  }
+  if (store.metadata_info?.preset_id === 'icd11_standard') {
+    return 'ICD-11 Chapter 6';
+  }
+  return 'Preset source';
+}
+
+function getProgressPercent(store: Datastore) {
+  const value = Number(store.metadata_info?.progress_percent);
+  if (!Number.isFinite(value)) return store.status === 'processing' ? 10 : 100;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function formatProgressStage(store: Datastore) {
+  const stage = store.metadata_info?.progress_stage;
+  if (!stage) return 'Processing';
+  return String(stage)
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

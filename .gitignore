@@ -10,6 +10,9 @@ __pycache__/
 .db
 backend/data/*.pdf
 backend/data/cache/
+backend/data/datastores/
+backend/data/generated_datastore_sources/
+gcp-conversational-agents/terraform/terraform.tfvars
 files/
 scratch/
 .ipynb_checkpoints/

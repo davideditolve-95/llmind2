@@ -10,7 +10,8 @@ TOKEN="$(gcloud auth print-access-token)"
 curl -sS -X POST \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  "https://dialogflow.googleapis.com/v3/projects/${PROJECT_ID}/locations/${LOCATION}/agents" \
+  -H "x-goog-user-project: ${PROJECT_ID}" \
+  "https://${LOCATION}-dialogflow.googleapis.com/v3/projects/${PROJECT_ID}/locations/${LOCATION}/agents" \
   -d @"${AGENT_JSON}" | tee "${ROOT_DIR}/.agent-create-response.json"
 
 echo

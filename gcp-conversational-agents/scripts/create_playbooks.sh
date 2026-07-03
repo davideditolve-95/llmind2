@@ -17,7 +17,8 @@ for PLAYBOOK in "${ROOT_DIR}"/playbooks/*.json; do
   curl -sS -X POST \
     -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" \
-    "https://dialogflow.googleapis.com/v3/projects/${PROJECT_ID}/locations/${LOCATION}/agents/${AGENT_ID}/playbooks" \
+    -H "x-goog-user-project: ${PROJECT_ID}" \
+    "https://${LOCATION}-dialogflow.googleapis.com/v3/projects/${PROJECT_ID}/locations/${LOCATION}/agents/${AGENT_ID}/playbooks" \
     -d @"${TMP}" | tee "${ROOT_DIR}/.playbook-${NAME// /-}.response.json"
   rm -f "${TMP}"
   echo
