@@ -219,7 +219,7 @@ def _align_icd10_codes() -> None:
 def _run_schema_step(label: str, action) -> None:
     try:
         action()
-    except Exception as exc:
+    except Exception:
         logger.exception(f"Errore durante {label}")
 
 # Creazione dell'applicazione FastAPI

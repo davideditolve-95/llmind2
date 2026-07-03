@@ -142,6 +142,7 @@ export default function DatastoresPage() {
 
   return (
     <div className="app-page space-y-6">
+      <div className="hidden" aria-hidden="true">{secondsTicker}</div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2">

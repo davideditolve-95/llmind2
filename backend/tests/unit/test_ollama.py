@@ -8,6 +8,7 @@ def ollama_service():
     with patch("app.services.ollama.settings") as mock_settings:
         mock_settings.ollama_base_url = "http://mock-ollama:11434"
         mock_settings.ollama_default_model = "gemma-test"
+        mock_settings.ollama_api_key = None
         yield OllamaService()
 
 def test_get_system_prompt(ollama_service):
@@ -45,7 +46,7 @@ async def test_list_models_success(mock_get, ollama_service):
 
     models = await ollama_service.list_models()
     assert models == ["model1", "model2"]
-    mock_get.assert_called_once_with("http://mock-ollama:11434/api/tags")
+    mock_get.assert_called_once_with("http://mock-ollama:11434/api/tags", headers={})
 
 @pytest.mark.asyncio
 @patch("httpx.AsyncClient.get", new_callable=AsyncMock)
