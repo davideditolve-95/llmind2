@@ -19,7 +19,7 @@ export default function DatastoresPage() {
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [, setSecondsTicker] = useState(0);
+  const [secondsTicker, setSecondsTicker] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -386,7 +386,7 @@ function buildVectorStoreConfigKey(
   icdScope: 'chapter_6' | 'sections',
   selectedSections: string[],
 ) {
-  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort() : [];
+  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort((a, b) => a.localeCompare(b)) : [];
   return `icd11_standard:${model}:${embeddingModel}:${icdScope}:${sortedSections.join(',')}`;
 }
 
@@ -398,7 +398,7 @@ function findMatchingVectorStore(
   selectedSections: string[],
 ) {
   const configKey = buildVectorStoreConfigKey(model, embeddingModel, icdScope, selectedSections);
-  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort() : [];
+  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort((a, b) => a.localeCompare(b)) : [];
 
   return datastores.find((store) => {
     if (store.metadata_info?.config_key === configKey) return true;
@@ -408,7 +408,7 @@ function findMatchingVectorStore(
     if (store.metadata_info?.icd_scope && store.metadata_info.icd_scope !== icdScope) return false;
 
     if (Array.isArray(store.metadata_info?.icd_section_ids)) {
-      const existingSections = [...store.metadata_info.icd_section_ids].sort();
+      const existingSections = [...store.metadata_info.icd_section_ids].sort((a, b) => String(a).localeCompare(String(b)));
       return existingSections.join(',') === sortedSections.join(',');
     }
 

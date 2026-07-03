@@ -220,7 +220,7 @@ def _run_schema_step(label: str, action) -> None:
     try:
         action()
     except Exception as exc:
-        logger.error(f"Errore durante {label}: {exc}", exc_info=True)
+        logger.exception(f"Errore durante {label}")
 
 # Creazione dell'applicazione FastAPI
 app = FastAPI(
