@@ -16,7 +16,7 @@ on:
 jobs:
   sonarqube:
     name: SonarQube analysis
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 30
 
     steps:
@@ -54,6 +54,7 @@ jobs:
         env:
           ENVIRONMENT: development
           DATABASE_URL: sqlite:///./sonar-ci.db
+          DATA_DIR: /tmp/llmind2-sonar-data
           SECRET_KEY: sonar-ci-secret
           ICD11_API_URL: http://localhost:8082
           OLLAMA_BASE_URL: http://localhost:11434
