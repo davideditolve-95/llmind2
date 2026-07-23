@@ -64,6 +64,7 @@ Il deploy su piattaforme tipo Coolify e coerente con l'attuale struttura della r
 - esporre un `OLLAMA_BASE_URL` realmente raggiungibile
 - ridurre `allow_origins` nel backend agli URL reali del frontend
 - proteggere `SECRET_KEY` e credenziali DB
+- mantenere il container ICD-11 accessibile solo nella rete Docker interna tramite `ICD11_API_URL=http://icd11-api`, senza pubblicare una porta host dedicata
 
 ### Dati e persistenza
 
@@ -157,6 +158,7 @@ The repository is already structured in a way that fits platforms such as Coolif
 - exposing a truly reachable `OLLAMA_BASE_URL`
 - narrowing backend CORS to the real frontend origins
 - protecting `SECRET_KEY` and database credentials
+- keeping the ICD-11 container reachable only inside the Docker network through `ICD11_API_URL=http://icd11-api`, without publishing a dedicated host port
 
 ### Data and persistence
 
@@ -185,4 +187,3 @@ To move toward a stronger operational posture, deployment should soon include:
 - retention policies
 - metrics and alerting
 - more formal database migrations
-

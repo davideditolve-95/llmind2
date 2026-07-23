@@ -41,8 +41,6 @@ services:
       - saveAnalytics=true
     networks:
       - llmind-net
-    ports:
-      - "8082:80"
     # Healthcheck per verificare che l'API ICD-11 sia pronta
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost/icd/release/11/mms || exit 1"]

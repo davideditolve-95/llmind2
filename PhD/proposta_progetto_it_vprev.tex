@@ -41,7 +41,7 @@
 \end{center}
 
 \noindent
-\textbf{Candidato:} Davide Ditolve \hfill \textbf{Linea di Ricerca:} Linea di ricerca 4 - Nuovi approcci terapeutici e riabilitativi per la salute e il benessere\\
+\textbf{Candidato:} Davide Ditolve \hfill \textbf{Linea di Ricerca:} Linea 4\\
 \textbf{Supervisore Proposto:} Prof. Riccardo Pecori (IINF-05/A)\\[0.4cm]
 \textbf{Referenti Proff. della Linea di Ricerca:}\\
 {\small Bocchio Chiavetto L. (BIOS-10/A); Cavallo M. (PSIC-04/B); De Giorgio A. (PSIC-01/A); Di Fronso S. (MEDF-01/A); Di Lernia D (PSIC-01/A); Ieraci A. (BIOS-10/A); Iuliano E. (MEDF-01/A); Lombardi E. (PSIC-02/A); Marchetti B. (IIND-05/A); Miraglia F. (BIOS-06/A); Nimbi FM. (PSIC-08/B); Pedroli E. (PSIC-01/C); Picerno P. (IBIO-01/A); Tradigo G. (IINF-05/A); Vecchio F. (BIOS-06/A); Verdini F (IBIO-01/A).}
@@ -57,7 +57,7 @@ L'integrazione dell'Intelligenza Artificiale (IA) nella salute mentale offre gra
 % ------------------------------------------------------------------------------
 % 2) INTRODUZIONE TEORICA
 % ------------------------------------------------------------------------------
-\section{Introduzione teorica}
+\section{Introduzione Teorica}
 
 La promozione del benessere e della salute mentale richiede modelli di cura personalizzati, sicuri e sostenibili. In questo contesto, l'e-health e i sistemi di supporto alle decisioni cliniche (CDSS) offrono grandi opportunità. Tuttavia, l'integrazione di queste tecnologie in psicopatologia presenta peculiarità cliniche, etiche e tecnologiche che impediscono una loro trasposizione acritica da altre discipline mediche (Cremaschi \& Pierotti, 2026).
 
@@ -74,7 +74,7 @@ A differenza della medicina generale, supportata da parametri strumentali, la ps
 % ------------------------------------------------------------------------------
 % 3) OBIETTIVI E IPOTESI DI RICERCA
 % ------------------------------------------------------------------------------
-\section{Obiettivi e ipotesi di ricerca}
+\section{Obiettivi e Ipotesi di Ricerca}
 
 \subsection{Sinergia tra Tecnologia e Benessere}
 Nel contesto del progetto, le soluzioni di ingegneria informatica sono orientate a garantire la sicurezza clinica e il benessere psicofisico dei pazienti:
@@ -86,7 +86,7 @@ Nel contesto del progetto, le soluzioni di ingegneria informatica sono orientate
 
 \subsection{Obiettivi Specifici}
 \begin{enumerate}
-    \item \textbf{Sviluppo e ottimizzazione dell'architettura decisionale (CDSS):} Progettare un'architettura clinician-facing di affiancamento durante le sedute terapeutiche, basata su workflow agentici locali e integrata con le tassonomie ICD-11/DSM-5-TR in un sistema ibrido edge-cloud con fallback sicuro.
+    \item \textbf{Sviluppo e ottimizzazione dell'architettura decisionale (CDSS):} Progettare un'architettura software clinician-facing che integri in modo sicuro gli LLM locali e le tassonomie ICD-11/DSM-5-TR, strutturando un sistema ibrido edge-cloud per bilanciare carichi di lavoro e prestazioni.
     \item \textbf{Studio clinico-relazionale dell'interazione con l'IA:} Validare un protocollo di ``anamnesi digitale'' per esplorare l'influenza dei chatbot commerciali sull'alleanza terapeutica e sul benessere, identificando pattern d'uso disfunzionali.
     \item \textbf{Valutazione sperimentale delle prestazioni del sistema:} Misurare sia l'efficacia del sistema nella riduzione degli errori diagnostici nosografici sia le prestazioni computazionali (latenza, consumo di memoria, efficacia RAG).
     \item \textbf{Linee guida di Governance e Privacy dei dati:} Elaborare raccomandazioni operative per l'adozione etica dell'IA nei servizi di salute mentale, in conformità con l'EU AI Act e il GDPR.
@@ -101,8 +101,7 @@ Nel contesto del progetto, le soluzioni di ingegneria informatica sono orientate
 
 % ------------------------------------------------------------------------------
 % 4) METODOLOGIA
-% ------------------------------------------------------------------------------
-\section{Metodologia}
+% -----------------------------------------\section{Metodologia}
 
 Il progetto adotta un disegno interdisciplinare a metodi misti (\textit{mixed-methods}), articolato su una componente di ingegneria informatica per lo sviluppo e l'ottimizzazione del sistema, e una componente clinico-sperimentale per la valutazione dell'impatto sul benessere dei soggetti.
 
@@ -160,7 +159,7 @@ Il progetto adotta un disegno interdisciplinare a metodi misti (\textit{mixed-me
 \subsection{Architettura Tecnologica e Ottimizzazione dei Modelli (IINF-05/A)}
 Il CDSS è progettato come un'architettura software a strati ottimizzata per l'esecuzione in scenari di risorse di calcolo limitate e rigorosi vincoli di privacy dei dati sanitari:
 \begin{itemize}
-    \item \textbf{Inferenza Locale e Quantizzazione:} Per garantire la privacy, l'inferenza clinica avviene in locale utilizzando i runtime ottimizzati e i modelli linguistici di grandi dimensioni open-source più recenti ed efficienti al momento dell'implementazione. Per supportare l'esecuzione locale su workstation cliniche a risorse limitate (pervasive AI; Pecori, 2023), verranno applicate tecniche di quantizzazione post-training (PTQ) allo stato dell'arte (es. nei formati a 4-bit e 8-bit), minimizzando il consumo di VRAM e preservando le capacità di ragionamento.
+    \item \textbf{Inferenza Locale e Quantizzazione:} Per garantire la privacy, l'inferenza clinica avviene in locale utilizzando runtime ottimizzati (es. llama.cpp/Ollama). Per supportare modelli linguistici di grandi dimensioni (es. Llama-3-8B) su workstation cliniche a risorse limitate (pervasive AI; Pecori, 2023), si applicheranno tecniche di quantizzazione post-training (PTQ) in formato GGUF (a 4-bit e 8-bit, es. Q4\_K\_M e Q8\_0), minimizzando il consumo di VRAM e preservando le capacità di ragionamento.
     \item \textbf{Calcolo Ibrido e Supporto Cloud:} Per superare i limiti di calcolo edge, si introduce un modello ibrido. I servizi cloud (es. Google Cloud Platform) verranno utilizzati per i compiti asincroni ad alto carico che non espongono i dati dei pazienti: (1) addestramento offline e \textit{fine-tuning} parametrico (es. LoRA); (2) generazione dell'indice vettoriale della tassonomia ICD-11; (3) elaborazione parallela di benchmark sintetici. Inoltre, il cloud fungerà da fallback prestazionale criptato in caso di picchi computazionali.
     \item \textbf{Pipeline RAG e Grounding:} L'ancoraggio dell'LLM all'ICD-11/DSM-5-TR avviene tramite RAG gerarchica. I nodi delle tassonomie sono indicizzati in un database vettoriale locale (pgvector) preservando le relazioni gerarchiche. Il recupero adotta una ricerca ibrida (dense semantic embeddings BioLinkBERT combinata con sparse lexical search BM25). Un modulo di prompt routing orchestrerà la query per estrarre criteri diagnostici, inclusioni ed esclusioni.
     \item \textbf{Metriche di Prestazione e Validazione AI:} Le prestazioni verranno valutate registrando: (1) metriche di efficienza di sistema: latenza (\textit{time-to-first-token} in ms), throughput (\textit{tokens/second}) e memory footprint; (2) metriche di efficacia RAG: fedeltà (\textit{faithfulness}), pertinenza della risposta (\textit{answer relevance}) e recupero del contesto (\textit{context recall}), calcolate tramite framework come Ragas.
@@ -213,58 +212,10 @@ Il CDSS è progettato come un'architettura software a strati ottimizzata per l'e
     \item \textbf{Analisi Qualitativa:} Analisi tematica delle trascrizioni dei focus group con i clinici per mappare i fattori organizzativi e le aree cliniche di maggiore utilità dello strumento.
 \end{itemize}
 
-\subsection{Proposta Temporale e Cronoprogramma (Gantt)}
-La pianificazione delle attività di ricerca è strutturata su base semestrale lungo i tre anni di dottorato (S1-S6):
-\begin{itemize}
-    \item \textbf{Anno 1 (S1-S2):} Studio della letteratura, progettazione formale del CDSS e del protocollo di \textit{Digital Anamnesis}. Sviluppo dell'architettura software locale.
-    \item \textbf{Anno 2 (S3-S4):} Esecuzione degli studi sperimentali (Fase 1 cross-over con i clinici e Fase 2 osservazionale con i pazienti). Valutazione delle prestazioni computazionali, analisi statistica intermedia e ottimizzazione della pipeline RAG.
-    \item \textbf{Anno 3 (S5-S6):} Conduzione della Fase 3 (Focus Group clinico-organizzativo), stesura delle linee guida di Governance e Privacy. Analisi finale dei dati, stesura della tesi di dottorato e sottomissione dei lavori scientifici alle riviste di settore.
-\end{itemize}
-
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}[
-        task/.style={rectangle, rounded corners=2pt, minimum height=0.45cm, align=left, font=\scriptsize\sffamily, text=black},
-        y_axis/.style={draw, -{Latex[scale=0.8]}, thick, gray!70},
-        grid_line/.style={draw, gray!20, thin, dashed}
-    ]
-        % Time Grid Columns (S1 to S6)
-        \foreach \x/\label in {1/S1, 2/S2, 3/S3, 4/S4, 5/S5, 6/S6} {
-            \draw[grid_line] (\x*1.8, 0.5) -- (\x*1.8, -4.5);
-            \node[font=\scriptsize\sffamily\bfseries, gray] at (\x*1.8 - 0.9, 0.7) {\label};
-        }
-        % Years headers
-        \draw[draw=gray!40, thick] (0, 1.1) -- (3.6, 1.1) node[midway, above, font=\scriptsize\sffamily\bfseries] {Anno 1};
-        \draw[draw=gray!40, thick] (3.6, 1.1) -- (7.2, 1.1) node[midway, above, font=\scriptsize\sffamily\bfseries] {Anno 2};
-        \draw[draw=gray!40, thick] (7.2, 1.1) -- (10.8, 1.1) node[midway, above, font=\scriptsize\sffamily\bfseries] {Anno 3};
-        
-        % Y-axis (Tasks labels border/separator)
-        \draw[draw=gray!40, thick] (0, 0.5) -- (10.8, 0.5);
-        \draw[draw=gray!40, thick] (0, 0.5) -- (0, -4.5);
-        
-        % Task bars (X start, Width, Y pos, Color, Text)
-        % Anno 1
-        \node[task, fill=blue!15, draw=blue!40, minimum width=3.6cm, anchor=west] at (0, 0) {T1. Progettazione \& Stato dell'Arte};
-        \node[task, fill=blue!15, draw=blue!40, minimum width=3.6cm, anchor=west] at (1.8, -0.6) {T2. Sviluppo Software \& Grounding};
-        
-        % Anno 2
-        \node[task, fill=orange!15, draw=orange!40, minimum width=3.6cm, anchor=west] at (3.6, -1.2) {T3. Studio Sperimentale (Fase 1 \& 2)};
-        \node[task, fill=orange!15, draw=orange!40, minimum width=3.6cm, anchor=west] at (5.4, -1.8) {T4. Ottimizzazione \& Fine-Tuning};
-        
-        % Anno 3
-        \node[task, fill=teal!15, draw=teal!40, minimum width=3.6cm, anchor=west] at (7.2, -2.4) {T5. Ricerca-Azione \& Governance};
-        \node[task, fill=teal!15, draw=teal!40, minimum width=3.6cm, anchor=west] at (7.2, -3.0) {T6. Disseminazione Scientifica};
-        \node[task, fill=violet!15, draw=violet!40, minimum width=1.8cm, anchor=west] at (9.0, -3.6) {T7. Scrittura Tesi};
-        
-    \end{tikzpicture}
-    \caption{Diagramma di Gantt triennale delle attività di ricerca.}
-    \label{fig:gantt}
-\end{figure}
-
 % ------------------------------------------------------------------------------
 % 5) RISULTATI ATTESI
 % ------------------------------------------------------------------------------
-\section{Risultati attesi}
+\section{Risultati Attesi}
 
 La ricerca mira a produrre risultati concreti per la clinica e la gestione dei servizi:
 \begin{enumerate}
@@ -278,12 +229,12 @@ La ricerca mira a produrre risultati concreti per la clinica e la gestione dei s
 % ------------------------------------------------------------------------------
 % 6) INNOVATIVITÀ DEL PROGETTO
 % ------------------------------------------------------------------------------
-\section{Innovatività del progetto}
+\section{Innovatività del Progetto}
 
 L'innovatività del progetto risiede nel superamento dell'approccio strettamente tecnologico che caratterizza l'IA clinica, proponendo un cambio di paradigma strutturato su pilastri interdisciplinari in cui l'ingegneria informatica abilita percorsi di benessere in sicurezza.
 
 \subsection{Innovazione Ingegneristica e Architettura Ibrida Edge-Cloud}
-La maggior parte delle applicazioni di e-health si affida ad API in cloud, sollevando criticità sul piano della privacy dei dati sanitari (GDPR, EU AI Act). Questo progetto si distingue per l'adozione di un'architettura ibrida a risorse limitate (\textit{pervasive and resource-constrained AI}; Pecori, 2023). Ottimizzare l'esecuzione in locale e prevedere un fallback cloud sicuro e controllato per l'elaborazione dei dati clinici, delegando al cloud le attività di training non sensibili, rappresenta un'innovazione tecnologica che garantisce la sostenibilità giuridica ed economica dei servizi digitali sanitari.
+La maggior parte delle applicazioni di e-health si affida ad API in cloud, sollevando criticità sul piano della privacy dei dati sanitari (GDPR, EU AI Act). Questo progetto si distingue per l'adozione di un'architettura ibrida a risorse limitate (\textit{pervasive and resource-constrained AI}; Pecori, 2023). Ottimizzare l'esecuzione di modelli in locale sulle workstation dei clinici, delegando al cloud solo i processi asincroni di training e indicizzazione non sensibili, rappresenta un'innovazione tecnologica che garantisce la sostenibilità giuridica ed economica dei servizi digitali sanitari.
 
 \subsection{Innovazione Epistemologica e Grounding Nosografico}
 Rispetto alle ricerche che trattano gli LLM come scatole nere predittive, il progetto introduce un'innovazione teorico-tecnica fondata sull'``epistemologia della simulazione'' (Vidotto, Ditolve \& Panzeri, 2026). Poiché gli LLM simulano l'attività cognitiva senza comprensione semantica reale, il sistema viene progettato non per sostituire il clinico, ma per fungere da ``specchio cognitivo'' e organizzatore nosografico. Questo approccio protegge la diagnosi fenomenologica (Jaspers, 1963) e garantisce che la responsabilità clinica rimanga in capo al professionista umano.
@@ -297,13 +248,13 @@ Il progetto rappresenta un punto di convergenza tra la psicologia clinica/psicom
 % ------------------------------------------------------------------------------
 % 7) BIBLIOGRAFIA ESSENZIALE
 % ------------------------------------------------------------------------------
-\section{Bibliografia essenziale}
+\section{Bibliografia Essenziale}
 
 \begin{enumerate}[label={[\arabic*]}]
     \item Abràmoff, M. D., Lavin, P. T., \& Folk, J. C. (2018). Pivotal trial of an autonomous AI-based diagnostic system for detection of diabetic retinopathy in primary care offices. \textit{npj Digital Medicine}, 1(1), 39.
     \item Bordin, E. S. (1979). The generalizability of the psychoanalytic concept of the working alliance. \textit{Psychotherapy: Theory, Research \& Practice}, 16(3), 252.
     \item Cremaschi, M., \& Pierotti, A. P. (2026). Intelligenza artificiale in psicopatologia: epistemologia clinica, relazione terapeutica e governance. \textit{Frontiers in Digital Health} (under review).
-    \item \textbf{Cremaschi, M., Ditolve, D., Curcio, C., Panzeri, A., Spoto, A., \& Maurino, A. (2025). Decoding the mind: A RAG-LLM on ICD-11 for decision support in psychology. \textit{Expert Systems with Applications}, 279, 127191. \url{https://doi.org/10.1016/j.eswa.2025.127191}}
+    \item Cremaschi, M., Ditolve, D., et al. (2025). Decoding clinical reasoning: a local Retrieval-Augmented Generation approach on ICD-11 for mental health support. \textit{LLMind1 Pilot Study} (preprint).
     \item Dohnány, S., Kurth-Nelson, Z., et al. (2026). Technological folie à deux: Feedback loops between AI chatbots and mental illness. \textit{Nature Mental Health}, doi:10.48550/arXiv.2507.19218.
     \item Finn, S. E. (2007). \textit{In Our Clients' Shoes: Theory and Techniques of Therapeutic Assessment}. Lawrence Erlbaum Associates.
     \item Flückiger, C., Del Re, A. C., \& Horvath, A. O. (2018). The alliance in adult psychotherapy: A meta-analytic synthesis. \textit{Psychotherapy}, 55(4), 316-340.
@@ -316,7 +267,7 @@ Il progetto rappresenta un punto di convergenza tra la psicologia clinica/psicom
     \item Sander, L. W. (2008). \textit{Living Systems, Evolving Consciousness, and the Emerging Person}. Analytic Press.
     \item Sharma, M., et al. (2023). Towards understanding sycophancy in language models. \textit{arXiv preprint arXiv:2310.13548}.
     \item Stanghellini, G., \& Fuchs, T. (eds.) (2013). \textit{One Century of Karl Jaspers' General Psychopathology}. Oxford University Press.
-    \item \textbf{Vidotto, G., Ditolve, D., \& Panzeri, A. (2026). Una riflessione critica sui Large Language Models in psicologia clinica: Malfunzionamento, metacognizione, memoria ed etica. \textit{Psicoterapia Cognitiva e Comportamentale}, 32(2). \url{https://doi.org/10.14605/PCC3222605}}
+    \item \textbf{Vidotto, G., Ditolve, D., \& Panzeri, A. (2026). Una riflessione critica sui Large Language Models in psicologia clinica: Malfunzionamento, metacognizione, memoria ed etica. \textit{PCC}, 2026(2).}
     \item World Health Organization. (2024). \textit{Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models}. WHO Guidelines.
 \end{enumerate}
 
