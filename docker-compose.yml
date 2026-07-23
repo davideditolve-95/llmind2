@@ -34,7 +34,6 @@ services:
   # ─────────────────────────────────────────────
   icd11-api:
     image: whoicd/icd-api
-    container_name: llmind_icd11
     restart: unless-stopped
     environment:
       - acceptLicense=true
@@ -56,7 +55,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: llmind_backend
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -96,7 +94,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: llmind_frontend
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
