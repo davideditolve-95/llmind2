@@ -1,0 +1,12 @@
+# docker-compose.override.yml
+# Local development port bindings.
+# Docker Compose applies this file automatically when running locally.
+
+services:
+  backend:
+    ports:
+      - "10000:8000"
+
+  frontend:
+    ports:
+      - "3000:3000"

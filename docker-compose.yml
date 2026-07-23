@@ -77,8 +77,8 @@ services:
     volumes:
       # Volume per caricare il PDF del DSM-5-TR
       - ./backend/data:/app/data
-    ports:
-      - "10000:8000"
+    expose:
+      - "8000"
     depends_on:
       icd11-api:
         condition: service_started
@@ -105,8 +105,8 @@ services:
       KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       - backend
     networks:
