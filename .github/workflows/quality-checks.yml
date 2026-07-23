@@ -40,7 +40,7 @@ jobs:
         working-directory: frontend
         run: npm run test:coverage
 
-      - name: Run backend tests with local Python
+      - name: Run backend tests with Python 3.11
         working-directory: backend
         env:
           ENVIRONMENT: development
@@ -50,11 +50,15 @@ jobs:
           ICD11_API_URL: http://localhost:8082
           OLLAMA_BASE_URL: http://localhost:11434
         run: |
-          PYTHON_BIN="$(command -v python3.11 || command -v python3)"
-          "$PYTHON_BIN" --version
-          "$PYTHON_BIN" -m venv .venv
+          export PATH="$HOME/.local/bin:$PATH"
+          if ! command -v uv >/dev/null 2>&1; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+          fi
+          uv python install 3.11
+          uv venv --python 3.11 .venv
           . .venv/bin/activate
-          python -m pip install -r requirements.txt \
+          python --version
+          uv pip install -r requirements.txt \
             pytest==8.2.1 \
             pytest-cov==5.0.0 \
             pytest-asyncio==0.23.7 \
