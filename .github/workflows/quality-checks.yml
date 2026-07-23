@@ -18,6 +18,9 @@ jobs:
     name: Tests and SonarQube analysis
     runs-on: self-hosted
     timeout-minutes: 30
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000' }}
 
     steps:
       - name: Check out repository
@@ -65,18 +68,18 @@ jobs:
             pytest-mock==3.14.0
           pytest --cov=app --cov-report=xml:coverage.xml
 
+      - name: Skip SonarQube analysis when token is missing
+        if: ${{ env.SONAR_TOKEN == '' }}
+        run: echo "SONAR_TOKEN is not configured; skipping SonarQube analysis."
+
       - name: Publish SonarQube analysis
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v8.2.1
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000' }}
         with:
           args: >
             -Dproject.settings=sonar/sonar-project.properties
 
       - name: Verify SonarQube quality gate
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'http://o4sn9bs961jvxn32hs18a81p.89.168.29.98.sslip.io:9000' }}
