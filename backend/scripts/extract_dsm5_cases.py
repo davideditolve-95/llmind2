@@ -90,6 +90,37 @@ DIAGNOSIS_MARKERS = [
     "D D i a g n o s i s", # Spaced stutter
 ]
 
+NON_PATIENT_TITLES = {
+    "introduction",
+    "history",
+    "history and mental status",
+    "psychiatric history",
+    "history of present illness",
+    "clinical presentation",
+    "chief complaint",
+    "presenting complaints",
+    "patient history",
+    "background",
+    "case description",
+    "discussion",
+    "clinical discussion",
+    "diagnosis",
+    "diagnoses",
+}
+
+NAME_PART = r"[A-Z][a-z]+(?:[-'][A-Z][a-z]+)?"
+HONORIFIC_NAME_PATTERN = re.compile(
+    rf"\b(?:Mr|Mrs|Ms|Miss|Dr)\.?\s+({NAME_PART})\s+({NAME_PART})\b"
+)
+PATIENT_APPOSITIVE_NAME_PATTERN = re.compile(
+    rf"\b(?:patient|client|subject),?\s+({NAME_PART})\s+({NAME_PART})\b",
+    re.IGNORECASE,
+)
+SENTENCE_INITIAL_NAME_PATTERN = re.compile(
+    rf"(?:^|[\n.]\s+)({NAME_PART})\s+({NAME_PART})\s+"
+    r"(?:is|was|has|had|presents|presented|reports|reported|comes|came|arrives|arrived|lives|works|sought)\b",
+)
+
 
 def extract_text_from_pdf(pdf_path: str) -> list[dict]:
     """
@@ -182,6 +213,71 @@ def clean_headers_and_reflow(text: str, section_type: str) -> str:
         reflowed_paragraphs.append(para_text.strip())
         
     return "\n\n".join(reflowed_paragraphs)
+
+
+def _format_patient_name(first_name: str, last_name: str) -> str:
+    return f"{first_name.strip()} {last_name.strip()}"
+
+
+def extract_patient_full_name(text: str) -> Optional[str]:
+    """
+    Estrae nome e cognome del paziente dal testo narrativo del caso.
+    Restituisce None se il caso usa solo iniziali o un riferimento generico.
+    """
+    if not text:
+        return None
+
+    searchable = de_stutter(text)
+    searchable = re.sub(
+        r"^\s*(?:Introduction|History and Mental Status|Psychiatric History|History of Present Illness|Clinical Presentation|Chief Complaint|Presenting Complaints|Patient History|Background|Case Description|History)\b\s*[:\-–\s]*",
+        "",
+        searchable,
+        flags=re.IGNORECASE,
+    )
+    searchable = re.sub(r"\s+", " ", searchable[:4000]).strip()
+
+    for pattern in (
+        HONORIFIC_NAME_PATTERN,
+        PATIENT_APPOSITIVE_NAME_PATTERN,
+        SENTENCE_INITIAL_NAME_PATTERN,
+    ):
+        match = pattern.search(searchable)
+        if match:
+            first_name, last_name = match.group(1), match.group(2)
+            return _format_patient_name(first_name, last_name)
+
+    return None
+
+
+def _is_section_artifact_title(title: str) -> bool:
+    normalized = re.sub(r"[^a-z\s]", "", de_stutter(title).lower()).strip()
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized in NON_PATIENT_TITLES
+
+
+def derive_case_title(case_number: Optional[str], raw_title: str, case_text: str, sections: Optional[dict] = None) -> str:
+    """
+    Preferisce nome e cognome del paziente come titolo del caso.
+    Se il nome non e nel testo, mantiene un titolo PDF valido e scarta marker come "Introduction".
+    """
+    patient_source = ""
+    if sections:
+        patient_source = "\n".join(
+            part for part in [
+                sections.get("anamnesis", ""),
+                sections.get("discussion", ""),
+            ] if part
+        )
+
+    patient_name = extract_patient_full_name(patient_source) or extract_patient_full_name(case_text)
+    if patient_name:
+        return patient_name
+
+    cleaned_title = de_stutter(raw_title or "").strip(" :-–\t\n")
+    if cleaned_title and not _is_section_artifact_title(cleaned_title):
+        return cleaned_title
+
+    return f"Case {case_number or 'Unknown'}"
 
 
 def split_case_into_sections(case_text: str) -> dict:
@@ -402,6 +498,12 @@ def save_cases_to_db(cases_data: list[dict], db: Session, dry_run: bool = False)
         try:
             # Dividi in sezioni
             sections = split_case_into_sections(case_data["raw_text"])
+            case_title = derive_case_title(
+                case_data.get("case_number"),
+                case_data.get("title", ""),
+                case_data.get("raw_text", ""),
+                sections,
+            )
             
             # Segnala casi incerti
             if sections["uncertain"]:
@@ -413,7 +515,7 @@ def save_cases_to_db(cases_data: list[dict], db: Session, dry_run: bool = False)
             
             if dry_run:
                 logger.info(
-                    f"[DRY RUN] Caso {case_data['case_number']}: '{case_data['title'][:60]}'"
+                    f"[DRY RUN] Caso {case_data['case_number']}: '{case_title[:60]}'"
                     f" | Anamnesi: {len(sections['anamnesis'])} chars"
                     f" | Discussione: {len(sections['discussion'])} chars"
                     f" | Diagnosi: {len(sections['gold_standard_diagnosis'])} chars"
@@ -428,7 +530,7 @@ def save_cases_to_db(cases_data: list[dict], db: Session, dry_run: bool = False)
             
             if existing:
                 logger.info(f"Caso {case_data['case_number']} già presente — aggiornamento")
-                existing.title = case_data["title"]
+                existing.title = case_title
                 existing.anamnesis = sections["anamnesis"]
                 existing.discussion = sections["discussion"]
                 existing.gold_standard_diagnosis = sections["gold_standard_diagnosis"]
@@ -442,7 +544,7 @@ def save_cases_to_db(cases_data: list[dict], db: Session, dry_run: bool = False)
                 new_case = DSM5Case(
                     id=uuid.uuid4(),
                     case_number=case_data["case_number"],
-                    title=case_data["title"],
+                    title=case_title,
                     anamnesis=sections["anamnesis"],
                     discussion=sections["discussion"],
                     gold_standard_diagnosis=sections["gold_standard_diagnosis"],

@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models.benchmark import DSM5Case
 from app.models.icd11 import ICD11Category
+from scripts.extract_dsm5_cases import derive_case_title
 from scripts.utils.text_processing import de_stutter, de_stutter_case_number, de_stutter_list
 
 logging.basicConfig(
@@ -34,7 +35,15 @@ def cleanup_dsm5_cases(db: Session):
         modified = False
         
         # Titolo
-        new_title = de_stutter(case.title)
+        new_title = derive_case_title(
+            case.case_number,
+            de_stutter(case.title),
+            "\n".join(part for part in [case.anamnesis, case.discussion] if part),
+            {
+                "anamnesis": case.anamnesis or "",
+                "discussion": case.discussion or "",
+            },
+        )
         if case.title != new_title:
             case.title = new_title
             modified = True
