@@ -40,7 +40,8 @@ jobs:
         working-directory: frontend
         run: npm run test:coverage
 
-      - name: Run backend tests in Python 3.11 container
+      - name: Run backend tests with local Python
+        working-directory: backend
         env:
           ENVIRONMENT: development
           DATABASE_URL: sqlite:///./sonar-ci.db
@@ -49,29 +50,16 @@ jobs:
           ICD11_API_URL: http://localhost:8082
           OLLAMA_BASE_URL: http://localhost:11434
         run: |
-          docker run --rm \
-            -e ENVIRONMENT \
-            -e DATABASE_URL \
-            -e DATA_DIR \
-            -e SECRET_KEY \
-            -e ICD11_API_URL \
-            -e OLLAMA_BASE_URL \
-            -e HOST_UID="$(id -u)" \
-            -e HOST_GID="$(id -g)" \
-            -v "$GITHUB_WORKSPACE:/workspace" \
-            -w /workspace/backend \
-            python:3.11-bookworm \
-            sh -lc '
-              python -m pip install -r requirements.txt \
-                pytest==8.2.1 \
-                pytest-cov==5.0.0 \
-                pytest-asyncio==0.23.7 \
-                pytest-mock==3.14.0
-              pytest --cov=app --cov-report=xml:coverage.xml
-              status=$?
-              chown "$HOST_UID:$HOST_GID" coverage.xml .coverage sonar-ci.db 2>/dev/null || true
-              exit "$status"
-            '
+          PYTHON_BIN="$(command -v python3.11 || command -v python3)"
+          "$PYTHON_BIN" --version
+          "$PYTHON_BIN" -m venv .venv
+          . .venv/bin/activate
+          python -m pip install -r requirements.txt \
+            pytest==8.2.1 \
+            pytest-cov==5.0.0 \
+            pytest-asyncio==0.23.7 \
+            pytest-mock==3.14.0
+          pytest --cov=app --cov-report=xml:coverage.xml
 
       - name: Publish SonarQube analysis
         uses: SonarSource/sonarqube-scan-action@v8.2.1
