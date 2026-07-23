@@ -7,7 +7,7 @@ import json
 import re
 import logging
 from uuid import UUID
-from typing import List, Optional
+from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
@@ -55,6 +55,99 @@ def _clean_and_parse_json(content: str) -> dict:
             cleaned = cleaned[start:end+1]
             
     return json.loads(cleaned)
+
+
+def _blank_to_none(value: Any) -> Any:
+    """Converte stringhe vuote in None per distinguere dati mancanti da dati utili."""
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped if stripped else None
+    return value
+
+
+def _first_non_blank(data: dict, *keys: str) -> Any:
+    for key in keys:
+        value = _blank_to_none(data.get(key))
+        if value is not None:
+            return value
+    return None
+
+
+def _normalize_age(value: Any) -> Optional[int]:
+    value = _blank_to_none(value)
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value if 0 <= value <= 150 else None
+    if isinstance(value, str):
+        match = re.search(r"\b(\d{1,3})\b", value)
+        if match:
+            age = int(match.group(1))
+            return age if 0 <= age <= 150 else None
+    return None
+
+
+def _fallback_patient_name(case: DSM5Case) -> str:
+    case_label = case.case_number or "Estratto"
+    title = _blank_to_none(case.title)
+    return f"Paziente da Caso {case_label}" if not title else f"Paziente da Caso {case_label}: {title}"
+
+
+def _normalize_extracted_patient_data(extracted_data: dict, case: DSM5Case) -> dict:
+    """
+    Normalizza output LLM non perfetti e garantisce fallback dal caso DSM-5.
+    Non modifica il caso benchmark: crea solo un profilo operativo per l'utente.
+    """
+    name = _first_non_blank(
+        extracted_data,
+        "name",
+        "full_name",
+        "patient_name",
+        "nome",
+    ) or _fallback_patient_name(case)
+
+    age = _normalize_age(_first_non_blank(extracted_data, "age", "eta", "età"))
+    gender = _first_non_blank(extracted_data, "gender", "sex", "sesso", "genere")
+
+    behaviors = _first_non_blank(
+        extracted_data,
+        "behaviors",
+        "behaviour",
+        "clinical_behaviors",
+        "symptoms",
+        "sintomi",
+        "presenting_symptoms",
+    ) or _blank_to_none(case.anamnesis)
+
+    specific_traits = _first_non_blank(
+        extracted_data,
+        "specific_traits",
+        "specificTraits",
+        "traits",
+        "personality_traits",
+        "clinical_traits",
+        "tratti",
+    ) or _blank_to_none(case.discussion) or _blank_to_none(case.gold_standard_diagnosis)
+
+    clinical_history = _first_non_blank(
+        extracted_data,
+        "clinical_history",
+        "clinicalHistory",
+        "history",
+        "anamnesis",
+        "anamnesi",
+        "medical_history",
+        "case_history",
+    ) or _blank_to_none(case.anamnesis)
+
+    return {
+        "name": name,
+        "age": age,
+        "gender": gender,
+        "behaviors": behaviors,
+        "specific_traits": specific_traits,
+        "clinical_history": clinical_history,
+    }
 
 
 @router.get("", response_model=List[PatientResponse])
@@ -235,12 +328,15 @@ Extract the patient's demographics, clinical history, behaviors, and traits. Res
         raw_content = inference.get("content", "").strip()
         logger.info(f"Ollama extraction response raw: {raw_content[:500]}")
         
-        extracted_data = _clean_and_parse_json(raw_content)
+        extracted_data = _normalize_extracted_patient_data(
+            _clean_and_parse_json(raw_content),
+            case,
+        )
         
         # Crea il nuovo paziente nel DB
         patient = Patient(
             owner_email=user_email,
-            name=extracted_data.get("name", f"Paziente da Caso {case.case_number or 'Estratto'}"),
+            name=extracted_data["name"],
             age=extracted_data.get("age"),
             gender=extracted_data.get("gender"),
             behaviors=extracted_data.get("behaviors"),

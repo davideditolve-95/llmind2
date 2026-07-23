@@ -132,6 +132,39 @@ def test_convert_case_to_patient(client, db, mock_ollama_for_conversion):
     assert patient_data["owner_email"] == "test@example.com"
 
 
+def test_convert_case_to_patient_uses_case_fallbacks_when_llm_returns_empty_fields(client, db):
+    case = DSM5Case(
+        case_number="2.3",
+        title="Panic case",
+        anamnesis="The patient reports recurrent panic attacks and avoids crowded places.",
+        discussion="The clinical discussion highlights avoidance, anticipatory anxiety, and impairment.",
+        gold_standard_diagnosis="Panic Disorder"
+    )
+    db.add(case)
+    db.commit()
+    db.refresh(case)
+
+    with patch("app.routers.patient.ollama_service") as mock_svc:
+        mock_svc.default_model = "gemma-test"
+        mock_svc.run_inference = AsyncMock(return_value={
+            "content": '{"name": "", "age": "", "gender": "", "behaviors": "", "specific_traits": "", "clinical_history": ""}',
+            "model": "gemma-test",
+            "latency_ms": 200,
+            "success": True
+        })
+
+        response = client.post(f"/api/patients/convert-from-case/{case.id}")
+
+    assert response.status_code == 200
+    patient_data = response.json()
+    assert patient_data["name"] == "Paziente da Caso 2.3: Panic case"
+    assert patient_data["age"] is None
+    assert patient_data["gender"] is None
+    assert patient_data["behaviors"] == case.anamnesis
+    assert patient_data["specific_traits"] == case.discussion
+    assert patient_data["clinical_history"] == case.anamnesis
+
+
 def test_chat_context_patient_injection(client, db):
     # 1. Create Patient
     p = Patient(owner_email="test@example.com", name="Rossi Mario", age=45, behaviors="Panic attacks")
