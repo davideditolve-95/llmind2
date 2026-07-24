@@ -23,28 +23,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/patients", tags=["Patients"])
 
 # System prompt specifico per l'estrazione guidata da LLM
-SYSTEM_PROMPT_PATIENT_EXTRACTION = """You are an expert clinical psychologist and data extraction assistant.
-Your task is to analyze the provided clinical case presentation and extract structured demographic and clinical information to build a patient profile.
+SYSTEM_PROMPT_PATIENT_EXTRACTION = """You are a senior clinical psychologist and expert psychiatric data extraction assistant.
+Your task is to analyze the provided DSM-5-TR clinical case presentation and extract an EXHAUSTIVE, RICH, HIGHLY DETAILED CLINICAL PROFILE to empower AI diagnostic chat simulations.
 
-Important rules for extraction:
-1. "name": Extract the patient's real name if present in the text (e.g. "Arthur P.", "Mary Smith"). If no specific name is mentioned in the text, generate a realistic patient name (e.g., "Arthur Pendelton", "Elena R.") appropriate for a clinical patient profile. NEVER output generic labels like "Introduction", "Case Title", or "N/A" as the name.
+Extraction Guidelines:
+1. "name": Extract the patient's real name if present (e.g. "Arthur P.", "Mary Smith"). If unmentioned, generate a realistic patient name suited to the case context. NEVER output generic titles like "Introduction" or "N/A".
 2. "age": Integer age (e.g., 42), or null if not specified.
 3. "gender": "Male", "Female", or "Other" (or null if not specified).
-4. "specific_traits": Detailed description of specific psychological traits, personality features, mood, or general attitude described in the case.
-5. "behaviors": Description of clinical behaviors, symptoms, habits, repetitiveness, and functional impairments shown by the patient.
-6. "clinical_history": Anamnesis, onset of symptoms, previous treatments, family history, and duration of the condition.
+4. "specific_traits": EXHAUSTIVE description of specific psychological traits, personality features, defense mechanisms, affect, mood, cognitive status, and interpersonal dynamics described in the case. Include every detail.
+5. "behaviors": EXHAUSTIVE, DETAILED breakdown of clinical behaviors, chief complaints, symptoms, habits, repetitiveness, compulsions, sleep patterns, substance use, and functional impairments. Do NOT omit any symptom.
+6. "clinical_history": EXHAUSTIVE anamnesis, exact timeline of symptom onset, previous medical/psychiatric treatments, hospitalizations, family history, trauma background, and current episode duration.
 
-You MUST respond ONLY with a valid JSON object matching this schema:
+Respond ONLY with a valid raw JSON object matching this schema:
 {
   "name": "Extract real name or generate a realistic clinical patient name",
   "age": 42,
   "gender": "Male",
-  "specific_traits": "Traits description",
-  "behaviors": "Behaviors description",
-  "clinical_history": "History description"
+  "specific_traits": "Comprehensive, multi-paragraph description of traits and affect",
+  "behaviors": "Comprehensive, multi-paragraph breakdown of symptoms and behaviors",
+  "clinical_history": "Comprehensive, multi-paragraph clinical anamnesis and history"
 }
 
-Do not include any conversational formatting or markdown text. Return ONLY the raw JSON object."""
+Do not include conversational formatting or markdown text. Return ONLY raw valid JSON."""
 
 
 def _clean_and_parse_json(content: str) -> dict:
@@ -145,44 +145,36 @@ def _extract_patient_name(case: DSM5Case, extracted_data: dict) -> str:
 
 def _normalize_extracted_patient_data(extracted_data: dict, case: DSM5Case) -> dict:
     """
-    Normalizza output LLM non perfetti e garantisce fallback dal caso DSM-5.
-    Non modifica il caso benchmark: crea solo un profilo operativo per l'utente.
+    Normalizza l'estrazione LLM garantendo una ricchezza clinica completa per la Chat AI.
+    Combina l'analisi sintetica LLM con l'anamnesi e la discussione originale del caso.
     """
     name = _extract_patient_name(case, extracted_data)
-
     age = _normalize_age(_first_non_blank(extracted_data, "age", "eta", "età"))
     gender = _first_non_blank(extracted_data, "gender", "sex", "sesso", "genere")
 
-    behaviors = _first_non_blank(
-        extracted_data,
-        "behaviors",
-        "behaviour",
-        "clinical_behaviors",
-        "symptoms",
-        "sintomi",
-        "presenting_symptoms",
-    ) or _blank_to_none(case.anamnesis)
+    llm_behaviors = _first_non_blank(extracted_data, "behaviors", "behaviour", "clinical_behaviors", "symptoms", "sintomi")
+    llm_traits = _first_non_blank(extracted_data, "specific_traits", "specificTraits", "traits", "tratti")
+    llm_history = _first_non_blank(extracted_data, "clinical_history", "clinicalHistory", "history", "anamnesi")
 
-    specific_traits = _first_non_blank(
-        extracted_data,
-        "specific_traits",
-        "specificTraits",
-        "traits",
-        "personality_traits",
-        "clinical_traits",
-        "tratti",
-    ) or _blank_to_none(case.discussion) or _blank_to_none(case.gold_standard_diagnosis)
+    case_anamnesis = _blank_to_none(case.anamnesis)
+    case_discussion = _blank_to_none(case.discussion)
+    case_diagnosis = _blank_to_none(case.gold_standard_diagnosis)
 
-    clinical_history = _first_non_blank(
-        extracted_data,
-        "clinical_history",
-        "clinicalHistory",
-        "history",
-        "anamnesis",
-        "anamnesi",
-        "medical_history",
-        "case_history",
-    ) or _blank_to_none(case.anamnesis)
+    # Includi sia l'estrazione che il testo anamnestico integrale per non perdere alcun dettaglio in chat
+    if llm_behaviors and len(str(llm_behaviors).strip()) > 50:
+        behaviors = f"{str(llm_behaviors).strip()}\n\n[Dettagli Anamnestici Integrali]\n{case_anamnesis}" if case_anamnesis else str(llm_behaviors).strip()
+    else:
+        behaviors = case_anamnesis or "Nessun dettaglio sintomatologico registrato."
+
+    if llm_traits and len(str(llm_traits).strip()) > 50:
+        specific_traits = f"{str(llm_traits).strip()}\n\n[Discussione Clinica e Ragionamento Diagnostico]\n{case_discussion or case_diagnosis}" if (case_discussion or case_diagnosis) else str(llm_traits).strip()
+    else:
+        specific_traits = case_discussion or case_diagnosis or "Nessun tratto specifico inserito."
+
+    if llm_history and len(str(llm_history).strip()) > 50:
+        clinical_history = f"{str(llm_history).strip()}\n\n[Storia Anamnestica Integrale]\n{case_anamnesis}" if case_anamnesis else str(llm_history).strip()
+    else:
+        clinical_history = case_anamnesis or "Nessuna anamnesi remota registrata."
 
     return {
         "name": name,
@@ -344,16 +336,21 @@ async def convert_case_to_patient(
     if not case:
         raise HTTPException(status_code=404, detail="Caso clinico Gold Standard non trovato")
         
-    # Costruisci il prompt per l'analisi
-    prompt = f"""ANALYSIS OF DSM-5-TR CLINICAL CASE:
+    # Costruisci il prompt per l'analisi clinica esaustiva
+    prompt = f"""EXHAUSTIVE CLINICAL EXTRACTION OF DSM-5-TR CASE:
 Title: {case.title}
-Anamnesis/Clinical Presentation:
+Case Number: {case.case_number or 'N/A'}
+
+[SECTION 1: CLINICAL PRESENTATION & ANAMNESIS]
 {case.anamnesis}
 
-Gold Standard Diagnosis Info:
+[SECTION 2: CLINICAL DISCUSSION & DIAGNOSTIC REASONING]
+{case.discussion}
+
+[SECTION 3: GOLD STANDARD DIAGNOSIS & CRITERIA]
 {case.gold_standard_diagnosis}
 
-Extract the patient's demographics, clinical history, behaviors, and traits. Respond ONLY with the requested JSON structure.
+INSTRUCTION: Extract an exhaustive, highly detailed patient profile containing all symptoms, behaviors, timeline, and psychological traits. Return ONLY the requested JSON structure.
 """
     
     try:
