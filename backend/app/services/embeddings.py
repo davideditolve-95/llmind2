@@ -165,6 +165,46 @@ class LocalSentenceTransformerEmbeddings:
         return self.embed_query(str(text_or_texts))
 
 
+class FallbackOllamaEmbeddings:
+    """
+    Tries OllamaEmbeddings first. If OllamaEmbeddings returns HTTP 500 ("does not support embeddings")
+    or fails on embed_documents / embed_query during runtime, automatically falls back to LocalSentenceTransformerEmbeddings.
+    """
+    def __init__(self, model_name: str):
+        headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
+        try:
+            from langchain_community.embeddings import OllamaEmbeddings
+            self.primary = OllamaEmbeddings(
+                model=model_name or settings.ollama_default_model,
+                base_url=settings.ollama_base_url,
+                headers=headers,
+            )
+        except Exception:
+            self.primary = None
+        self.fallback = LocalSentenceTransformerEmbeddings(settings.embedding_model)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if self.primary:
+            try:
+                return self.primary.embed_documents(texts)
+            except Exception as e:
+                logger.warning(f"OllamaEmbeddings embed_documents failed ({e}). Falling back to LocalSentenceTransformerEmbeddings...")
+        return self.fallback.embed_documents(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        if self.primary:
+            try:
+                return self.primary.embed_query(text)
+            except Exception as e:
+                logger.warning(f"OllamaEmbeddings embed_query failed ({e}). Falling back to LocalSentenceTransformerEmbeddings...")
+        return self.fallback.embed_query(text)
+
+    def __call__(self, text_or_texts):
+        if isinstance(text_or_texts, list):
+            return self.embed_documents(text_or_texts)
+        return self.embed_query(str(text_or_texts))
+
+
 def get_langchain_embeddings_instance(embedding_model_name: str):
     """
     Robust factory function for LangChain Embeddings.
@@ -180,14 +220,7 @@ def get_langchain_embeddings_instance(embedding_model_name: str):
         return LocalSentenceTransformerEmbeddings(settings.embedding_model)
 
     try:
-        from langchain_community.embeddings import OllamaEmbeddings
-        headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
-        embeddings = OllamaEmbeddings(
-            model=embedding_model_name or settings.ollama_default_model,
-            base_url=settings.ollama_base_url,
-            headers=headers,
-        )
-        return embeddings
+        return FallbackOllamaEmbeddings(embedding_model_name or settings.ollama_default_model)
     except Exception as e:
         logger.warning(f"OllamaEmbeddings fallback to LocalSentenceTransformerEmbeddings due to: {e}")
         return LocalSentenceTransformerEmbeddings(settings.embedding_model)

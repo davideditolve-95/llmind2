@@ -49,14 +49,8 @@ class LegacyRAGService:
             from langchain_core.runnables import RunnablePassthrough
             from langchain import hub
 
-            headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
-
-            # Configura gli embeddings (stessi parametri della v1)
-            embeddings = OllamaEmbeddings(
-                model=self.model_name,
-                base_url=settings.ollama_base_url,
-                headers=headers
-            )
+            from .embeddings import get_langchain_embeddings_instance
+            embeddings = get_langchain_embeddings_instance(self.model_name)
 
             # Carica il vectorstore
             if not os.path.exists(self.persist_directory):

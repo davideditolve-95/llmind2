@@ -77,3 +77,18 @@ def test_get_descendants(db_session):
     assert len(desc_sec1) == 2
     assert desc_sec1[0].id == sec1.id
     assert desc_sec1[1].id == child1.id
+
+
+def test_fallback_ollama_embeddings(mocker):
+    from app.services.embeddings import FallbackOllamaEmbeddings
+
+    embedder = FallbackOllamaEmbeddings("gemma2:27b")
+    mock_primary = mocker.MagicMock()
+    mock_primary.embed_query.side_effect = Exception("HTTP code: 500 --embeddings not supported")
+    embedder.primary = mock_primary
+
+    mocker.patch.object(embedder.fallback, "embed_query", return_value=[0.1, 0.2, 0.3])
+
+    result = embedder.embed_query("test query")
+    assert result == [0.1, 0.2, 0.3]
+
