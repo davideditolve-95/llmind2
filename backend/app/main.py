@@ -217,6 +217,14 @@ def _align_icd10_codes() -> None:
     logger.info(f"Allineamento completato: {result.rowcount} codici ICD-10 associati alle categorie ICD-11.")
 
 
+def _sync_dsm5_titles():
+    try:
+        from data.migrate_case_titles import run_migration
+        run_migration()
+    except Exception as e:
+        logger.warning(f"Sincronizzazione titoli casi DSM-5 saltata: {e}")
+
+
 def _run_schema_step(label: str, action) -> None:
     try:
         action()
@@ -256,6 +264,7 @@ async def startup_event():
     _run_schema_step("aggiunta patient_id a chat_sessions", _ensure_chat_patient_column)
     _run_schema_step("sincronizzazione schema benchmark", _sync_benchmark_schema)
     _run_schema_step("sincronizzazione schema DSM-5", _sync_dsm5_schema)
+    _run_schema_step("sincronizzazione titoli casi DSM-5", _sync_dsm5_titles)
     _run_schema_step("aggiunta colonna icd10_code", _sync_icd11_icd10_column)
     _run_schema_step("allineamento codici ICD-10", _align_icd10_codes)
 
