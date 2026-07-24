@@ -146,25 +146,31 @@ class IngestionService:
             # 3. Embedding & Salvataggio in Chroma
             vector_path = os.path.join(self.datastores_base_path, str(datastore_id))
             
-            headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
-
-            embeddings = OllamaEmbeddings(
-                model=embedding_model_name,
-                base_url=settings.ollama_base_url,
-                headers=headers,
-            )
+            from ..services.embeddings import get_langchain_embeddings_instance, LocalSentenceTransformerEmbeddings
+            embeddings = get_langchain_embeddings_instance(embedding_model_name)
 
             logger.info(
-                "Inizializzazione Chroma in %s con Ollama embedding model %s e chat model %s...",
+                "Inizializzazione Chroma in %s con embedding model %s e chat model %s...",
                 vector_path,
                 embedding_model_name,
                 model_name,
             )
-            vectorstore = Chroma.from_documents(
-                documents=splits,
-                embedding=embeddings,
-                persist_directory=vector_path
-            )
+            try:
+                vectorstore = Chroma.from_documents(
+                    documents=splits,
+                    embedding=embeddings,
+                    persist_directory=vector_path
+                )
+            except Exception as emb_err:
+                logger.warning(
+                    f"Remote embedding server failed ({emb_err}). Falling back to local SentenceTransformerEmbeddings..."
+                )
+                embeddings = LocalSentenceTransformerEmbeddings(settings.embedding_model)
+                vectorstore = Chroma.from_documents(
+                    documents=splits,
+                    embedding=embeddings,
+                    persist_directory=vector_path
+                )
             self._update_progress(
                 db,
                 datastore,

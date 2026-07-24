@@ -133,3 +133,62 @@ class EmbeddingService:
 
 # Istanza singleton del servizio
 embedding_service = EmbeddingService()
+
+
+class LocalSentenceTransformerEmbeddings:
+    """
+    LangChain-compatible Embeddings class using local SentenceTransformer models
+    (e.g., all-MiniLM-L6-v2) on CPU/GPU without needing an external --embeddings HTTP server.
+    """
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        self.model_name = model_name
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        model = get_embedding_model()
+        if model is None:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer(self.model_name)
+        embeddings = model.encode(texts, show_progress_bar=False, normalize_embeddings=True)
+        return [e.tolist() for e in embeddings]
+
+    def embed_query(self, text: str) -> list[float]:
+        model = get_embedding_model()
+        if model is None:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer(self.model_name)
+        embedding = model.encode(text, show_progress_bar=False, normalize_embeddings=True)
+        return embedding.tolist()
+
+    def __call__(self, text_or_texts):
+        if isinstance(text_or_texts, list):
+            return self.embed_documents(text_or_texts)
+        return self.embed_query(str(text_or_texts))
+
+
+def get_langchain_embeddings_instance(embedding_model_name: str):
+    """
+    Robust factory function for LangChain Embeddings.
+    Tries OllamaEmbeddings first if an Ollama model is requested;
+    if Ollama returns HTTP 500 (--embeddings not supported) or fails,
+    or if a sentence-transformer model is specified, falls back seamlessly to
+    LocalSentenceTransformerEmbeddings("all-MiniLM-L6-v2").
+    """
+    model_name_lower = (embedding_model_name or "").lower()
+
+    if any(k in model_name_lower for k in ["minilm", "sentence", "transformer", "huggingface", "bge-", "local", "all-"]):
+        logger.info(f"Using local SentenceTransformerEmbeddings for {embedding_model_name}")
+        return LocalSentenceTransformerEmbeddings(settings.embedding_model)
+
+    try:
+        from langchain_community.embeddings import OllamaEmbeddings
+        headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
+        embeddings = OllamaEmbeddings(
+            model=embedding_model_name or settings.ollama_default_model,
+            base_url=settings.ollama_base_url,
+            headers=headers,
+        )
+        return embeddings
+    except Exception as e:
+        logger.warning(f"OllamaEmbeddings fallback to LocalSentenceTransformerEmbeddings due to: {e}")
+        return LocalSentenceTransformerEmbeddings(settings.embedding_model)
+

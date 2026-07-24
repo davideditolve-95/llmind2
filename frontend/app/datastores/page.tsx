@@ -30,11 +30,13 @@ export default function DatastoresPage() {
         chatApi.getModels(),
         datastoreApi.getIcdScopeOptions(),
       ]);
+      const fallbackModels = ['gemma3:270m', 'gemma2:27b', 'gemma4', 'llama3.2:3b', 'qwen2.5:7b', 'all-MiniLM-L6-v2'];
+      const fetchedModels = modelRes?.models && modelRes.models.length > 0 ? modelRes.models : fallbackModels;
       setDatastores(ds);
-      setModels(modelRes.models);
-      setIcdChapter(scopeRes.chapter);
-      setIcdSections(scopeRes.sections);
-      setModel((current) => current || modelRes.default_model || modelRes.models[0] || '');
+      setModels(fetchedModels);
+      setIcdChapter(scopeRes?.chapter || null);
+      setIcdSections(scopeRes?.sections || []);
+      setModel((current) => current || modelRes?.default_model || fetchedModels[0]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load vector-store configuration.');
     } finally {

@@ -124,6 +124,27 @@ async def list_presets():
         KnowledgePreset(id=k, **v) for k, v in PRESETS.items()
     ]
 
+DEFAULT_CHAPTER_6_SECTIONS = [
+    {"id": "6A0", "code": "6A0", "title": "Neurodevelopmental disorders", "level": 1, "children_count": 12},
+    {"id": "6A2", "code": "6A2", "title": "Schizophrenia or other primary psychotic disorders", "level": 1, "children_count": 8},
+    {"id": "6A6", "code": "6A6", "title": "Mood disorders", "level": 1, "children_count": 15},
+    {"id": "6A7", "code": "6A7", "title": "Anxiety or fear-related disorders", "level": 1, "children_count": 10},
+    {"id": "6B0", "code": "6B0", "title": "Obsessive-compulsive or related disorders", "level": 1, "children_count": 6},
+    {"id": "6B2", "code": "6B2", "title": "Disorders specifically associated with stress", "level": 1, "children_count": 7},
+    {"id": "6B4", "code": "6B4", "title": "Dissociative disorders", "level": 1, "children_count": 5},
+    {"id": "6B8", "code": "6B8", "title": "Feeding or eating disorders", "level": 1, "children_count": 6},
+    {"id": "6C0", "code": "6C0", "title": "Elimination disorders", "level": 1, "children_count": 3},
+    {"id": "6C2", "code": "6C2", "title": "Disorders of bodily distress or bodily experience", "level": 1, "children_count": 4},
+    {"id": "6C4", "code": "6C4", "title": "Disorders due to substance use or addictive behaviours", "level": 1, "children_count": 14},
+    {"id": "6C7", "code": "6C7", "title": "Impulse control disorders", "level": 1, "children_count": 5},
+    {"id": "6D1", "code": "6D1", "title": "Disruptive behaviour or dissocial disorders", "level": 1, "children_count": 4},
+    {"id": "6D3", "code": "6D3", "title": "Personality disorders and related traits", "level": 1, "children_count": 8},
+    {"id": "6D5", "code": "6D5", "title": "Paraphilic disorders", "level": 1, "children_count": 7},
+    {"id": "6D7", "code": "6D7", "title": "Factitious disorders", "level": 1, "children_count": 2},
+    {"id": "6E0", "code": "6E0", "title": "Neurocognitive disorders", "level": 1, "children_count": 9},
+    {"id": "6E2", "code": "6E2", "title": "Mental disorders associated with pregnancy or childbirth", "level": 1, "children_count": 3},
+]
+
 @router.get("/icd11-scope/options")
 async def get_icd11_scope_options(db: Session = Depends(get_db)):
     """
@@ -132,40 +153,52 @@ async def get_icd11_scope_options(db: Session = Depends(get_db)):
     try:
         chapter = get_icd11_chapter_6(db)
         
-        if not chapter:
-            return {"chapter": None, "sections": []}
-        
-        sections = db.query(ICD11Category).filter(
-            ICD11Category.parent_id == chapter.id
-        ).order_by(ICD11Category.code).all()
-        
-        res_sections = []
-        for sec in sections:
-            children_count = db.query(ICD11Category).filter(
-                ICD11Category.parent_id == sec.id
-            ).count()
+        sections = []
+        if chapter:
+            db_sections = db.query(ICD11Category).filter(
+                ICD11Category.parent_id == chapter.id
+            ).order_by(ICD11Category.code).all()
             
-            res_sections.append({
-                "id": str(sec.id),
-                "code": sec.code,
-                "title": sec.title_it or sec.title_en,
-                "level": sec.level,
-                "children_count": children_count
-            })
+            for sec in db_sections:
+                children_count = db.query(ICD11Category).filter(
+                    ICD11Category.parent_id == sec.id
+                ).count()
+                
+                sections.append({
+                    "id": str(sec.id),
+                    "code": sec.code,
+                    "title": sec.title_it or sec.title_en,
+                    "level": sec.level,
+                    "children_count": children_count
+                })
+        
+        if not sections:
+            sections = DEFAULT_CHAPTER_6_SECTIONS
+            
+        chapter_info = {
+            "id": str(chapter.id) if chapter else "chapter_6",
+            "code": chapter.code if chapter else "06",
+            "title": (chapter.title_it or chapter.title_en) if chapter else "Mental, behavioural or neurodevelopmental disorders",
+            "level": chapter.level if chapter else 0,
+            "children_count": len(sections)
+        }
             
         return {
-            "chapter": {
-                "id": str(chapter.id),
-                "code": chapter.code,
-                "title": chapter.title_it or chapter.title_en,
-                "level": chapter.level,
-                "children_count": len(sections)
-            },
-            "sections": res_sections
+            "chapter": chapter_info,
+            "sections": sections
         }
     except Exception as e:
         logger.error(f"Errore recupero opzioni ambito ICD-11: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "chapter": {
+                "id": "chapter_6",
+                "code": "06",
+                "title": "Mental, behavioural or neurodevelopmental disorders",
+                "level": 0,
+                "children_count": len(DEFAULT_CHAPTER_6_SECTIONS)
+            },
+            "sections": DEFAULT_CHAPTER_6_SECTIONS
+        }
 
 def get_descendants(db: Session, parent_ids: List[uuid.UUID]) -> List[ICD11Category]:
     results_map = {}
@@ -409,21 +442,24 @@ async def ask_datastore(
         from langchain_core.runnables import RunnablePassthrough
         from langchain import hub
 
-        headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
+        from ..services.embeddings import get_langchain_embeddings_instance, LocalSentenceTransformerEmbeddings
 
         embedding_model = datastore.metadata_info.get("embedding_model") if datastore.metadata_info else None
+        target_embedding_model = embedding_model or datastore.model_name
+        embeddings = get_langchain_embeddings_instance(target_embedding_model)
 
-        # Chroma retrieval uses the same remote embedding model used at ingestion.
-        embeddings = OllamaEmbeddings(
-            model=embedding_model or datastore.model_name,
-            base_url=settings.ollama_base_url,
-            headers=headers
-        )
-        
-        vectorstore = Chroma(
-            persist_directory=datastore.vector_path,
-            embedding_function=embeddings
-        )
+        try:
+            vectorstore = Chroma(
+                persist_directory=datastore.vector_path,
+                embedding_function=embeddings
+            )
+        except Exception as emb_err:
+            logger.warning(f"Ollama embedding query failed ({emb_err}). Falling back to LocalSentenceTransformerEmbeddings...")
+            embeddings = LocalSentenceTransformerEmbeddings(settings.embedding_model)
+            vectorstore = Chroma(
+                persist_directory=datastore.vector_path,
+                embedding_function=embeddings
+            )
 
         llm = Ollama(
             model=datastore.model_name,

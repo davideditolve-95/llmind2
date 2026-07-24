@@ -7,7 +7,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.db
+*.db
+*.sqlite*
 backend/data/*.pdf
 backend/data/cache/
 backend/data/datastores/
