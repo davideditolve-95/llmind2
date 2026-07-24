@@ -2,16 +2,23 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { chatApi, datastoreApi, type Datastore, type IcdScopeOption } from '@/lib/api';
-import { ArrowPathIcon, CircleStackIcon, PlusIcon, TrashIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, CircleStackIcon, PlusIcon, TrashIcon, ClockIcon, CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-export default function DatastoresPage() {
+export default function VectorStoresPage() {
+  const router = useRouter();
   const [datastores, setDatastores] = useState<Datastore[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [icdSections, setIcdSections] = useState<IcdScopeOption[]>([]);
   const [icdChapter, setIcdChapter] = useState<IcdScopeOption | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  
+  // Progress modal state
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
+
   const [name, setName] = useState('');
   const [model, setModel] = useState('');
   const [embeddingModelOverride, setEmbeddingModelOverride] = useState('');
@@ -19,7 +26,6 @@ export default function DatastoresPage() {
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [secondsTicker, setSecondsTicker] = useState(0);
 
   const load = async () => {
@@ -39,7 +45,7 @@ export default function DatastoresPage() {
       setIcdSections(scopeRes?.sections || []);
       setModel((current) => current || modelRes?.default_model || fetchedModels[0]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load vector-store configuration.');
+      setError(err instanceof Error ? err.message : 'Unable to load vector store configuration.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +55,7 @@ export default function DatastoresPage() {
     load();
   }, []);
 
-  // Update a ticker every second to force re-render for processing datastore countdowns
+  // Ticker for countdown re-renders
   useEffect(() => {
     const timer = setInterval(() => {
       setSecondsTicker((t) => t + 1);
@@ -57,7 +63,7 @@ export default function DatastoresPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Poll server for status updates while any datastore is "processing"
+  // Poll server status while any vector store is processing
   useEffect(() => {
     const hasProcessing = datastores.some((ds) => ds.status === 'processing');
     if (!hasProcessing) return;
@@ -66,7 +72,7 @@ export default function DatastoresPage() {
       datastoreApi.list()
         .then((ds) => setDatastores(ds))
         .catch(() => {});
-    }, 3000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [datastores]);
@@ -77,15 +83,14 @@ export default function DatastoresPage() {
     const now = new Date().getTime();
     const elapsed = Math.floor((now - createdTime) / 1000);
     
-    // Estimate based on preset
     const presetId = ds.metadata_info?.preset_id || 'clinical_full';
-    let totalEstimate = 30; // default 30s
+    let totalEstimate = 30;
     if (presetId === 'clinical_full') totalEstimate = 45;
     else if (presetId === 'icd11_standard') totalEstimate = 30;
     else if (presetId === 'dsm5_cases') totalEstimate = 20;
 
     const remaining = totalEstimate - elapsed;
-    return remaining > 0 ? remaining : 5; // minimum 5s fallback
+    return remaining > 0 ? remaining : 5;
   };
 
   const create = async (event: FormEvent) => {
@@ -101,7 +106,6 @@ export default function DatastoresPage() {
 
     setCreating(true);
     setError(null);
-    setSuccessNotice(null);
     try {
       const embeddingModel = embeddingModelOverride.trim() || model;
       const duplicate = findMatchingVectorStore(datastores, model, embeddingModel, icdScope, selectedSections);
@@ -127,8 +131,10 @@ export default function DatastoresPage() {
 
       const newDs = await datastoreApi.create(form);
 
+      // Close creation modal & open progress modal
       setOpen(false);
-      setSuccessNotice(`✅ Creation of vector store "${newDs.name || dsName}" launched successfully! Embeddings and Chroma vector index are building in the background.`);
+      setActiveStoreId(newDs.id);
+      setProgressModalOpen(true);
       setName('');
       setEmbeddingModelOverride('');
       setIcdScope('chapter_6');
@@ -147,6 +153,8 @@ export default function DatastoresPage() {
     );
   };
 
+  const activeStore = datastores.find((ds) => ds.id === activeStoreId);
+
   return (
     <div className="app-page space-y-6">
       <div className="hidden" aria-hidden="true">{secondsTicker}</div>
@@ -154,10 +162,10 @@ export default function DatastoresPage() {
         <div>
           <div className="flex items-center gap-2">
             <CircleStackIcon className="h-7 w-7 text-primary" />
-            <h1 className="app-title">Local Vector Stores</h1>
+            <h1 className="app-title">Local Vector Stores (Chroma)</h1>
           </div>
           <p className="app-subtitle mt-2">
-            Build offline Chroma vector stores from ICD-11 Chapter 6. Use the full chapter for broad experiments, or selected sections for smaller and cheaper local runs.
+            Build offline Chroma vector stores from ICD-11 Chapter 6. Use the full chapter for broad experiments, or selected sections for smaller and cheaper local RAG runs.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setOpen(true)}>
@@ -165,16 +173,6 @@ export default function DatastoresPage() {
           New vector store
         </button>
       </div>
-
-      {successNotice && (
-        <div className="alert alert-success shadow-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CheckCircleIcon className="h-6 w-6 text-success-content shrink-0" />
-            <span className="font-semibold text-sm">{successNotice}</span>
-          </div>
-          <button className="btn btn-sm btn-ghost" onClick={() => setSuccessNotice(null)}>✕</button>
-        </div>
-      )}
 
       {error && (
         <div className="alert alert-error">
@@ -187,21 +185,24 @@ export default function DatastoresPage() {
       ) : datastores.length === 0 ? (
         <div className="hero rounded-box bg-base-100 shadow-sm">
           <div className="hero-content text-center">
-            <div><h2 className="text-2xl font-semibold">No local vector stores yet</h2><p className="mt-2 text-base-content/60">Create a focused ICD-11 Chapter 6 vector store to support offline retrieval experiments.</p></div>
+            <div>
+              <h2 className="text-2xl font-semibold">No local vector stores yet</h2>
+              <p className="mt-2 text-base-content/60">Create a focused ICD-11 Chapter 6 vector store to support offline retrieval experiments.</p>
+            </div>
           </div>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {datastores.map((ds) => (
-            <div key={ds.id} className="card bg-base-100 shadow-sm">
+            <div key={ds.id} className="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition-shadow">
               <div className="card-body">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="card-title">{ds.name}</h2>
-                    <p className="text-sm text-base-content/60">{ds.description}</p>
+                    <h2 className="card-title text-base font-bold">{ds.name}</h2>
+                    <p className="text-xs text-base-content/60">{ds.description}</p>
                   </div>
                   <div className="text-right">
-                    <span className={`badge ${ds.status === 'ready' ? 'badge-success' : ds.status === 'failed' ? 'badge-error' : 'badge-warning'}`}>
+                    <span className={`badge ${ds.status === 'ready' ? 'badge-success text-success-content font-bold' : ds.status === 'failed' ? 'badge-error' : 'badge-warning font-bold'}`}>
                       {ds.status}
                     </span>
                     {ds.status === 'processing' && (
@@ -212,14 +213,14 @@ export default function DatastoresPage() {
                     )}
                   </div>
                 </div>
-                <div className="text-sm">
-                  <div>Model: <span className="font-medium">{ds.model_name}</span></div>
-                  <div>Embedding: <span className="font-medium">{ds.metadata_info?.embedding_model || ds.model_name}</span></div>
-                  <div>Chapter: <span className="font-medium">{formatVectorStoreChapter(ds)}</span></div>
-                  <div>Scope: <span className="font-medium">{formatVectorStoreScope(ds)}</span></div>
-                  <div>Chunks: <span className="font-medium">{ds.metadata_info?.chunks || 0}</span></div>
+                <div className="text-xs space-y-1 text-base-content/80 mt-2 bg-base-200/50 p-2.5 rounded-lg border border-base-300">
+                  <div>Model: <span className="font-semibold">{ds.model_name}</span></div>
+                  <div>Embedding: <span className="font-semibold">{ds.metadata_info?.embedding_model || ds.model_name}</span></div>
+                  <div>Chapter: <span className="font-semibold">{formatVectorStoreChapter(ds)}</span></div>
+                  <div>Scope: <span className="font-semibold">{formatVectorStoreScope(ds)}</span></div>
+                  <div>Chunks: <span className="font-semibold">{ds.metadata_info?.chunks || 0}</span></div>
                   {ds.metadata_info?.icd11_nodes_count !== undefined && (
-                    <div>ICD-11 nodes: <span className="font-medium">{ds.metadata_info.icd11_nodes_count}</span></div>
+                    <div>ICD-11 nodes: <span className="font-semibold">{ds.metadata_info.icd11_nodes_count}</span></div>
                   )}
                 </div>
                 {ds.status === 'processing' && (
@@ -228,7 +229,7 @@ export default function DatastoresPage() {
                       <span className="font-semibold uppercase tracking-wide text-warning">
                         {formatProgressStage(ds)}
                       </span>
-                      <span className="font-medium">{getProgressPercent(ds)}%</span>
+                      <span className="font-bold">{getProgressPercent(ds)}%</span>
                     </div>
                     <progress
                       className="progress progress-warning h-2 w-full"
@@ -240,11 +241,23 @@ export default function DatastoresPage() {
                     </p>
                   </div>
                 )}
-                {ds.error_message && <div className="alert alert-error text-sm">{ds.error_message}</div>}
-                <div className="card-actions justify-end">
-                  {ds.status === 'ready' && <Link href={`/explorer?ds=${ds.id}`} className="btn btn-primary btn-sm">Open</Link>}
-                  <button className="btn btn-error btn-outline btn-sm" onClick={() => confirm('Delete local vector store?') && datastoreApi.delete(ds.id).then(load)}>
-                    <TrashIcon className="h-4 w-4" />
+                {ds.error_message && <div className="alert alert-error text-xs p-2.5">{ds.error_message}</div>}
+                <div className="card-actions justify-end mt-2">
+                  {ds.status === 'processing' && (
+                    <button
+                      className="btn btn-warning btn-xs font-bold gap-1"
+                      onClick={() => {
+                        setActiveStoreId(ds.id);
+                        setProgressModalOpen(true);
+                      }}
+                    >
+                      <ClockIcon className="h-3.5 w-3.5" />
+                      View Progress
+                    </button>
+                  )}
+                  {ds.status === 'ready' && <Link href={`/explorer?ds=${ds.id}`} className="btn btn-primary btn-xs font-bold">Open Explorer</Link>}
+                  <button className="btn btn-error btn-outline btn-xs" onClick={() => confirm('Delete local vector store?') && datastoreApi.delete(ds.id).then(load)}>
+                    <TrashIcon className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
@@ -253,185 +266,242 @@ export default function DatastoresPage() {
         </div>
       )}
 
-      <dialog className={`modal ${open ? 'modal-open' : ''}`}>
-        <div className="modal-box max-w-3xl">
-          <h3 className="text-lg font-semibold">Create local vector store</h3>
-          <p className="mt-1 text-sm text-base-content/60">
-            A local vector store is an offline Chroma index built from a specific ICD-11 scope and embedding model.
-          </p>
-          <form className="mt-4 space-y-4" onSubmit={create}>
-            <input className="input input-bordered w-full" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-            <label className="form-control w-full">
-              <span className="label-text mb-2 font-semibold">Model</span>
-              <select
-                className="select select-bordered w-full"
-                required
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-              >
-                <option value="" disabled>Select a model</option>
-                {models.map((modelName) => (
-                  <option key={modelName} value={modelName}>{modelName}</option>
-                ))}
-              </select>
-              <span className="label-text-alt mt-1 text-base-content/60">
-                Used to generate the RAG answer. If no embedding override is provided, this same model is also passed to LangChain OllamaEmbeddings.
-              </span>
-            </label>
-            <label className="form-control w-full">
-              <span className="label-text mb-2 font-semibold">Embedding model override</span>
-              <input
-                className="input input-bordered w-full"
-                value={embeddingModelOverride}
-                onChange={(event) => setEmbeddingModelOverride(event.target.value)}
-                placeholder={`Leave empty to use ${model || 'the selected model'}`}
-              />
-              <span className="label-text-alt mt-1 text-base-content/60">
-                Optional. Use this only if in LLMind1 you manually changed the model used by OllamaEmbeddings while keeping the generation model selectable.
-              </span>
-            </label>
-            
-            <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
-              <div className="mb-3">
-                <div className="font-semibold">ICD-11 source scope</div>
-                <p className="text-sm text-base-content/60">
-                  Choose the exact clinical taxonomy content that will be embedded into this local vector store.
+      {/* Progress & Live Estimation Modal */}
+      {progressModalOpen && activeStore && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
+            <div className="flex items-start justify-between border-b border-base-200 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-lg text-base-content flex items-center gap-2">
+                  <CircleStackIcon className="h-5 w-5 text-primary" />
+                  Vector Store Building Progress
+                </h3>
+                <p className="text-xs text-base-content/60 mt-0.5">{activeStore.name}</p>
+              </div>
+              <button className="btn btn-xs btn-ghost btn-circle" onClick={() => setProgressModalOpen(false)}>
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Progress Bar & Stage */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="uppercase tracking-wider text-primary">
+                    {formatProgressStage(activeStore)}
+                  </span>
+                  <span className="text-base-content">{getProgressPercent(activeStore)}%</span>
+                </div>
+                
+                <progress
+                  className={`progress ${activeStore.status === 'ready' ? 'progress-success' : activeStore.status === 'failed' ? 'progress-error' : 'progress-primary'} h-3 w-full`}
+                  value={getProgressPercent(activeStore)}
+                  max={100}
+                />
+
+                <p className="text-xs text-base-content/80 font-medium leading-relaxed">
+                  {activeStore.metadata_info?.progress_message || 'Initializing local vector store...'}
                 </p>
+
+                {activeStore.status === 'processing' && (
+                  <div className="flex items-center justify-between pt-2 border-t border-primary/10 text-xs font-semibold text-primary">
+                    <span className="flex items-center gap-1.5">
+                      <ClockIcon className="h-4 w-4 animate-spin" />
+                      Estimated remaining time
+                    </span>
+                    <span className="font-mono text-sm">~{getRemainingTime(activeStore)} seconds</span>
+                  </div>
+                )}
               </div>
 
-              <div className="mb-4 rounded-box border border-primary/20 bg-primary/5 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-primary">Available chapter</div>
-                    <div className="mt-1 text-base font-semibold">
-                      {icdChapter ? `${icdChapter.code || '06'} · ${icdChapter.title}` : 'ICD-11 Chapter 6'}
-                    </div>
-                    <p className="mt-1 text-sm text-base-content/70">
-                      This is the ICD-11 chapter for mental, behavioural and neurodevelopmental disorders. Selecting the full chapter embeds the chapter node, all direct sections, and their descendant diagnostic categories.
-                    </p>
-                  </div>
-                  <div className="stats stats-vertical shrink-0 bg-base-100 shadow-sm md:stats-horizontal">
-                    <div className="stat px-4 py-2">
-                      <div className="stat-title text-xs">Sections</div>
-                      <div className="stat-value text-xl">{icdSections.length || icdChapter?.children_count || 0}</div>
-                    </div>
-                    <div className="stat px-4 py-2">
-                      <div className="stat-title text-xs">Selected</div>
-                      <div className="stat-value text-xl">{icdScope === 'chapter_6' ? 'All' : selectedSections.length}</div>
-                    </div>
-                  </div>
+              {/* Configuration Summary */}
+              <div className="text-xs space-y-1.5 bg-base-200/50 p-3 rounded-lg border border-base-300">
+                <div className="flex justify-between">
+                  <span className="text-base-content/60">Chat Model:</span>
+                  <span className="font-bold text-base-content">{activeStore.model_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-base-content/60">Embedding Engine:</span>
+                  <span className="font-bold text-base-content">{activeStore.metadata_info?.embedding_model || activeStore.model_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-base-content/60">ICD-11 Scope:</span>
+                  <span className="font-bold text-base-content">{formatVectorStoreScope(activeStore)}</span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
-                  <input
-                    type="radio"
-                    className="radio radio-primary mt-1"
-                    name="icd_scope"
-                    checked={icdScope === 'chapter_6'}
-                    onChange={() => setIcdScope('chapter_6')}
-                  />
-                  <span>
-                    <span className="block font-medium">Use the full ICD-11 Chapter 6</span>
-                    <span className="text-sm text-base-content/60">
-                      Embed the complete mental health chapter: chapter header, all direct sections, and all descendant diagnostic entities.
-                    </span>
-                  </span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
-                  <input
-                    type="radio"
-                    className="radio radio-primary mt-1"
-                    name="icd_scope"
-                    checked={icdScope === 'sections'}
-                    onChange={() => setIcdScope('sections')}
-                  />
-                  <span>
-                    <span className="block font-medium">Use selected Chapter 6 sections</span>
-                    <span className="text-sm text-base-content/60">Embed only the sections ticked below, including their descendant diagnostic entities.</span>
-                  </span>
-                </label>
-              </div>
 
-              {icdScope === 'sections' && (
-                <div className="mt-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold">Chapter 6 sections</div>
-                    <div className="badge badge-primary badge-outline">{selectedSections.length} selected</div>
-                  </div>
-                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                  {icdSections.length === 0 ? (
-                    <div className="alert alert-warning text-sm">No chapter 6 sections available. Run the ICD-11 ETL first.</div>
-                  ) : (
-                    icdSections.map((section) => (
-                      <label key={section.id} className="flex cursor-pointer items-start gap-3 rounded-box bg-base-100 p-3">
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-primary mt-1"
-                          checked={selectedSections.includes(section.id)}
-                          onChange={() => toggleSection(section.id)}
-                        />
-                        <span>
-                          <span className="block font-medium">{section.code || 'No code'} · {section.title}</span>
-                          <span className="text-sm text-base-content/60">{section.children_count} direct children</span>
-                        </span>
-                      </label>
-                    ))
-                  )}
-                  </div>
+              {/* Final State Banner */}
+              {activeStore.status === 'ready' && (
+                <div className="alert alert-success shadow-xs flex items-center gap-3 text-xs font-bold">
+                  <CheckCircleIcon className="h-5 w-5 text-success-content shrink-0" />
+                  <span>🎉 Local vector store built and ready for RAG queries!</span>
+                </div>
+              )}
+
+              {activeStore.status === 'failed' && (
+                <div className="alert alert-error text-xs font-semibold">
+                  <span>✕ Creation failed: {activeStore.error_message || 'Unknown error'}</span>
                 </div>
               )}
             </div>
 
-            <div className="modal-action">
-              <button type="button" className="btn" onClick={() => setOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" disabled={creating}>
-                {creating && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
-                Create
-              </button>
+            <div className="modal-action mt-6 border-t border-base-200 pt-3">
+              {activeStore.status === 'processing' ? (
+                <button className="btn btn-outline btn-sm w-full font-bold" onClick={() => setProgressModalOpen(false)}>
+                  Run in background
+                </button>
+              ) : (
+                <div className="flex gap-2 w-full justify-end">
+                  <button className="btn btn-ghost btn-sm font-bold" onClick={() => setProgressModalOpen(false)}>Close</button>
+                  {activeStore.status === 'ready' && (
+                    <button
+                      className="btn btn-primary btn-sm font-bold"
+                      onClick={() => {
+                        setProgressModalOpen(false);
+                        router.push(`/explorer?ds=${activeStore.id}`);
+                      }}
+                    >
+                      Open Explorer
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          </form>
+          </div>
         </div>
-        <form method="dialog" className="modal-backdrop"><button onClick={() => setOpen(false)}>close</button></form>
-      </dialog>
+      )}
+
+      {/* Create Local Vector Store Modal */}
+      {open && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl bg-base-100 border border-base-300">
+            <h3 className="font-bold text-lg text-base-content">Create Local Vector Store</h3>
+            <p className="text-xs text-base-content/60 mt-1">Configure offline Chroma vector store parameters and ICD-11 Chapter 6 scope.</p>
+
+            <form onSubmit={create} className="space-y-4 mt-4">
+              <div className="form-control">
+                <label className="label font-semibold text-xs text-base-content/80">Vector Store Name</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full text-sm"
+                  placeholder="e.g. ICD-11 Psychosis Focus Store"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="form-control">
+                  <label className="label font-semibold text-xs text-base-content/80">LLM Chat Model</label>
+                  <select className="select select-bordered text-sm" value={model} onChange={(e) => setModel(e.target.value)}>
+                    {models.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-control">
+                  <label className="label font-semibold text-xs text-base-content/80">Embedding Model Override (Optional)</label>
+                  <input
+                    type="text"
+                    className="input input-bordered w-full text-sm"
+                    placeholder="all-MiniLM-L6-v2 (default local)"
+                    value={embeddingModelOverride}
+                    onChange={(e) => setEmbeddingModelOverride(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* ICD-11 Scope Selection */}
+              <div className="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-3">
+                <div className="font-bold text-xs uppercase tracking-wider text-primary">ICD-11 Chapter 6 Scope</div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-base-300 bg-base-100 hover:bg-base-200/50 transition-colors">
+                    <input
+                      type="radio"
+                      className="radio radio-primary radio-sm"
+                      checked={icdScope === 'chapter_6'}
+                      onChange={() => setIcdScope('chapter_6')}
+                    />
+                    <div>
+                      <div className="font-bold text-xs text-base-content">Use Full Chapter 06</div>
+                      <div className="text-[11px] text-base-content/60">Includes all 23 mental, behavioural or neurodevelopmental disorder categories.</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-base-300 bg-base-100 hover:bg-base-200/50 transition-colors">
+                    <input
+                      type="radio"
+                      className="radio radio-primary radio-sm"
+                      checked={icdScope === 'sections'}
+                      onChange={() => setIcdScope('sections')}
+                    />
+                    <div>
+                      <div className="font-bold text-xs text-base-content">Use Selected Sections</div>
+                      <div className="text-[11px] text-base-content/60">Choose specific ICD-11 Chapter 6 sub-sections for faster local RAG indexing.</div>
+                    </div>
+                  </label>
+                </div>
+
+                {icdScope === 'sections' && (
+                  <div className="mt-3 pt-3 border-t border-base-300 max-h-48 overflow-y-auto space-y-1.5 pr-2">
+                    {icdSections.map((sec) => (
+                      <label key={sec.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-base-200 p-1.5 rounded">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-primary checkbox-xs"
+                          checked={selectedSections.includes(sec.id)}
+                          onChange={() => toggleSection(sec.id)}
+                        />
+                        <span className="font-semibold text-primary">{sec.code}</span>
+                        <span className="truncate">{sec.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {error && <div className="alert alert-error text-xs">{error}</div>}
+
+              <div className="modal-action pt-2">
+                <button type="button" className="btn btn-ghost btn-sm font-bold" onClick={() => setOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm font-bold gap-2" disabled={creating}>
+                  {creating ? <span className="loading loading-spinner loading-xs" /> : 'Create Local Vector Store'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function buildVectorStoreConfigKey(
-  model: string,
-  embeddingModel: string,
-  icdScope: 'chapter_6' | 'sections',
-  selectedSections: string[],
-) {
-  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort((a, b) => a.localeCompare(b)) : [];
-  return `icd11_standard:${model}:${embeddingModel}:${icdScope}:${sortedSections.join(',')}`;
-}
-
 function findMatchingVectorStore(
   datastores: Datastore[],
-  model: string,
-  embeddingModel: string,
+  modelName: string,
+  embeddingModelName: string,
   icdScope: 'chapter_6' | 'sections',
-  selectedSections: string[],
+  selectedSections: string[]
 ) {
-  const configKey = buildVectorStoreConfigKey(model, embeddingModel, icdScope, selectedSections);
-  const sortedSections = icdScope === 'sections' ? [...selectedSections].sort((a, b) => a.localeCompare(b)) : [];
-
   return datastores.find((store) => {
-    if (store.metadata_info?.config_key === configKey) return true;
-    if (store.model_name !== model) return false;
-    if ((store.metadata_info?.embedding_model || store.model_name) !== embeddingModel) return false;
-    if (store.metadata_info?.preset_id && store.metadata_info.preset_id !== 'icd11_standard') return false;
-    if (store.metadata_info?.icd_scope && store.metadata_info.icd_scope !== icdScope) return false;
+    const metaModel = store.model_name;
+    const metaEmbedding = store.metadata_info?.embedding_model || store.model_name;
+    const metaScope = store.metadata_info?.icd_scope;
 
-    if (Array.isArray(store.metadata_info?.icd_section_ids)) {
-      const existingSections = [...store.metadata_info.icd_section_ids].sort((a, b) => String(a).localeCompare(String(b)));
+    if (metaModel !== modelName || metaEmbedding !== embeddingModelName || metaScope !== icdScope) {
+      return false;
+    }
+
+    if (icdScope === 'sections') {
+      const existingSections = Array.isArray(store.metadata_info?.icd_section_ids)
+        ? [...store.metadata_info.icd_section_ids].sort()
+        : [];
+      const sortedSections = [...selectedSections].sort();
       return existingSections.join(',') === sortedSections.join(',');
     }
 
-    const description = store.description || '';
-    return description.includes(`(${icdScope})`);
+    return true;
   });
 }
 
@@ -443,7 +513,7 @@ function formatVectorStoreScope(store: Datastore) {
       : 0;
     return `${count} selected ICD-11 Chapter 6 section${count === 1 ? '' : 's'}`;
   }
-  if (scope === 'chapter_6') return 'Full chapter with all descendant categories';
+  if (scope === 'chapter_6') return 'Full Chapter 06';
   return 'Legacy preset';
 }
 
@@ -452,10 +522,7 @@ function formatVectorStoreChapter(store: Datastore) {
   if (chapter?.code && chapter?.title) {
     return `${chapter.code} · ${chapter.title}`;
   }
-  if (store.metadata_info?.preset_id === 'icd11_standard') {
-    return 'ICD-11 Chapter 6';
-  }
-  return 'Preset source';
+  return 'ICD-11 Chapter 06';
 }
 
 function getProgressPercent(store: Datastore) {
