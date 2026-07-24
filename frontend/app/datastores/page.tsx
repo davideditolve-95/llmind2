@@ -19,6 +19,7 @@ export default function DatastoresPage() {
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [secondsTicker, setSecondsTicker] = useState(0);
 
   const load = async () => {
@@ -100,30 +101,34 @@ export default function DatastoresPage() {
 
     setCreating(true);
     setError(null);
+    setSuccessNotice(null);
     try {
       const embeddingModel = embeddingModelOverride.trim() || model;
       const duplicate = findMatchingVectorStore(datastores, model, embeddingModel, icdScope, selectedSections);
       if (duplicate) {
         const shouldOverwrite = confirm(
-          `Esiste gia un local vector store con la stessa configurazione modello/embedding e lo stesso ambito ICD-11:\n\n"${duplicate.name}"\n\nVuoi sovrascriverlo?`
+          `Esiste già un local vector store con la stessa configurazione modello/embedding e lo stesso ambito ICD-11:\n\n"${duplicate.name}"\n\nVuoi sovrascriverlo?`
         );
         if (!shouldOverwrite) {
+          setCreating(false);
           return;
         }
         await datastoreApi.delete(duplicate.id);
       }
 
       const form = new FormData();
-      form.append('name', name);
+      const dsName = name || `ICD-11 Vector Store (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+      form.append('name', dsName);
       form.append('model_name', model);
       form.append('embedding_model_name', embeddingModel);
       form.append('preset_id', 'icd11_standard');
       form.append('icd_scope', icdScope);
       form.append('icd_section_ids', icdScope === 'sections' ? selectedSections.join(',') : '');
 
-      // Close modal immediately so the user can see the "processing" state
+      const newDs = await datastoreApi.create(form);
+
       setOpen(false);
-      await datastoreApi.create(form);
+      setSuccessNotice(`✅ Creation of vector store "${newDs.name || dsName}" launched successfully! Embeddings and Chroma vector index are building in the background.`);
       setName('');
       setEmbeddingModelOverride('');
       setIcdScope('chapter_6');
@@ -160,6 +165,16 @@ export default function DatastoresPage() {
           New vector store
         </button>
       </div>
+
+      {successNotice && (
+        <div className="alert alert-success shadow-md flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircleIcon className="h-6 w-6 text-success-content shrink-0" />
+            <span className="font-semibold text-sm">{successNotice}</span>
+          </div>
+          <button className="btn btn-sm btn-ghost" onClick={() => setSuccessNotice(null)}>✕</button>
+        </div>
+      )}
 
       {error && (
         <div className="alert alert-error">

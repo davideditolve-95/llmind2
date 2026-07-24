@@ -66,11 +66,14 @@ export default function CasesPage() {
     return () => clearTimeout(timer);
   }, [load]);
 
+  const [importedMap, setImportedMap] = useState<Record<string, boolean>>({});
+
   const convertToPatient = async (caseId: string) => {
     setConvertingMap((prev) => ({ ...prev, [caseId]: true }));
     try {
       const patient = await patientsApi.convertFromCase(caseId);
       setSuccessPatient(patient);
+      setImportedMap((prev) => ({ ...prev, [caseId]: true }));
     } catch (err: any) {
       alert(`Conversion failed: ${err?.message || 'Unknown error'}`);
     } finally {
@@ -182,6 +185,30 @@ export default function CasesPage() {
               </div>
             </div>
 
+            {/* Success Conversion Notification */}
+            {successPatient && (
+              <div className="alert alert-success mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-3">
+                  <CheckCircleIcon className="h-6 w-6 text-success-content shrink-0" />
+                  <div>
+                    <div className="font-bold text-sm">🎉 DSM-5 Case converted to Patient successfully!</div>
+                    <div className="text-xs opacity-90">
+                      Patient profile created for <strong>{successPatient.name}</strong> (Age: {successPatient.age || 'N/A'}, Gender: {successPatient.gender || 'N/A'}).
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <Link href={`/chat?patientId=${successPatient.id}`} className="btn btn-xs btn-neutral font-bold">
+                    💬 Start Chat
+                  </Link>
+                  <Link href="/patients" className="btn btn-xs btn-outline font-bold">
+                    👤 View Patients
+                  </Link>
+                  <button className="btn btn-xs btn-ghost" onClick={() => setSuccessPatient(null)}>✕</button>
+                </div>
+              </div>
+            )}
+
             {/* Error Notification */}
             {error && (
               <div className="alert alert-error mb-4 flex items-center gap-3">
@@ -269,14 +296,16 @@ export default function CasesPage() {
                             Open
                           </Link>
                           <button
-                            className="btn btn-xs btn-primary text-primary-content font-semibold"
+                            className={`btn btn-xs font-semibold ${importedMap[item.id] ? 'btn-success text-success-content' : 'btn-primary text-primary-content'}`}
                             onClick={() => convertToPatient(item.id)}
                             disabled={convertingMap[item.id]}
                           >
                             {convertingMap[item.id] ? (
                               <span className="loading loading-spinner loading-[10px]" />
+                            ) : importedMap[item.id] ? (
+                              '✓ Patient Created'
                             ) : (
-                            'Import as patient'
+                              'Import as patient'
                             )}
                           </button>
                         </div>

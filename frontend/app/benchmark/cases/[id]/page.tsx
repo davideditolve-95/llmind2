@@ -59,6 +59,29 @@ export default function CaseDetailsPage() {
 
   return (
     <div className="app-page space-y-6">
+      {successPatient && (
+        <div className="alert alert-success shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <CheckCircleIcon className="h-6 w-6 text-success-content shrink-0" />
+            <div>
+              <div className="font-bold text-sm">🎉 DSM-5 Case converted to Patient successfully!</div>
+              <div className="text-xs opacity-90">
+                Patient profile created for <strong>{successPatient.name}</strong> (Age: {successPatient.age || 'N/A'}, Gender: {successPatient.gender || 'N/A'}).
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button className="btn btn-xs btn-neutral font-bold" onClick={() => router.push(`/chat?patientId=${successPatient.id}`)}>
+              💬 Start Chat
+            </button>
+            <button className="btn btn-xs btn-outline font-bold" onClick={() => router.push('/patients')}>
+              👤 View Patients
+            </button>
+            <button className="btn btn-xs btn-ghost" onClick={() => setSuccessPatient(null)}>✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-base-300 pb-5">
         <div className="space-y-2">
