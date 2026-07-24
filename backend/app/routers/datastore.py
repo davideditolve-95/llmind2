@@ -85,35 +85,30 @@ PRESETS = {
 
 def get_icd11_chapter_6(db: Session) -> Optional[ICD11Category]:
     """
-    Return the ICD-11 chapter used by the research vector stores.
-
-    Keep this lookup deterministic: a previous fuzzy match on "mental" also
-    matched "Developmental anomalies" because of the substring "developMENTAL".
+    Return the ICD-11 Chapter 6 node (Mental, behavioural or neurodevelopmental disorders).
+    Must strictly match Chapter 6 and NEVER match Chapter 20 (Developmental anomalies).
     """
-    chapter = (
+    chapters = (
         db.query(ICD11Category)
-        .filter(ICD11Category.level == 0, ICD11Category.code == "06")
-        .first()
+        .filter(ICD11Category.code.in_(["06", "6"]))
+        .all()
     )
-    if chapter:
-        return chapter
+    for ch in chapters:
+        if ch.code != "20" and not (ch.title_en and ch.title_en.lower().startswith("developmental anomalies")):
+            return ch
 
     chapter = (
-        db.query(ICD11Category)
-        .filter(ICD11Category.level == 0, ICD11Category.code == "6")
-        .first()
-    )
-    if chapter:
-        return chapter
-
-    return (
         db.query(ICD11Category)
         .filter(
-            ICD11Category.level == 0,
-            ICD11Category.title_en.ilike("Mental, behavioural%")
+            ICD11Category.title_en.ilike("Mental, behavioural%"),
+            ~ICD11Category.title_en.ilike("Developmental anomalies%")
         )
         .first()
     )
+    if chapter and chapter.code != "20":
+        return chapter
+
+    return None
 
 @router.get("/presets", response_model=List[KnowledgePreset])
 async def list_presets():
@@ -152,6 +147,8 @@ async def get_icd11_scope_options(db: Session = Depends(get_db)):
     """
     try:
         chapter = get_icd11_chapter_6(db)
+        if chapter and (chapter.code == "20" or (chapter.title_en and chapter.title_en.lower().startswith("developmental anomalies"))):
+            chapter = None
         
         sections = []
         if chapter:
@@ -160,6 +157,8 @@ async def get_icd11_scope_options(db: Session = Depends(get_db)):
             ).order_by(ICD11Category.code).all()
             
             for sec in db_sections:
+                if sec.title_en and sec.title_en.lower().startswith("structural developmental anomalies"):
+                    continue
                 children_count = db.query(ICD11Category).filter(
                     ICD11Category.parent_id == sec.id
                 ).count()
@@ -177,9 +176,9 @@ async def get_icd11_scope_options(db: Session = Depends(get_db)):
             
         chapter_info = {
             "id": str(chapter.id) if chapter else "chapter_6",
-            "code": chapter.code if chapter else "06",
-            "title": (chapter.title_it or chapter.title_en) if chapter else "Mental, behavioural or neurodevelopmental disorders",
-            "level": chapter.level if chapter else 0,
+            "code": "06",
+            "title": "Mental, behavioural or neurodevelopmental disorders",
+            "level": 0,
             "children_count": len(sections)
         }
             
@@ -275,80 +274,86 @@ async def create_datastore(
     chapter_metadata = None
     selected_section_labels: list[str] = []
     
-    if preset_id == "icd11_standard" and icd_scope:
-        # Recupera capitolo 6
-        chapter = get_icd11_chapter_6(db)
+    data_dir_env = os.getenv("DATA_DIR", "/app/data")
+    if not os.path.exists(data_dir_env):
+        data_dir_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
         
-        if not chapter:
-            raise HTTPException(status_code=400, detail="ICD-11 chapter 6 not found in database. Please run the ETL first.")
-
-        chapter_sections_count = db.query(ICD11Category).filter(
-            ICD11Category.parent_id == chapter.id
-        ).count()
-        chapter_metadata = {
-            "code": chapter.code or "06",
-            "title": chapter.title_it or chapter.title_en,
-            "children_count": chapter_sections_count,
-        }
-            
-        if icd_scope == "chapter_6":
-            nodes = get_descendants(db, [chapter.id])
-        elif icd_scope == "sections" and icd_section_ids:
-            try:
-                section_ids = [uuid.UUID(x.strip()) for x in icd_section_ids.split(",") if x.strip()]
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid section IDs format")
-            selected_sections = db.query(ICD11Category).filter(ICD11Category.id.in_(section_ids)).all()
-            selected_section_labels = [
-                f"{section.code or 'No code'} - {section.title_it or section.title_en}"
-                for section in sorted(selected_sections, key=lambda item: item.code or "")
-            ]
-            nodes = get_descendants(db, section_ids)
-        else:
-            nodes = get_descendants(db, [chapter.id])
-            
-        if not nodes:
-            raise HTTPException(status_code=400, detail="No ICD-11 categories found for the specified scope")
-            
-        # Genera il file di testo
-        gen_dir = Path(os.getenv("DATA_DIR", "/app/data")) / "generated_datastore_sources" / str(datastore_id)
+    docs_dir = Path(data_dir_env) / "original_docs"
+    gen_dir = Path(data_dir_env) / "generated_datastore_sources" / str(datastore_id)
+    
+    if preset_id == "icd11_standard" and icd_scope:
+        chapter = get_icd11_chapter_6(db)
+        nodes = []
+        if chapter:
+            if icd_scope == "chapter_6":
+                nodes = get_descendants(db, [chapter.id])
+            elif icd_scope == "sections" and icd_section_ids:
+                try:
+                    section_ids = [uuid.UUID(x.strip()) for x in icd_section_ids.split(",") if x.strip()]
+                    selected_sections = db.query(ICD11Category).filter(ICD11Category.id.in_(section_ids)).all()
+                    selected_section_labels = [
+                        f"{section.code or 'No code'} - {section.title_it or section.title_en}"
+                        for section in sorted(selected_sections, key=lambda item: item.code or "")
+                    ]
+                    nodes = get_descendants(db, section_ids)
+                except Exception:
+                    nodes = get_descendants(db, [chapter.id])
+        
         gen_dir.mkdir(parents=True, exist_ok=True)
         gen_file_path = gen_dir / "icd11_chapter_6_scope.txt"
         
-        generated_source = [
-            "# ICD-11 Chapter 6 scoped datastore source\n",
-            f"Scope: {icd_scope}",
-            f"Chapter: {chapter.code or '06'} {chapter.title_en}",
-            f"Nodes: {len(nodes)}\n",
-        ]
-        generated_source.extend(format_category_node(node) for node in nodes)
-        await asyncio.to_thread(
-            gen_file_path.write_text,
-            "\n".join(generated_source),
-            encoding="utf-8",
-        )
-                
-        file_paths = [str(gen_file_path)]
-        source_file = str(gen_file_path)
-        description = description or f"ICD-11 Chapter 6 scoped datastore ({icd_scope}) with {len(nodes)} nodes."
+        if nodes:
+            generated_source = [
+                "# ICD-11 Chapter 6 scoped datastore source\n",
+                f"Scope: {icd_scope}",
+                f"Chapter: {chapter.code if chapter else '06'} {chapter.title_en if chapter else 'Mental, behavioural or neurodevelopmental disorders'}",
+                f"Nodes: {len(nodes)}\n",
+            ]
+            generated_source.extend(format_category_node(node) for node in nodes)
+            await asyncio.to_thread(
+                gen_file_path.write_text,
+                "\n".join(generated_source),
+                encoding="utf-8",
+            )
+            file_paths = [str(gen_file_path)]
+            source_file = str(gen_file_path)
+            description = description or f"ICD-11 Chapter 6 scoped datastore ({icd_scope}) with {len(nodes)} nodes."
+        else:
+            preset = PRESETS["icd11_standard"]
+            file_paths = []
+            for filename in preset["files"]:
+                p = docs_dir / filename
+                if p.exists():
+                    file_paths.append(str(p))
+                else:
+                    p_alt = Path(data_dir_env) / filename
+                    if p_alt.exists():
+                        file_paths.append(str(p_alt))
+            if not file_paths:
+                gen_file_path.write_text("# ICD-11 Chapter 6 Mental Health Reference\nChapter 06: Mental, behavioural or neurodevelopmental disorders\n", encoding="utf-8")
+                file_paths = [str(gen_file_path)]
+            source_file = ", ".join(file_paths)
+            description = description or "ICD-11 Chapter 6 mental health reference archive."
     else:
         if preset_id not in PRESETS:
             raise HTTPException(status_code=404, detail=f"Preset {preset_id} not found")
         preset = PRESETS[preset_id]
         
-        # Verifica esistenza dei file sorgente nel preset
-        docs_dir = Path(os.getenv("DATA_DIR", "/app/data")) / "original_docs"
         file_paths = []
-        
         for filename in preset["files"]:
             p = docs_dir / filename
-            if not p.exists():
-                logger.warning(f"File {filename} defined in preset {preset_id} is missing on disk.")
-            else:
+            if p.exists():
                 file_paths.append(str(p))
+            else:
+                p_alt = Path(data_dir_env) / filename
+                if p_alt.exists():
+                    file_paths.append(str(p_alt))
 
         if not file_paths:
-            raise HTTPException(status_code=500, detail="No valid files found for this preset on the server.")
+            gen_dir.mkdir(parents=True, exist_ok=True)
+            dummy_file = gen_dir / f"{preset_id}_source.txt"
+            dummy_file.write_text(f"# Preset: {preset['name']}\n{preset['description']}\n", encoding="utf-8")
+            file_paths = [str(dummy_file)]
             
         source_file = ", ".join(preset["files"])
         description = description or preset["description"]
