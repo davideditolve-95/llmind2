@@ -384,20 +384,23 @@ function TabularContent() {
                       {row.diagnostic_criteria ? <span className="badge badge-primary bg-primary/15 text-primary border-none badge-xs font-bold py-1">Criteria</span> : null}
                     </div>
                   </td>
-                  <td className="hidden sm:table-cell align-middle">
-                    <div className="flex justify-center gap-2">
-                      <div className={`tooltip ${row.inclusions?.length ? 'text-emerald-600 scale-110 font-bold' : 'text-base-content/30'}`} data-tip={row.inclusions?.length ? `Inclusions (${row.inclusions.length})` : 'No inclusions'}>
-                        <PlusCircleIcon className="h-5.5 w-5.5" strokeWidth={row.inclusions?.length ? 2.5 : 1.5} />
-                      </div>
-                      <div className={`tooltip ${row.exclusions?.length ? 'text-rose-600 scale-110 font-bold' : 'text-base-content/30'}`} data-tip={row.exclusions?.length ? `Exclusions (${row.exclusions.length})` : 'No exclusions'}>
-                        <MinusCircleIcon className="h-5.5 w-5.5" strokeWidth={row.exclusions?.length ? 2.5 : 1.5} />
-                      </div>
-                      <div className={`tooltip ${row.differential_diagnoses?.length ? 'text-sky-600 scale-110 font-bold' : 'text-base-content/30'}`} data-tip={row.differential_diagnoses?.length ? `Comorbidities / Diff Diagnosis (${row.differential_diagnoses.length})` : 'No comorbidities'}>
-                        <ArrowsRightLeftIcon className="h-5.5 w-5.5" strokeWidth={row.differential_diagnoses?.length ? 2.5 : 1.5} />
-                      </div>
-                      <div className={`tooltip ${row.diagnostic_criteria ? 'text-primary scale-110 font-bold' : 'text-base-content/30'}`} data-tip={row.diagnostic_criteria ? 'Diagnostic Criteria available' : 'No diagnostic criteria'}>
-                        <DocumentTextIcon className="h-5.5 w-5.5" strokeWidth={row.diagnostic_criteria ? 2.5 : 1.5} />
-                      </div>
+                  <td className="align-middle">
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {row.inclusions?.length ? (
+                        <span className="badge badge-success badge-sm font-bold">Inclusions</span>
+                      ) : null}
+                      {row.exclusions?.length ? (
+                        <span className="badge badge-error badge-sm font-bold">Exclusions</span>
+                      ) : null}
+                      {row.differential_diagnoses?.length ? (
+                        <span className="badge badge-info badge-sm font-bold">Diff Diag</span>
+                      ) : null}
+                      {row.diagnostic_criteria ? (
+                        <span className="badge badge-primary badge-sm font-bold">Criteria</span>
+                      ) : null}
+                      {!row.inclusions?.length && !row.exclusions?.length && !row.differential_diagnoses?.length && !row.diagnostic_criteria && (
+                        <span className="text-xs text-base-content/40 font-mono">-</span>
+                      )}
                     </div>
                   </td>
                   <td className="hidden md:table-cell text-center align-middle font-mono font-bold text-sm text-base-content">{row.children_count}</td>
@@ -685,21 +688,23 @@ function ComparisonModal({ data, onClose }: { data: DSM5CategoryCompare; onClose
 function TagList({ title, values, type }: { title: string; values?: string[] | null; type: 'success' | 'error' | 'info' | 'neutral' }) {
   if (!values?.length) return null;
 
-  const typeClasses = {
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    error: 'bg-rose-50 text-rose-800 border-rose-200',
-    info: 'bg-sky-50 text-sky-800 border-sky-200',
-    neutral: 'bg-slate-100 text-slate-800 border-slate-200'
+  const badgeTypeClasses = {
+    success: 'badge-success',
+    error: 'badge-error',
+    info: 'badge-info',
+    neutral: 'badge-neutral'
   };
 
   return (
     <section className="bg-base-100 p-4 rounded-box border border-base-300 shadow-sm">
-      <h3 className="mb-2.5 font-bold text-base-content text-sm">{title}</h3>
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`badge ${badgeTypeClasses[type]} font-bold text-xs py-1.5 px-3`}>{title}</span>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {values.map((value, index) => (
           <span 
             key={`${value}-${index}`} 
-            className={`border text-xs font-semibold py-1 px-2.5 rounded ${typeClasses[type]}`}
+            className="badge badge-outline text-xs font-semibold py-1.5 px-2.5"
           >
             {value}
           </span>

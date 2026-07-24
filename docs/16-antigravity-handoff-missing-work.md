@@ -1,8 +1,30 @@
 # LLMind2 - Handoff operativo per Antigravity
 
-Ultimo aggiornamento: 2026-07-02
+Ultimo aggiornamento: 2026-07-24
 
 Questo documento raccoglie le modifiche ancora da completare dopo l'ultimo ciclo di lavoro su homepage, Docker, SonarQube e riorganizzazione della piattaforma. Lo scopo e permettere a un altro agente, in particolare Antigravity, di continuare senza perdere contesto.
+
+## Aggiornamento operativo 2026-07-24
+
+Sono state completate le seguenti attivita principali (UI alignment, Backend RAG/Services & Test Isolation):
+
+- **UI & Alignment Appunti**:
+  - Allineata la grafica frontend ai componenti standard DaisyUI.
+  - Sostituite le icone grafiche di Inclusioni, Esclusioni, Criteri e Diagnosi Differenziale con **Badge/Label DaisyUI** esplicite nella vista tabellare ICD-11.
+  - Evidenziati e risaltati visivamente i selettori di **Modalità (ICD-11 Mode vs Differential Mode)** nella Chat Clinica.
+  - Verificata la navigazione diretta dei casi clinici DSM-5 su pagina dedicata (senza modali sovrapposte) e barra di ricerca posizionata sopra la tabella.
+  - Chatbot fluttuante posizionato persistentemente in basso a destra su tutte le pagine (`layout.tsx`).
+
+- **Backend & Architettura**:
+  - Introdotto l'import **lazy-loading** per le dipendenze RAG/LangChain (`langchain_chroma`, `OllamaEmbeddings`, `PyPDF2`) in `ingestion.py`, `legacy_rag.py`, `datastore.py`, `dsm5.py`.
+  - Aggiornata la classe `Settings` in `backend/app/config.py` per gestire `extra="ignore"` e prevenire fallimenti su variabili d'ambiente aggiuntive nel file `.env`.
+  - Aggiunto fallback dinamico della directory dati `DATA_DIR` per l'esecuzione in ambiente di sviluppo locale fuori dai container Docker.
+
+- **Verifiche & Test Eseguiti**:
+  - `npm test -- --watchAll=false` (Frontend): **4/4 test suite passate, 12/12 test superati**.
+  - `npm run build` (Next.js): **Build di produzione completata con successo (0 errori)**.
+  - `python3 -m pytest backend/tests/unit/test_auth.py backend/tests/unit/test_datastore_scope.py`: **14/14 test passati (100% success rate)**.
+  - `python3 -m py_compile` su tutti i router e i servizi backend: **Verifica sintassi superata**.
 
 ## Aggiornamento operativo 2026-07-02
 

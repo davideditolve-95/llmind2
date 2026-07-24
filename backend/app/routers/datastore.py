@@ -20,12 +20,6 @@ from ..models.datastore import Datastore
 from ..models.icd11 import ICD11Category
 from ..services.ingestion import ingestion_service
 from ..services.ollama import ollama_service  # Serve per il build_prompt
-from langchain_chroma import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.llms import Ollama
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langchain import hub
 from ..config import get_settings
 
 router = APIRouter(prefix="/api/datastore", tags=["Datastore"])
@@ -408,6 +402,13 @@ async def ask_datastore(
         raise HTTPException(status_code=400, detail=f"Datastore is not ready (status: {datastore.status})")
 
     try:
+        from langchain_chroma import Chroma
+        from langchain_community.embeddings import OllamaEmbeddings
+        from langchain_community.llms import Ollama
+        from langchain_core.output_parsers import StrOutputParser
+        from langchain_core.runnables import RunnablePassthrough
+        from langchain import hub
+
         headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
 
         embedding_model = datastore.metadata_info.get("embedding_model") if datastore.metadata_info else None

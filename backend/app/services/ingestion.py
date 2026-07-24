@@ -10,10 +10,6 @@ from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
 
-from langchain_community.document_loaders import PDFPlumberLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
@@ -34,9 +30,14 @@ def _parse_icd11_nodes_count(file_path: str) -> int | None:
 
 class IngestionService:
     def __init__(self):
-        self.data_dir = os.getenv("DATA_DIR", "/app/data")
+        default_dir = os.getenv("DATA_DIR", "/app/data")
+        try:
+            os.makedirs(os.path.join(default_dir, "datastores"), exist_ok=True)
+            self.data_dir = default_dir
+        except OSError:
+            self.data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+            os.makedirs(os.path.join(self.data_dir, "datastores"), exist_ok=True)
         self.datastores_base_path = os.path.join(self.data_dir, "datastores")
-        os.makedirs(self.datastores_base_path, exist_ok=True)
 
     def _update_progress(
         self,
@@ -70,6 +71,11 @@ class IngestionService:
         if not datastore:
             logger.error(f"Datastore {datastore_id} non trovato nel DB")
             return
+
+        from langchain_community.document_loaders import PDFPlumberLoader, TextLoader
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        from langchain_chroma import Chroma
+        from langchain_community.embeddings import OllamaEmbeddings
 
         try:
             datastore.status = "processing"

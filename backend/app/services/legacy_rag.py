@@ -10,13 +10,6 @@ import time
 import asyncio
 import logging
 from typing import Dict, Any, Optional, List
-from langchain_chroma import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.llms import Ollama
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langchain import hub
-
 from ..config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -30,7 +23,10 @@ class LegacyRAGService:
 
     def __init__(self):
         # Percorso del vectorstore (montato in /app/data nel container)
-        self.data_dir = os.getenv("DATA_DIR", "/app/data")
+        data_dir = os.getenv("DATA_DIR", "/app/data")
+        if not os.path.exists(data_dir):
+            data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+        self.data_dir = data_dir
         self.persist_directory = os.path.join(
             self.data_dir, "vectorstore_legacy", "chroma_db-full-gemma227b"
         )
@@ -46,6 +42,13 @@ class LegacyRAGService:
         logger.info(f"Inizializzazione Legacy RAG con model {self.model_name}...")
         
         try:
+            from langchain_chroma import Chroma
+            from langchain_community.embeddings import OllamaEmbeddings
+            from langchain_community.llms import Ollama
+            from langchain_core.output_parsers import StrOutputParser
+            from langchain_core.runnables import RunnablePassthrough
+            from langchain import hub
+
             headers = {"Authorization": f"Bearer {settings.ollama_api_key}"} if settings.ollama_api_key else None
 
             # Configura gli embeddings (stessi parametri della v1)

@@ -16,3 +16,5 @@ gcp-conversational-agents/terraform/terraform.tfvars
 files/
 scratch/
 .ipynb_checkpoints/
+.coverage
+coverage.xml

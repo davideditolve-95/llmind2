@@ -6,7 +6,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-import PyPDF2
 
 from ..database import get_db
 from ..models.dsm5 import DSM5Category
@@ -106,6 +105,7 @@ def extract_dsm5_sections_fallback(disorder_name: str, code: str) -> dict[str, s
         return {}
 
     try:
+        import PyPDF2
         logger.info(f"Avvio estrazione sezioni PDF per: {disorder_name} (codice: {code})")
         reader = PyPDF2.PdfReader(pdf_path)
         

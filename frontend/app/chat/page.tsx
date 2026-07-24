@@ -415,9 +415,21 @@ export default function ChatPage() {
                   </option>
                 ))}
               </select>
-              <div className="join">
-                <button className={clsx('btn btn-sm join-item', mode === 'icd11' && 'btn-primary')} onClick={() => setMode('icd11')}>ICD-11</button>
-                <button className={clsx('btn btn-sm join-item', mode === 'wellbeing' && 'btn-primary')} onClick={() => setMode('wellbeing')}>Differential</button>
+              <div className="join border border-primary/30 p-0.5 rounded-lg bg-base-200 shadow-xs">
+                <button 
+                  className={clsx('btn btn-sm join-item font-bold transition-all', mode === 'icd11' ? 'btn-primary shadow-xs' : 'btn-ghost text-base-content/70')} 
+                  onClick={() => setMode('icd11')}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                  ICD-11 Mode
+                </button>
+                <button 
+                  className={clsx('btn btn-sm join-item font-bold transition-all', mode === 'wellbeing' ? 'btn-primary shadow-xs' : 'btn-ghost text-base-content/70')} 
+                  onClick={() => setMode('wellbeing')}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                  Differential Mode
+                </button>
               </div>
               <select className="select select-bordered select-sm" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
                 {models.map((m) => <option key={m} value={m}>{m}</option>)}
