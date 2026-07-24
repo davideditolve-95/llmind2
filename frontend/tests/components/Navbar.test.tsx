@@ -47,7 +47,7 @@ describe('Navbar Component', () => {
     expect(screen.getAllByText('Settings')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Benchmark Lab')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Clinical Knowledge')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Local Vector Stores')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Vector Stores')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Experimental')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Legacy')[0]).toBeInTheDocument()
     expect(screen.getAllByText('Legacy RAG Console')[0]).toBeInTheDocument()

@@ -611,7 +611,7 @@ export interface Datastore {
   created_at: string;
 }
 
-export const datastoreApi = {
+export const vectorstoreApi = {
   create: async (formData: FormData) => {
     const headers: Record<string, string> = {};
     if (typeof window !== 'undefined') {
@@ -621,7 +621,7 @@ export const datastoreApi = {
       }
     }
 
-    return fetch(`${API_BASE}/api/datastore/create`, {
+    return fetch(`${API_BASE}/api/vectorstore/create`, {
       method: 'POST',
       headers,
       body: formData,
@@ -634,20 +634,22 @@ export const datastoreApi = {
     });
   },
 
-  list: () => fetchApi<Datastore[]>('/api/datastore/list'),
+  list: () => fetchApi<Datastore[]>('/api/vectorstore/list'),
 
-  delete: (id: string) => fetchApi(`/api/datastore/${id}`, { method: 'DELETE' }),
+  delete: (id: string) => fetchApi(`/api/vectorstore/${id}`, { method: 'DELETE' }),
 
   ask: (id: string, query: string) =>
-    fetchApi<{ answer: string; model: string }>(`/api/datastore/${id}/ask`, {
+    fetchApi<{ answer: string; model: string }>(`/api/vectorstore/${id}/ask`, {
       method: 'POST',
       body: JSON.stringify({ query }),
     }),
 
-  getPresets: () => fetchApi<KnowledgePreset[]>('/api/datastore/presets'),
+  getPresets: () => fetchApi<KnowledgePreset[]>('/api/vectorstore/presets'),
 
-  getIcdScopeOptions: () => fetchApi<IcdScopeOptions>('/api/datastore/icd11-scope/options'),
+  getIcdScopeOptions: () => fetchApi<IcdScopeOptions>('/api/vectorstore/icd11-scope/options'),
 };
+
+export const datastoreApi = vectorstoreApi;
 
 // ─── GCP Conversational Agents ─────────────────────────────────────────────
 

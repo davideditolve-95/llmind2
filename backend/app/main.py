@@ -16,6 +16,7 @@ from .routers import cases as router_cases
 from .routers import benchmark as router_benchmark
 from .routers import legacy as router_legacy
 from .routers import datastore as router_datastore
+from .routers import vectorstore as router_vectorstore
 from .routers import system as router_system
 from .routers import gcp_agents as router_gcp_agents
 from .routers import patient as router_patient
@@ -267,6 +268,7 @@ app.include_router(router_chat.router, dependencies=[Depends(verify_token)])
 app.include_router(router_cases.router, dependencies=[Depends(verify_token)])
 app.include_router(router_benchmark.router, dependencies=[Depends(verify_token)])
 app.include_router(router_legacy.router, dependencies=[Depends(verify_token)])
+app.include_router(router_vectorstore.router, dependencies=[Depends(verify_token)])
 app.include_router(router_datastore.router, dependencies=[Depends(verify_token)])
 app.include_router(router_system.router, dependencies=[Depends(verify_token)])
 app.include_router(router_gcp_agents.router, dependencies=[Depends(verify_token)])

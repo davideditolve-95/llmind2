@@ -45,7 +45,7 @@ const nav: NavItem[] = [
     items: [
       { href: '/tabular', label: 'ICD-11 Explorer', icon: Squares2X2Icon },
       { href: '/tabular/dsm5', label: 'DSM-5 Explorer', icon: Squares2X2Icon },
-      { href: '/datastores', label: 'Local Vector Stores', icon: CircleStackIcon },
+      { href: '/vectorstores', label: 'Vector Stores', icon: CircleStackIcon },
     ],
   },
   {
