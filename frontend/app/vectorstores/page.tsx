@@ -131,6 +131,9 @@ export default function VectorStoresPage() {
 
       const newDs = await vectorstoreApi.create(form);
 
+      // Instantly update datastores state so activeStore is found immediately
+      setDatastores((prev) => [newDs, ...prev.filter((d) => d.id !== newDs.id)]);
+
       // Close creation modal & open progress modal
       setOpen(false);
       setActiveStoreId(newDs.id);
