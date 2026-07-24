@@ -13,6 +13,9 @@ import {
   PencilIcon,
   BookmarkIcon,
   CalendarIcon,
+  UserIcon,
+  ClockIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 export default function CaseDetailsPage() {
@@ -25,6 +28,13 @@ export default function CaseDetailsPage() {
   const [saved, setSaved] = useState(false);
   const [converting, setConverting] = useState(false);
   const [successPatient, setSuccessPatient] = useState<Patient | null>(null);
+
+  // Conversion progress modal state
+  const [conversionModalOpen, setConversionModalOpen] = useState(false);
+  const [conversionProgress, setConversionProgress] = useState(0);
+  const [conversionStage, setConversionStage] = useState('Extracting clinical presentation...');
+  const [convertedPatient, setConvertedPatient] = useState<Patient | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(2);
 
   useEffect(() => {
     casesApi.get(caseId).then(setCaseData).finally(() => setLoading(false));
@@ -44,10 +54,29 @@ export default function CaseDetailsPage() {
 
   const convertToPatient = async () => {
     setConverting(true);
+    setConvertedPatient(null);
+    setConversionProgress(25);
+    setConversionStage('Extracting clinical presentation & anamnesis...');
+    setRemainingSeconds(2);
+    setConversionModalOpen(true);
+
+    const progressTimer = setInterval(() => {
+      setConversionProgress((p) => (p < 85 ? p + 25 : p));
+      setRemainingSeconds((s) => (s > 1 ? s - 1 : 1));
+    }, 400);
+
     try {
+      setConversionStage('Structuring patient profile & ICD-11 grounding...');
       const patient = await patientsApi.convertFromCase(caseId);
+      clearInterval(progressTimer);
+      setConversionProgress(100);
+      setRemainingSeconds(0);
+      setConversionStage('Patient profile created successfully!');
+      setConvertedPatient(patient);
       setSuccessPatient(patient);
     } catch (err: any) {
+      clearInterval(progressTimer);
+      setConversionModalOpen(false);
       alert(`Conversion failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setConverting(false);
@@ -267,24 +296,126 @@ export default function CaseDetailsPage() {
         </div>
       </div>
 
-      {/* Success Modal */}
-      {successPatient && (
+      {/* Patient Conversion Progress & Estimation Modal */}
+      {conversionModalOpen && (
         <div className="modal modal-open">
-          <div className="modal-box bg-base-100 border border-base-300">
-            <h3 className="font-bold text-lg text-success">Conversion Successful!</h3>
-            <p className="py-4 text-base-content/80">
-              DSM-5 Clinical Case successfully imported. Patient profile created for <strong>{successPatient.name}</strong> (Age: {successPatient.age || 'N/A'}, Gender: {successPatient.gender || 'N/A'}).
-            </p>
-            <div className="modal-action">
-              <button className="btn btn-ghost" onClick={() => setSuccessPatient(null)}>Close</button>
-              <button className="btn btn-outline" onClick={() => router.push('/patients')}>Go to Patients</button>
-              <button className="btn btn-primary" onClick={() => {
-                const pid = successPatient.id;
-                setSuccessPatient(null);
-                router.push(`/chat?patientId=${pid}`);
-              }}>
-                Start Chat
+          <div className="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
+            <div className="flex items-start justify-between border-b border-base-200 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-lg text-base-content flex items-center gap-2">
+                  <UserIcon className="h-5 w-5 text-primary" />
+                  Patient Conversion Progress
+                </h3>
+                <p className="text-xs text-base-content/60 mt-0.5">{caseData.title}</p>
+              </div>
+              <button
+                className="btn btn-xs btn-ghost btn-circle"
+                onClick={() => {
+                  setConversionModalOpen(false);
+                  setConvertedPatient(null);
+                }}
+              >
+                <XMarkIcon className="h-4 w-4" />
               </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Progress Bar & Stage */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="uppercase tracking-wider text-primary">{conversionStage}</span>
+                  <span className="text-base-content">{conversionProgress}%</span>
+                </div>
+
+                <progress
+                  className={`progress ${convertedPatient ? 'progress-success' : 'progress-primary'} h-3 w-full`}
+                  value={conversionProgress}
+                  max={100}
+                />
+
+                {!convertedPatient && (
+                  <div className="flex items-center justify-between pt-2 border-t border-primary/10 text-xs font-semibold text-primary">
+                    <span className="flex items-center gap-1.5">
+                      <ClockIcon className="h-4 w-4 animate-spin" />
+                      Estimated time remaining
+                    </span>
+                    <span className="font-mono text-sm">~{remainingSeconds} second{remainingSeconds === 1 ? '' : 's'}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Final State Details */}
+              {convertedPatient && (
+                <div className="space-y-3">
+                  <div className="alert alert-success shadow-xs flex items-center gap-3 text-xs font-bold">
+                    <CheckCircleIcon className="h-5 w-5 text-success-content shrink-0" />
+                    <span>🎉 Patient profile generated from DSM-5 clinical case!</span>
+                  </div>
+
+                  <div className="text-xs space-y-1.5 bg-base-200/60 p-3 rounded-lg border border-base-300">
+                    <div className="flex justify-between">
+                      <span className="text-base-content/60">Patient Name:</span>
+                      <span className="font-bold text-base-content">{convertedPatient.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/60">Age:</span>
+                      <span className="font-bold text-base-content">{convertedPatient.age ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/60">Gender:</span>
+                      <span className="font-bold text-base-content">{convertedPatient.gender || 'N/A'}</span>
+                    </div>
+                    {convertedPatient.behaviors && (
+                      <div className="mt-1 pt-1 border-t border-base-300">
+                        <span className="text-base-content/60 block">Clinical Presentation / Behaviors:</span>
+                        <p className="font-medium text-base-content/90 mt-0.5 line-clamp-2">{convertedPatient.behaviors}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-action mt-6 border-t border-base-200 pt-3">
+              {convertedPatient ? (
+                <div className="flex gap-2 w-full justify-end">
+                  <button
+                    className="btn btn-ghost btn-sm font-bold"
+                    onClick={() => {
+                      setConversionModalOpen(false);
+                      setConvertedPatient(null);
+                    }}
+                  >
+                    Close
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm font-bold"
+                    onClick={() => {
+                      setConversionModalOpen(false);
+                      router.push('/patients');
+                    }}
+                  >
+                    👤 View Patients
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm font-bold gap-1.5"
+                    onClick={() => {
+                      setConversionModalOpen(false);
+                      router.push(`/chat?patientId=${convertedPatient.id}`);
+                    }}
+                  >
+                    <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                    Start Chat
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="btn btn-outline btn-sm w-full font-bold"
+                  onClick={() => setConversionModalOpen(false)}
+                >
+                  Run in background
+                </button>
+              )}
             </div>
           </div>
         </div>
