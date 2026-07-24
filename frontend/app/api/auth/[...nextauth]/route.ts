@@ -81,6 +81,17 @@ export const authOptions: NextAuthOptions = {
       session.error = token.error as string | undefined;
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Consente URL di callback relativi
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Consente solo URL appartenenti al medesimo dominio originario di dev/prod
+      try {
+        if (new URL(url).origin === new URL(baseUrl).origin) return url;
+      } catch (e) {
+        // ignora URL malformati
+      }
+      return baseUrl;
+    },
   },
   pages: {
     signIn: "/auth/signin",
