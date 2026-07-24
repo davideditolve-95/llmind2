@@ -34,7 +34,8 @@ export default function CaseDetailsPage() {
   const [conversionProgress, setConversionProgress] = useState(0);
   const [conversionStage, setConversionStage] = useState('Extracting clinical presentation...');
   const [convertedPatient, setConvertedPatient] = useState<Patient | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState(2);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [estimatedRemainingSeconds, setEstimatedRemainingSeconds] = useState(8);
 
   useEffect(() => {
     casesApi.get(caseId).then(setCaseData).finally(() => setLoading(false));
@@ -55,22 +56,34 @@ export default function CaseDetailsPage() {
   const convertToPatient = async () => {
     setConverting(true);
     setConvertedPatient(null);
-    setConversionProgress(25);
-    setConversionStage('Extracting clinical presentation & anamnesis...');
-    setRemainingSeconds(2);
+    setConversionProgress(10);
+    setConversionStage('Parsing clinical presentation & extracting demographics with Ollama...');
+    setElapsedSeconds(0);
+    setEstimatedRemainingSeconds(8);
     setConversionModalOpen(true);
 
     const progressTimer = setInterval(() => {
-      setConversionProgress((p) => (p < 85 ? p + 25 : p));
-      setRemainingSeconds((s) => (s > 1 ? s - 1 : 1));
-    }, 400);
+      setElapsedSeconds((e) => {
+        const nextElapsed = e + 1;
+        if (nextElapsed <= 3) {
+          setConversionStage('Parsing clinical presentation & extracting demographics with Ollama...');
+        } else if (nextElapsed <= 6) {
+          setConversionStage('Structuring patient traits & historical symptoms via Ollama LLM...');
+        } else {
+          setConversionStage('Registering patient profile & grounding ICD-11 context...');
+        }
+        return nextElapsed;
+      });
+
+      setEstimatedRemainingSeconds((r) => (r > 1 ? r - 1 : 1));
+      setConversionProgress((p) => (p < 90 ? p + 12 : p));
+    }, 1000);
 
     try {
-      setConversionStage('Structuring patient profile & ICD-11 grounding...');
       const patient = await patientsApi.convertFromCase(caseId);
       clearInterval(progressTimer);
       setConversionProgress(100);
-      setRemainingSeconds(0);
+      setEstimatedRemainingSeconds(0);
       setConversionStage('Patient profile created successfully!');
       setConvertedPatient(patient);
       setSuccessPatient(patient);
@@ -337,9 +350,9 @@ export default function CaseDetailsPage() {
                   <div className="flex items-center justify-between pt-2 border-t border-primary/10 text-xs font-semibold text-primary">
                     <span className="flex items-center gap-1.5">
                       <ClockIcon className="h-4 w-4 animate-spin" />
-                      Estimated time remaining
+                      Ollama LLM Processing ({elapsedSeconds}s elapsed)
                     </span>
-                    <span className="font-mono text-sm">~{remainingSeconds} second{remainingSeconds === 1 ? '' : 's'}</span>
+                    <span className="font-mono text-sm">~{estimatedRemainingSeconds}s remaining</span>
                   </div>
                 )}
               </div>

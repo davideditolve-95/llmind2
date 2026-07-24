@@ -26,22 +26,32 @@ router = APIRouter(prefix="/api/patients", tags=["Patients"])
 SYSTEM_PROMPT_PATIENT_EXTRACTION = """You are an expert clinical psychologist and data extraction assistant.
 Your task is to analyze the provided clinical case presentation and extract structured demographic and clinical information to build a patient profile.
 
+Important rules for extraction:
+1. "name": Extract the patient's real name if present in the text (e.g. "Arthur P.", "Mary Smith"). If no specific name is mentioned in the text, generate a realistic patient name (e.g., "Arthur Pendelton", "Elena R.") appropriate for a clinical patient profile. NEVER output generic labels like "Introduction", "Case Title", or "N/A" as the name.
+2. "age": Integer age (e.g., 42), or null if not specified.
+3. "gender": "Male", "Female", or "Other" (or null if not specified).
+4. "specific_traits": Detailed description of specific psychological traits, personality features, mood, or general attitude described in the case.
+5. "behaviors": Description of clinical behaviors, symptoms, habits, repetitiveness, and functional impairments shown by the patient.
+6. "clinical_history": Anamnesis, onset of symptoms, previous treatments, family history, and duration of the condition.
+
 You MUST respond ONLY with a valid JSON object matching this schema:
 {
-  "name": "Full Name (invent a realistic, standard name suited to the case context if not explicitly mentioned in the text)",
-  "age": 42 (integer, or null if not specified or impossible to estimate),
-  "gender": "Male/Female/Other (or null if not specified)",
-  "specific_traits": "Detailed description of specific psychological traits, personality features, mood, or general attitude described in the case",
-  "behaviors": "Description of clinical behaviors, symptoms, habits, repetitiveness, and functional impairments shown by the patient",
-  "clinical_history": "Anamnesis, onset of symptoms, previous treatments, family history, and duration of the condition"
+  "name": "Extract real name or generate a realistic clinical patient name",
+  "age": 42,
+  "gender": "Male",
+  "specific_traits": "Traits description",
+  "behaviors": "Behaviors description",
+  "clinical_history": "History description"
 }
 
-Do not include any conversational formatting, markdown blocks (like ```json), or explanatory text. Return ONLY the raw JSON object."""
+Do not include any conversational formatting or markdown text. Return ONLY the raw JSON object."""
 
 
 def _clean_and_parse_json(content: str) -> dict:
     """Rimuove eventuali blocchi markdown e esegue il parsing JSON in modo robusto."""
     cleaned = content.strip()
+    if not cleaned:
+        return {}
     
     # Riconosce formati tipo ```json { ... } ```
     match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', cleaned, re.DOTALL)
@@ -54,7 +64,17 @@ def _clean_and_parse_json(content: str) -> dict:
         if start != -1 and end != -1:
             cleaned = cleaned[start:end+1]
             
-    return json.loads(cleaned)
+    try:
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.warning(f"Failed to parse JSON directly ({e}). Attempting regex field extraction...")
+        res = {}
+        for key in ["name", "age", "gender", "specific_traits", "behaviors", "clinical_history"]:
+            pattern = rf'"{key}"\s*:\s*"([^"]+)"|"{key}"\s*:\s*(\d+)'
+            kmatch = re.search(pattern, content, re.IGNORECASE)
+            if kmatch:
+                res[key] = kmatch.group(1) if kmatch.group(1) is not None else int(kmatch.group(2))
+        return res
 
 
 def _blank_to_none(value: Any) -> Any:
@@ -87,10 +107,40 @@ def _normalize_age(value: Any) -> Optional[int]:
     return None
 
 
-def _fallback_patient_name(case: DSM5Case) -> str:
-    case_label = case.case_number or "Estratto"
-    title = _blank_to_none(case.title)
-    return f"Paziente da Caso {case_label}" if not title else f"Paziente da Caso {case_label}: {title}"
+def _extract_patient_name(case: DSM5Case, extracted_data: dict) -> str:
+    """Estrae o genera un nome paziente clinico valido senza mai usare etichette generiche come 'Introduction'."""
+    raw_name = _first_non_blank(
+        extracted_data,
+        "name",
+        "full_name",
+        "patient_name",
+        "nome",
+    )
+    
+    generic_names = {"introduction", "case", "patient", "n/a", "unknown", "none", "case title", "full name", "dsm-5 case", "dsm5 case"}
+    if raw_name and raw_name.lower().strip() not in generic_names and not raw_name.lower().startswith("case "):
+        return raw_name.strip()
+
+    # Tentativo estrazione regex dall'anamnesi (es. "Arthur P., a 45-year-old male", "Mr. Henderson")
+    anamnesis = case.anamnesis or ""
+    
+    match_age = re.search(r'\b([A-Z][a-z]+(?:\s+[A-Z]\.|\s+[A-Z][a-z]+)?)\b(?=,\s*(?:a\s*)?\d{1,2}[-\s]*year[-\s]*old)', anamnesis)
+    if match_age:
+        extracted = match_age.group(1).strip()
+        if len(extracted) > 2 and extracted.lower() not in generic_names:
+            return extracted
+
+    match_title = re.search(r'\b(Mr\.|Ms\.|Mrs\.|Dr\.)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b', anamnesis)
+    if match_title:
+        return f"{match_title.group(1)} {match_title.group(2)}"
+
+    title = (case.title or "").strip()
+    if title and title.lower() not in generic_names and not title.lower().startswith("introduction"):
+        case_num = case.case_number or "DSM-5"
+        return f"{title} (Caso {case_num})"
+
+    case_label = case.case_number or str(case.id)[:8]
+    return f"Paziente Clinico (Caso {case_label})"
 
 
 def _normalize_extracted_patient_data(extracted_data: dict, case: DSM5Case) -> dict:
@@ -98,13 +148,7 @@ def _normalize_extracted_patient_data(extracted_data: dict, case: DSM5Case) -> d
     Normalizza output LLM non perfetti e garantisce fallback dal caso DSM-5.
     Non modifica il caso benchmark: crea solo un profilo operativo per l'utente.
     """
-    name = _first_non_blank(
-        extracted_data,
-        "name",
-        "full_name",
-        "patient_name",
-        "nome",
-    ) or _fallback_patient_name(case)
+    name = _extract_patient_name(case, extracted_data)
 
     age = _normalize_age(_first_non_blank(extracted_data, "age", "eta", "età"))
     gender = _first_non_blank(extracted_data, "gender", "sex", "sesso", "genere")
